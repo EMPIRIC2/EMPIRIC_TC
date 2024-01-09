@@ -25,7 +25,7 @@ def sampleStorm(basin='EP'):
 
     total_years = 1  # set the total number of years you'd like to simulate
 
-    TC_data = []  # This list is composed of: [year,storm number,lat,lon, landfall]
+    TC_data = []  # This list is composed of: [year, storm number, genesis_month, lat,lon, landfall]
     # ==============================================================================
     #     Step 2: load grid with weighted genesis counts
     # ==============================================================================
@@ -44,10 +44,10 @@ def sampleStorm(basin='EP'):
             latlist, lonlist, landfalllist = TC_movement(lon_genesis_list, lat_genesis_list, basin)
             #print(latlist, lonlist, landfalllist)
 
-            TC_data += [[year, storm_number, latlist[storm_number], lonlist, landfalllist] for storm_number in range(storms_per_year)]
+            TC_data += [[year, storm_number, genesis_month[storm_number], latlist[storm_number], lonlist, landfalllist] for storm_number in range(storms_per_year)]
 
             #TC_data = TC_pressure(basin, latlist, lonlist, landfalllist, year, storms_per_year, genesis_month, TC_data)
-
+    print(TC_data)
     return TC_data
     #TC_data = np.array
 
