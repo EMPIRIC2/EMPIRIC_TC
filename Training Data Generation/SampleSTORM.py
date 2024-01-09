@@ -25,13 +25,13 @@ def sampleStorm(basin='EP'):
 
     total_years = 1  # set the total number of years you'd like to simulate
 
-    TC_data = []  # This list is composed of: [year,storm number,lat,lon,pressure,wind,rmax,category,Holland B parameter,precipitation,landfall flag]
+    TC_data = []  # This list is composed of: [year,storm number,lat,lon, landfall]
     # ==============================================================================
     #     Step 2: load grid with weighted genesis counts
     # ==============================================================================
     for year in range(0, total_years):
         storms_per_year, genesis_month, lat0, lat1, lon0, lon1 = Basins_WMO(basin)
-        print(storms_per_year)
+        #print("genesis month", genesis_month)
         if storms_per_year > 0:
             # ==============================================================================
             # Step 3: Generate (list of) genesis locations
@@ -43,8 +43,12 @@ def sampleStorm(basin='EP'):
             # ==============================================================================
             latlist, lonlist, landfalllist = TC_movement(lon_genesis_list, lat_genesis_list, basin)
             #print(latlist, lonlist, landfalllist)
+
+            TC_data += [[year, storm_number, latlist[storm_number], lonlist, landfalllist] for storm_number in range(storms_per_year)]
+
             #TC_data = TC_pressure(basin, latlist, lonlist, landfalllist, year, storms_per_year, genesis_month, TC_data)
 
+    return TC_data
     #TC_data = np.array
 
     #np.savetxt(os.path.join(__location__, 'STORM_DATA_IBTRACS_' + str(basin) + '_' + str(total_years) + '_YEARS_' + str(
