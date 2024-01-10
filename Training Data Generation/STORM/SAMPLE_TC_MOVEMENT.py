@@ -89,7 +89,7 @@ def Check_if_landfall(lat,lon,lat1,lon0,land_mask):
 
     return l
   
-def TC_movement(lon_genesis_list,lat_genesis_list,basin): 
+def TC_movement(lon_genesis_list,lat_genesis_list,basin, constants_all):
     """
     Parameters
     ----------
@@ -107,9 +107,7 @@ def TC_movement(lon_genesis_list,lat_genesis_list,basin):
     basins=['EP','NA','NI','SI','SP','WP']
     basin_name = dict(zip(basins,[0,1,2,3,4,5]))
     idx=basin_name[basin]
-    
-    constants_all=np.load(os.path.join(__location__,'TRACK_COEFFICIENTS.npy'),allow_pickle=True,encoding='latin1').item()
-    print(constants_all)
+
     land_mask=np.loadtxt(os.path.join(__location__,'Land_ocean_mask_'+str(basin)+'.txt'))
     
     constants=constants_all[idx]

@@ -8,7 +8,7 @@ from STORM.SAMPLE_TC_MOVEMENT import TC_movement
 from STORM.SELECT_BASIN import Basins_WMO
 import numpy as np
 
-def sampleStorm(total_years, basin='EP'):
+def sampleStorm(total_years, genesis_matrices, movement_coefficients, basin='EP'):
     """
     rewrite of STORM.MASTER to only get TC tracks without intensity data
 
@@ -35,12 +35,12 @@ def sampleStorm(total_years, basin='EP'):
             # ==============================================================================
             # Step 3: Generate (list of) genesis locations
             # ==============================================================================
-            lon_genesis_list, lat_genesis_list = Startingpoint(storms_per_year, genesis_month, basin)
+            lon_genesis_list, lat_genesis_list = Startingpoint(storms_per_year, genesis_month, basin, genesis_matrices)
 
             # ==============================================================================
             # Step 4: Generate initial conditions
             # ==============================================================================
-            latlist, lonlist, landfalllist = TC_movement(lon_genesis_list, lat_genesis_list, basin)
+            latlist, lonlist, landfalllist = TC_movement(lon_genesis_list, lat_genesis_list, basin, movement_coefficients)
             print(lonlist)
             TC_data += [[year, storm_number, genesis_month[storm_number], latlist[storm_number], lonlist[storm_number], landfalllist] for storm_number in range(storms_per_year)]
 

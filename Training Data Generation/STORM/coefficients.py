@@ -113,7 +113,7 @@ def track_coefficients():
         Dlon0_group=df.groupby(["latbin"])['Dlon0'].apply(list)
         Dlon1_group=df.groupby(["latbin"])['Dlon1'].apply(list)
         Lat_group=df.groupby(["latbin"])['Latitude'].apply(list)
-        bins_values=np.unique(df["latbin"])   
+        bins_values=np.unique(df["latbin"])
     
         coeff_array=[[0]]*len(latspace)
         count=0  
@@ -126,7 +126,7 @@ def track_coefficients():
                 Dlat1=Dlat1_group[lat]
                 Dlon0=Dlon0_group[lat]
                 Dlon1=Dlon1_group[lat]  
-                 
+
                 try:
                     opt,l=curve_fit(LONFUNCTION,Dlon0,Dlon1)
                     [a0,a1]=opt

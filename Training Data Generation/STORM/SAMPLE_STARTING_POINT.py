@@ -106,7 +106,10 @@ def Check_if_landfall(lat,lon,basin,land_mask):
     l=land_mask[y,x]   
     return l
 
-def Startingpoint(no_storms,monthlist,basin):
+def getGenesisMatrix(grid_genesis_matrices, month):
+    return grid_genesis_matrices[month]
+
+def Startingpoint(no_storms,monthlist,basin, grid_genesis_matrices):
     """
     This function samples the genesis locations of every TC in a given year
 
@@ -122,31 +125,27 @@ def Startingpoint(no_storms,monthlist,basin):
     lat_coordinates : list of latitude coordinates of genesis locations
 
     """
-    basins=['EP','NA','NI','SI','SP','WP']
-    basin_name = dict(zip(basins,[0,1,2,3,4,5]))
-    idx=basin_name[basin]
-    
+
     lon_coordinates=[]
     lat_coordinates=[]
     weighted_list_index=[]
     weighted_list=[]
-    
-        
+
+
     s,monthdummy,lat0,lat1,lon0,lon1=Basins_WMO(basin)
-  
+
     land_mask=np.loadtxt(os.path.join(__location__,'Land_ocean_mask_'+str(basin)+'.txt'))
 
     for month in monthlist:
-        
-        grid_copy=np.loadtxt(os.path.join(__location__,'GRID_GENESIS_MATRIX_'+str(idx)+'_'+str(month)+'.txt'))
-    
-    
+
+        grid_copy = getGenesisMatrix(grid_genesis_matrices, month)
+
         grid_copy=np.array(grid_copy)
-        grid_copy=np.round(grid_copy,1)   
+        grid_copy=np.round(grid_copy,1)
         #==============================================================================
         # Make a list with weighted averages. The corresponding grid-index is calculated as len(col)*row_index+col_index
-        #============================================================================== 
-    
+        #==============================================================================
+
         for i in range(0,len(grid_copy[:,0])):
             for j in range(0,len(grid_copy[0,:])):
                 if grid_copy[i,j]>-1:
@@ -156,8 +155,8 @@ def Startingpoint(no_storms,monthlist,basin):
                 if value>0.:
                     for k in range(0,value):
                         weighted_list.append(value)
-                        weighted_list_index.append(i*(len(grid_copy[0,:])-1)+j)    
-                                
+                        weighted_list_index.append(i*(len(grid_copy[0,:])-1)+j)
+
         #==============================================================================
         # The starting longitude and latitude coordinates 
         #==============================================================================
