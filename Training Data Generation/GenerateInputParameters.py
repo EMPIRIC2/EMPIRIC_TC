@@ -38,7 +38,7 @@ def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
     '''
 
     genesisLocationMatrices = {}
-    print("monthlist", monthlist)
+
     for month in monthlist:
         grid = getObservedGenesisLocations(basin, month)
 
@@ -67,7 +67,7 @@ def randomizedMovementCoefficients():
             coefficientData[key][i][8] = np.abs(coefficientData[key][i][8])
             coefficientData[key][i][10] = np.abs(coefficientData[key][i][10])
             coefficientData[key][i][12] = np.abs(coefficientData[key][i][12])
-    print(coefficientData)
+
     return coefficientData
 
 

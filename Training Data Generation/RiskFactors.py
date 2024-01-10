@@ -77,7 +77,6 @@ def averageLandfallsPerMonth(TC_data, basin, total_years, resolution):
     for i, storm in enumerate(TC_data):
         # for each track
         # create set of which grid cells it made landfall in
-        print("storm", storm)
         landfallGrids = set()
 
         for timestep, val in enumerate(zip(storm[3], storm[4], storm[5])):
@@ -87,7 +86,6 @@ def averageLandfallsPerMonth(TC_data, basin, total_years, resolution):
             if landfall:
                 landfallGrids.add(getGridCell(lat, lon, resolution, basin))
 
-        print(landfallGrids)
 
         for landfall in landfallGrids:
             latbin, lonbin = landfall

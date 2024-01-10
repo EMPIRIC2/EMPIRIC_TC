@@ -183,8 +183,7 @@ def track_coefficients():
                             count=count+1        
     
         coefficients_list[idx]=coeff_array      
-        print(coefficients_list[idx])
-  
+
     np.save(os.path.join(__location__,'TRACK_COEFFICIENTS.npy'),coefficients_list)                    
 
 

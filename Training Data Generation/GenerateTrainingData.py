@@ -2,13 +2,10 @@
 from SampleSTORM import sampleStorm
 from RiskFactors import averageLandfallsPerMonth
 from GenerateInputParameters import generateInputParameters
-import numpy as np
-from matplotlib import pyplot as plt
-
 
 monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,3,4,11,12],[5,6,7,8,9,10,11]]
 
-def generateTrainingData(total_years, basin='EP'):
+def generateOneTrainingDataSample(total_years, basin='EP'):
     '''
     Generate ML training data
 
@@ -34,3 +31,12 @@ def generateTrainingData(total_years, basin='EP'):
     outputs = [avg_landfalls_per_month[:,:,month] for month in monthlist]
 
     return inputs, outputs
+
+def generateTrainingData(total_years, n_samples, basin='EP'):
+    all_inputs = []
+    all_outputs = []
+    for i in range(n_samples):
+        inputs, outputs = generateOneTrainingDataSample(total_years, basin)
+        all_inputs += inputs
+        all_outputs += outputs
+    return all_inputs, all_outputs

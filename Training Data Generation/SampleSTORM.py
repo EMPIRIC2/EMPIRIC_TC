@@ -41,7 +41,6 @@ def sampleStorm(total_years, genesis_matrices, movement_coefficients, basin='EP'
             # Step 4: Generate initial conditions
             # ==============================================================================
             latlist, lonlist, landfalllist = TC_movement(lon_genesis_list, lat_genesis_list, basin, movement_coefficients)
-            print(lonlist)
             TC_data += [[year, storm_number, genesis_month[storm_number], latlist[storm_number], lonlist[storm_number], landfalllist] for storm_number in range(storms_per_year)]
 
     return TC_data
