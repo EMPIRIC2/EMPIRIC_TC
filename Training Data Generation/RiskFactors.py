@@ -89,7 +89,7 @@ def averageLandfallsPerMonth(TC_data, basin, total_years, resolution):
 
         for landfall in landfallGrids:
             latbin, lonbin = landfall
-            grid[latbin][lonbin][storm[2]] += 1/total_years
+            grid[latbin][lonbin][storm[2]] += 1
 
     return grid
 

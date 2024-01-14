@@ -34,19 +34,15 @@ def monthly_mean_pressure(data):
     data : dataset with monthly mean MSLP values for 38 years of data (ERA-5)
 
     """
-    mslp=data.msl.values
-    lon=data.longitude.values
-    lat=data.latitude.values
-    
+
+    data_1980_2018_monthly_means = data.sel(time=slice('1980-01-01', '2018-01-01')).groupby('time.month').mean('time')
+
+    mean_mslp=data_1980_2018_monthly_means.msl.values/100
+    print(mean_mslp)
+    print(mean_mslp.shape)
     for month in range(0,12):
-        mean_matrix=np.zeros((len(lat),len(lon)))
-        
-        for t in range(0,38):    
-            #loop over 38 years
-            mean_matrix=mean_matrix+mslp[month+t*12,:,:]/100.
-            
-        mean_matrix=mean_matrix/38.                         
-        np.savetxt(os.path.join(__location__,'Monthly_mean_MSLP_'+str(month+1)+'.txt'),mean_matrix)
+
+        np.savetxt(os.path.join(__location__,'Monthly_mean_MSLP_'+str(month+1)+'.txt'),mean_mslp[month,0,:,:])
 
 def monthly_mean_sst(data):
     """
@@ -57,18 +53,13 @@ def monthly_mean_sst(data):
     data : dataset with monthly mean SST values for 38 years of data (ERA-5)
 
     """
-    sst=data.sst.values
-    lon=data.longitude.values
-    lat=data.latitude.values
-    
+
+    data_1980_2018_monthly_means = data.sel(time=slice('1980-01-01', '2018-01-01')).groupby('time.month').mean('time')
+
+    mean_sst=data_1980_2018_monthly_means.sst.values
+
     for month in range(0,12):
-        mean_matrix=np.zeros((len(lat),len(lon)))
-        
-        for t in range(0,38):
-            mean_matrix=mean_matrix+sst[month+t*12,:,:]
-    
-        mean_matrix=mean_matrix/38.
-        np.savetxt(os.path.join(__location__,'Monthly_mean_SST_'+str(month+1)+'.txt'),mean_matrix)
+        np.savetxt(os.path.join(__location__,'Monthly_mean_SST_'+str(month+1)+'.txt'),mean_sst[month,0,:,:])
 
 def check_season(idx,month):
     """
@@ -129,7 +120,7 @@ def wind_pressure_relationship():
     monthlist=np.load(os.path.join(__location__,'MONTHLIST_INTERP.npy'),allow_pickle=True).item()
     basinlist=np.load(os.path.join(__location__,'BASINLIST_INTERP.npy'),allow_pickle=True).item()
 
-    data=xr.open_dataset(os.path.join(__location__,'Monthly_mean_SST.nc'))
+    data=xr.open_dataset(os.path.join(__location__,'SST_monthlyavg_ERA5_1959_2022.nc'))
     
     lon=data.longitude.values
     lat=data.latitude.values
@@ -146,7 +137,7 @@ def wind_pressure_relationship():
             check=check_season(idx,month) 
             print(idx,month,check)
             if check==1:
-                MSLP=np.loadtxt(os.path.join(__location__,'Monthly_mean_MSLP_'+str(month)+'.txt'))                
+                MSLP=np.loadtxt(os.path.join(__location__,'Monthly_mean_MSLP_'+str(month)+'.txt'))
                 for j in range(0,len(latlist[i])):
                     #Wind needs to be greater than 15 kt.                         
                         latn=np.abs(lat-latlist[i][j]).argmin()
@@ -218,16 +209,16 @@ def calculate_MPI_fields():
     # =============================================================================
     # Calculate the MPI and SST - NOTE: THIS PART TAKES VERY LOOONG
     # =============================================================================
-    data=xr.open_dataset(os.path.join(__location__,'Monthly_mean_SST.nc'))
+    data=xr.open_dataset(os.path.join(__location__,'SST_monthlyavg_ERA5_1959_2022.nc'))
      
     lon=data.longitude.values
     lat=data.latitude.values
     data.close()
-    latlist=np.load(os.path.join(__location__,'LATLIST_INTERP.npy')).item()
-    lonlist=np.load(os.path.join(__location__,'LONLIST_INTERP.npy')).item()
-    monthlist=np.load(os.path.join(__location__,'MONTHLIST_INTERP.npy')).item()
-    basinlist=np.load(os.path.join(__location__,'BASINLIST_INTERP.npy')).item()
-    preslist=np.load(os.path.join(__location__,'PRESLIST_INTERP.npy')).item()
+    latlist=np.load(os.path.join(__location__,'LATLIST_INTERP.npy'), allow_pickle=True).item()
+    lonlist=np.load(os.path.join(__location__,'LONLIST_INTERP.npy'), allow_pickle=True).item()
+    monthlist=np.load(os.path.join(__location__,'MONTHLIST_INTERP.npy'), allow_pickle=True).item()
+    basinlist=np.load(os.path.join(__location__,'BASINLIST_INTERP.npy'), allow_pickle=True).item()
+    preslist=np.load(os.path.join(__location__,'PRESLIST_INTERP.npy'), allow_pickle=True).item()
 
     sst_list={i:[] for i in range(0,6)}
     month_list={i:[] for i in range(0,6)}
@@ -239,7 +230,7 @@ def calculate_MPI_fields():
     
     for month in range(1,13):
         MSLP_field_all[month]=np.loadtxt(os.path.join(__location__,'Monthly_mean_MSLP_'+str(month)+'.txt'))
-        SST_field_all[month]=np.loadtxt(os.path.join(__location__,'Monthly_mean_SST_'+str(month)+'.txt'))
+        SST_field_all[month]=np.loadtxt(os.path.join(__location__,'Monthly_mean_SST_'+str(month)+'.txt'))*100
     
     for i in range(len(latlist)):
         if len(preslist[i])>0:
@@ -302,7 +293,7 @@ def calculate_MPI_fields():
               
             droplist=df1.groupby(["sstbin"]).agg({"Drop":"max"})["Drop"]   
             sstlist=df1.groupby(["sstbin"]).agg({"SST":"mean"})["SST"]       
-            
+            print(sstlist)
             try:         
                 opt,l=curve_fit(MPI_function,sstlist,droplist,maxfev=5000)
                 [a,b,c]=opt
@@ -383,7 +374,7 @@ def pressure_coefficients():
     """
     Calculate the pressure coefficients
     """
-    data=xr.open_dataset(os.path.join(__location__,'Monthly_mean_SST.nc'))
+    data=xr.open_dataset(os.path.join(__location__,'SST_monthlyavg_ERA5_1959_2022.nc'))
     
     lon=data.longitude.values
     lat=data.latitude.values

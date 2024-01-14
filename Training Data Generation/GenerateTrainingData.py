@@ -2,10 +2,26 @@
 from SampleSTORM import sampleStorm
 from RiskFactors import averageLandfallsPerMonth
 from GenerateInputParameters import generateInputParameters
+import os
+import numpy as np
+import time
+
+import tensorflow as tf
 
 monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,3,4,11,12],[5,6,7,8,9,10,11]]
 
-def generateOneTrainingDataSample(total_years, basin='EP'):
+def convert_to_flat_inputs(genesis_matrix, movement_coefficients):
+
+    # flatten and concatenate the inputs
+    inputs = np.concatenate((genesis_matrix.flatten(), movement_coefficients.flatten()))
+
+    return inputs
+
+def convert_to_flat_outputs(avg_landfalls_per_month):
+    return avg_landfalls_per_month.flatten()
+
+
+def generateOneTrainingDataSample(total_years, convert_inputs_to_nn_format, convert_outputs_to_nn_format, basin='SP'):
     '''
     Generate ML training data
 
@@ -24,19 +40,56 @@ def generateOneTrainingDataSample(total_years, basin='EP'):
 
     tc_data = sampleStorm(total_years, genesis_matrices, movement_coefficients)
 
-    avg_landfalls_per_month = averageLandfallsPerMonth(tc_data, 'EP', total_years, 1)
+    avg_landfalls_per_month = averageLandfallsPerMonth(tc_data, basin, total_years, 1)
 
-    ## split up input, output data for each month
-    inputs = [(genesis_matrices[month], movement_coefficients) for month in monthlist]
-    outputs = [avg_landfalls_per_month[:,:,month] for month in monthlist]
+    basin_movement_coefficients = movement_coefficients[basins.index(basin)]
 
-    return inputs, outputs
+    # split up input, output data for each month and flatten the matrices
+    genesis_matrix = np.array([genesis_matrices[month][~np.isnan(genesis_matrices[month])] for month in monthlist])
 
-def generateTrainingData(total_years, n_samples, basin='EP'):
-    all_inputs = []
-    all_outputs = []
-    for i in range(n_samples):
-        inputs, outputs = generateOneTrainingDataSample(total_years, basin)
-        all_inputs += inputs
-        all_outputs += outputs
-    return all_inputs, all_outputs
+    X = convert_inputs_to_nn_format(genesis_matrix, basin_movement_coefficients)
+    Y = convert_outputs_to_nn_format(avg_landfalls_per_month)
+    return X, Y
+
+def generateTrainingData(total_years, n_train_samples, n_test_samples, convert_inputs_to_nn_format, convert_outputs_to_nn_format, basin='SP', save_location=None):
+
+    all_train_inputs = []
+    all_train_outputs = []
+
+    all_test_inputs = []
+    all_test_outputs = []
+
+    for i in range(n_train_samples):
+        input, output = generateOneTrainingDataSample(
+            total_years,
+            convert_inputs_to_nn_format,
+            convert_outputs_to_nn_format,
+            basin
+        )
+        all_train_inputs.append(input)
+        all_train_outputs.append(output)
+
+    for i in range(n_test_samples):
+        input, output, = generateOneTrainingDataSample(
+            total_years,
+            convert_inputs_to_nn_format,
+            convert_outputs_to_nn_format,
+            basin
+        )
+        all_test_inputs.append(input)
+        all_test_outputs.append(output)
+
+    if save_location is not None:
+        train = (np.array(all_train_inputs), np.array(all_train_outputs))
+        print(train[0].shape)
+        test = (np.array(all_test_inputs), np.array(all_test_outputs))
+        print(test[0].shape)
+        train_dataset = tf.data.Dataset.from_tensor_slices(train)
+        test_dataset = tf.data.Dataset.from_tensor_slices(test)
+        train_dataset.save(save_location)
+        test_dataset.save(save_location)
+
+    return all_train_inputs, all_train_outputs, all_test_inputs, all_test_outputs
+
+
+generateTrainingData(1, 10, 5, convert_to_flat_inputs, convert_to_flat_outputs, save_location='./Data/')

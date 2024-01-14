@@ -1,3 +1,7 @@
 .idea/
 env/
 *.pyc
+Training Data Generation/Data/
+Training Data Generation/GCM-TC-Tracks-Data
+dap.ceda.ac.uk/
+*.nc

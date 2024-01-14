@@ -36,22 +36,22 @@ or ftp://eclipse.ncdc.noaa.gov/pub/ibtracs/v04r00/provisional/netcdf/
 Here, we use the global dataset (version 4) from 1980-2017.
 """
 
-data=xr.open_dataset(os.path.join(__location__,'IBTrACS.since1980.v04r00.nc'),decode_times=False)
-preprocessing.extract_data(data)
-data.close()
+#data=xr.open_dataset(os.path.join(__location__,'IBTrACS.since1980.v04r00.nc'),decode_times=False)
+#preprocessing.extract_data(data)
+#data.close()
 
 #%%
 """
 Extract the important parameters necessary for the fitting of the regression formulas (and other parts
 of the storm model
 """
-preprocessing.TC_variables()
+#preprocessing.TC_variables()
  
 #%%
 """
 Calculate the coefficients for the track and pressure regression formulas
 """
-coefficients.track_coefficients()
+#coefficients.track_coefficients()
 
 #%%
 """
@@ -60,11 +60,12 @@ ECMWF has monthly mean MSLP fields available via the CDS (cds.climate.copernicus
 These should be downloaded and stored as "Monthly_mean_MSLP.nc" and "Monthly_mean_SST.nc"
 """
     
-#data=xr.open_dataset(os.path.join(__location__,'Monthly_mean_MSLP.nc'))
+#data=xr.open_dataset(os.path.join(__location__,'MSLP_monthlyavg_ERA5_1959_2022.nc'))
+
 #environmental.monthly_mean_pressure(data)
 #data.close()
 
-#data=xr.open_dataset(os.path.join(__location__,'Monthly_mean_SST.nc'))
+#data=xr.open_dataset(os.path.join(__location__,'SST_monthlyavg_ERA5_1959_2022.nc'))
 #environmental.monthly_mean_sst(data)
 #data.close()
 
@@ -72,7 +73,7 @@ These should be downloaded and stored as "Monthly_mean_MSLP.nc" and "Monthly_mea
 
 #environmental.calculate_MPI_fields()
 
-#environmental.pressure_coefficients()
+environmental.pressure_coefficients()
 
 #%%
 

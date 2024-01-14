@@ -12,7 +12,10 @@
 """
 
 import numpy as np
+from scipy.ndimage import gaussian_filter
+from scipy.stats import truncnorm
 import os
+from PlotMapData import plotLatLonGridData
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 def getObservedGenesisLocations(basin, month):
@@ -42,7 +45,16 @@ def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
     for month in monthlist:
         grid = getObservedGenesisLocations(basin, month)
 
-        genesisLocationMatrices[month] = grid + np.random.normal(0, scale, grid.shape)
+        a, b = ( - 1)/3, (1.5 - 1)/3
+
+        noise1 = truncnorm.rvs(a, b, loc=1, scale=3, size=grid.shape)
+
+        noise2 = np.random.uniform(np.nanmin(grid), np.nanmax(grid), size=grid.shape)
+        blurred_noise1 = gaussian_filter(noise1, 2)
+        blurred_noise2 = gaussian_filter(noise2, 2)
+        genesisLocationMatrices[month] = grid*blurred_noise1 + blurred_noise2
+
+        plotLatLonGridData(genesisLocationMatrices[month], 1, basin=basin)
 
     return genesisLocationMatrices
 
@@ -62,7 +74,7 @@ def randomizedMovementCoefficients():
         coefficientData[key] += np.random.normal(0, 1, np.array(val).shape)
 
         # can use slices for this probably
-        for i in range(0,11):
+        for i in range(0, 11):
             coefficientData[key][i][6] = np.abs(coefficientData[key][i][6])
             coefficientData[key][i][8] = np.abs(coefficientData[key][i][8])
             coefficientData[key][i][10] = np.abs(coefficientData[key][i][10])
@@ -80,5 +92,6 @@ def generateInputParameters(basin, monthslist):
 
     return randomizedGenesisLocationMatrices(basin, monthslist), randomizedMovementCoefficients()
 
+randomizedGenesisLocationMatrices('SP', [1])
 
 

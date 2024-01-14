@@ -8,7 +8,7 @@ from STORM.SAMPLE_TC_MOVEMENT import TC_movement
 from STORM.SELECT_BASIN import Basins_WMO
 import numpy as np
 
-def sampleStorm(total_years, genesis_matrices, movement_coefficients, basin='EP'):
+def sampleStorm(total_years, genesis_matrices, movement_coefficients, basin='SP'):
     """
     rewrite of STORM.MASTER to only get TC tracks without intensity data
 
