@@ -30,9 +30,7 @@ def plotLatLonGridData(data, resolution, basin='SP'):
     lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
 
     # convert data into format for contour plot
-    print(lat0, lat1, lon0, lon1)
     lats = [(len(data)-i) * resolution + lat0 for i in range(len(data))]
-    print(lats)
     lons = [i * resolution + lon0 for i in range(len(data[0]))]
 
     plt.contourf(lons, lats, data, 60, transform=ccrs.PlateCarree())

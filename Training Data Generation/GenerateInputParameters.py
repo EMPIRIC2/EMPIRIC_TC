@@ -18,13 +18,16 @@ import os
 from PlotMapData import plotLatLonGridData
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-def getObservedGenesisLocations(basin, month):
+def getObservedGenesisLocations(basin, month, matrix_path=None):
 
     basins=['EP','NA','NI','SI','SP','WP']
 
     idx = basins.index(basin)
 
-    grid_copy = np.loadtxt(os.path.join(__location__, "STORM", 'GRID_GENESIS_MATRIX_' + str(idx) + '_' + str(month) + '.txt'))
+    if matrix_path is None:
+        matrix_path = os.path.join(__location__, "STORM", 'GRID_GENESIS_MATRIX_' + str(idx) + '_' + str(month) + '.txt')
+
+    grid_copy = np.loadtxt(matrix_path)
 
     return grid_copy
 
@@ -40,23 +43,31 @@ def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
     :return:
     '''
 
-    genesisLocationMatrices = {}
+    models = ['CMCC-CM2-VHR4', 'EC-Earth3P-HR', 'CNRM-CM6-1-HR', 'HadGEM3-GC31-HM']
+    future_delta_files = [os.path.join(__location__, 'Storm-climate-change', "GENESIS_LOCATIONS_IBTRACSDELTA_{}.npy".format(model)) for model in models]
+
+    future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
+
+    genesis_location_matrices = {}
 
     for month in monthlist:
         grid = getObservedGenesisLocations(basin, month)
 
-        a, b = ( - 1)/3, (1.5 - 1)/3
+        weighted_factors_norm = np.random.uniform(.9, 2)
+        weights = np.random.uniform(0, 1, size=(5,))
 
-        noise1 = truncnorm.rvs(a, b, loc=1, scale=3, size=grid.shape)
+        normalized_weights = weighted_factors_norm * weights/np.sum(weights)
+        future_data_for_month = [future_data[i][month] for i in range(len(models))]
 
-        noise2 = np.random.uniform(np.nanmin(grid), np.nanmax(grid), size=grid.shape)
-        blurred_noise1 = gaussian_filter(noise1, 2)
-        blurred_noise2 = gaussian_filter(noise2, 2)
-        genesisLocationMatrices[month] = grid*blurred_noise1 + blurred_noise2
+        future_data_for_month.append(grid)
 
-        plotLatLonGridData(genesisLocationMatrices[month], 1, basin=basin)
+        grids = np.array(future_data_for_month)
 
-    return genesisLocationMatrices
+        randomized_grid = (grids.T @ normalized_weights).T
+
+        plotLatLonGridData(randomized_grid, 1, basin=basin)
+
+    return genesis_location_matrices
 
 
 def getMovementCoefficientData():
@@ -92,6 +103,7 @@ def generateInputParameters(basin, monthslist):
 
     return randomizedGenesisLocationMatrices(basin, monthslist), randomizedMovementCoefficients()
 
-randomizedGenesisLocationMatrices('SP', [1])
+randomizedGenesisLocationMatrices('SP', [1,2,3,4])
+
 
 
