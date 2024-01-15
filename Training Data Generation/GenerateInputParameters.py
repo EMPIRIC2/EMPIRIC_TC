@@ -15,7 +15,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.stats import truncnorm
 import os
-from PlotMapData import plotLatLonGridData
+from PlotMapData import plotLatLonGridDataMultiple
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 def getObservedGenesisLocations(basin, month, matrix_path=None):
@@ -51,21 +51,28 @@ def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
     genesis_location_matrices = {}
 
     for month in monthlist:
+
         grid = getObservedGenesisLocations(basin, month)
 
-        weighted_factors_norm = np.random.uniform(.9, 2)
-        weights = np.random.uniform(0, 1, size=(5,))
+        weighted_factors_norm = np.random.uniform(.9, 1.5)
+        weights = np.random.uniform(0, 1, size=(4,))
 
-        normalized_weights = weighted_factors_norm * weights/np.sum(weights)
-        future_data_for_month = [future_data[i][month] for i in range(len(models))]
-
-        future_data_for_month.append(grid)
+        normalized_weights = weighted_factors_norm * weights / np.sum(weights)
+        future_data_for_month = [np.nan_to_num(future_data[i][month]) for i in range(len(models))]
 
         grids = np.array(future_data_for_month)
-
         randomized_grid = (grids.T @ normalized_weights).T
 
-        plotLatLonGridData(randomized_grid, 1, basin=basin)
+        plot_names = models
+        plot_names.append("Historical")
+        plot_names.append("Randomized")
+
+        plot_data = future_data_for_month
+        plot_data.append(grid)
+        plot_data.append(randomized_grid)
+    
+        plotLatLonGridDataMultiple(plot_data, 1, basin=basin, plot_names=plot_names)
+
 
     return genesis_location_matrices
 
