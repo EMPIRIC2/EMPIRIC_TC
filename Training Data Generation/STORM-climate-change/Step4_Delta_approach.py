@@ -20,7 +20,7 @@ from shapely.ops import unary_union
 from shapely.prepared import prep
 import pandas as pd 
 from scipy.interpolate import griddata
-import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter
 
 #Set the location to where you want to store the new files. Current setting = current working directory.
 dir_path=os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -450,13 +450,13 @@ def Change_genesis_locations(model):
         for basin in ['EP','NA','NI','SI','SP','WP']:
             matrix_dict[period][basin]={i:[] for i in monthsall[basin]}
             
-            for month in monthsall[basin]:                
+            for month in monthsall[basin]:
                 matrix_dict[period][basin][month]=create_5deg_grid(locations[basin],month,basin)
     
     locations=np.load(os.path.join(__location__,'GEN_LOC.npy'),allow_pickle=True,encoding='latin1').item()
     matrix_dict['IBTRACS']={i:[] for i in ['EP','NA','NI','SI','SP','WP']}
     
-    for basin,basinidx in zip(['SP'],[4]):
+    for basin,basinidx in zip(['EP','NA','NI','SI','SP','WP'], [0,1,2,3,4,5]):
         print(basin)
         matrix_dict['IBTRACS'][basin]={i:[] for i in monthsall[basin]}
         genesis_grids[basin]={i:[] for i in monthsall[basin]}
@@ -512,8 +512,10 @@ def Change_genesis_locations(model):
                     else:
                         #then relative difference
                         test_dummy[i][j]=ibtracs[i][j]*relative_delta[month][i][j]+ibtracs[i][j]
-            
-            grid_genesis=create_1deg_grid(test_dummy,basin,month)
+
+            blurred_counts = gaussian_filter(test_dummy, 1)
+
+            grid_genesis=create_1deg_grid(blurred_counts,basin,month)
             genesis_grids[basin][month]=grid_genesis
             
     np.save(os.path.join(__location__,'GENESIS_LOCATIONS_IBTRACSDELTA_{}.npy'.format(model)),genesis_grids)

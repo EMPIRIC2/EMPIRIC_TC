@@ -12,10 +12,8 @@
 """
 
 import numpy as np
-from scipy.ndimage import gaussian_filter
-from scipy.stats import truncnorm
 import os
-from PlotMapData import plotLatLonGridDataMultiple
+
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 def getObservedGenesisLocations(basin, month, matrix_path=None):
@@ -25,9 +23,9 @@ def getObservedGenesisLocations(basin, month, matrix_path=None):
     idx = basins.index(basin)
 
     if matrix_path is None:
-        matrix_path = os.path.join(__location__, "STORM", 'GRID_GENESIS_MATRIX_' + str(idx) + '_' + str(month) + '.txt')
+        matrix_path = os.path.join(__location__, "STORM", 'GRID_GENESIS_MATRIX_' + str(idx) + '_' + str(month) + '.npy')
 
-    grid_copy = np.loadtxt(matrix_path)
+    grid_copy = np.load(matrix_path)
 
     return grid_copy
 
@@ -47,12 +45,9 @@ def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
     future_delta_files = [os.path.join(__location__, 'Storm-climate-change', "GENESIS_LOCATIONS_IBTRACSDELTA_{}.npy".format(model)) for model in models]
 
     future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
-
     genesis_location_matrices = {}
 
     for month in monthlist:
-
-        grid = getObservedGenesisLocations(basin, month)
 
         weighted_factors_norm = np.random.uniform(.9, 1.5)
         weights = np.random.uniform(0, 1, size=(4,))
@@ -63,16 +58,7 @@ def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
         grids = np.array(future_data_for_month)
         randomized_grid = (grids.T @ normalized_weights).T
 
-        plot_names = models
-        plot_names.append("Historical")
-        plot_names.append("Randomized")
-
-        plot_data = future_data_for_month
-        plot_data.append(grid)
-        plot_data.append(randomized_grid)
-    
-        plotLatLonGridDataMultiple(plot_data, 1, basin=basin, plot_names=plot_names)
-
+        genesis_location_matrices[month] = randomized_grid
 
     return genesis_location_matrices
 
@@ -110,7 +96,6 @@ def generateInputParameters(basin, monthslist):
 
     return randomizedGenesisLocationMatrices(basin, monthslist), randomizedMovementCoefficients()
 
-randomizedGenesisLocationMatrices('SP', [1,2,3,4])
 
 
 

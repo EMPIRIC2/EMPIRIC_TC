@@ -13,7 +13,7 @@ from shapely.ops import unary_union
 from shapely.prepared import prep
 import pandas as pd 
 from scipy.interpolate import griddata
-import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter
 
 dir_path=os.path.dirname(os.path.realpath(sys.argv[0]))
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
@@ -90,7 +90,7 @@ def create_5deg_grid(locations,month,basin):
     latbin=groups.count().index.get_level_values('latbin')
     lonbin=groups.count().index.get_level_values('lonbin')
     count_matrix=np.zeros((len(latspace),int(abs(lon0-lon1)/step)+1))
-    
+
     for lat,lon,count in zip(latbin,lonbin,counts):
           i=latspace.tolist().index(lat)
           j=lonspace.tolist().index(lon)
@@ -98,7 +98,7 @@ def create_5deg_grid(locations,month,basin):
     
     return count_matrix
   
-def create_1deg_grid(delta_count_matrix,basin,month):
+def create_1deg_grid(delta_count_matrix,basin,month, method='cubic'):
     step=5.
     
     lat0,lat1,lon0,lon1=BOUNDARIES_BASINS(basin)
@@ -115,40 +115,38 @@ def create_1deg_grid(delta_count_matrix,basin,month):
             points.append((lonspace[i],latspace[j]))
      
     values=np.reshape(delta_count_matrix.T,int(len(lonspace))*int(len(latspace)))
-    grid=griddata(points,values,(xgrid,ygrid),method='cubic')
+    grid=griddata(points,values,(xgrid,ygrid),method=method)
     grid=np.transpose(grid)
     grid=np.flipud(grid)
     grid[grid<0]=0
-            
+
 
     #overlay data with a land-sea mask
     mdata=create_mask(basin)
     coarseness=10
     mdata_coarse=mdata.reshape((mdata.shape[0]//coarseness,coarseness,mdata.shape[1]//coarseness,coarseness))
     mdata_coarse=np.mean(mdata_coarse,axis=(1,3))
-                         
+
     (x,y)=mdata_coarse.shape
     
     for i in range(0,x):
         for j in range(0,y):
             if mdata_coarse[i,j]>0.50:
                 grid[i,j]='nan'
-                
-    plt.imshow(grid)
-    plt.show()
-        
 
     return grid
 
 
-def Change_genesis_locations(model):
+def Change_genesis_locations():
     monthsall={'EP':[6,7,8,9,10,11],'NA':[6,7,8,9,10,11],'NI':[4,5,6,9,10,11],'SI':[1,2,3,4,11,12],'SP':[1,2,3,4,11,12],'WP':[5,6,7,8,9,10,11]}    
     locations=np.load(os.path.join(__location__,'GEN_LOC.npy'),allow_pickle=True,encoding='latin1').item()
 
-    for basin,idx in zip(['EP','NA','NI','SI','SP','WP'],range(0,6)):
+    for basin,idx in zip(['EP','NA','NI','SI','SP','WP'], range(0,6)):
         for month in monthsall[basin]:                
-            matrix_dict=create_5deg_grid(locations[idx],month,basin)
+            matrix_dict=create_5deg_grid(locations[idx], month, basin)
 
-            genesis_grids=create_1deg_grid(matrix_dict,basin,month)
+            ## we add smoothing to the creation of the matrix_dict
+            blurred_counts = gaussian_filter(matrix_dict, 1)
+            genesis_grids=create_1deg_grid(blurred_counts,basin,month)
         
-            np.save(os.path.join(__location__,'GRID_GENESIS_MATRIX_{}_{}.txt'.format(idx,month)),genesis_grids)
+            np.save(os.path.join(__location__,'GRID_GENESIS_MATRIX_{}_{}'.format(idx,month)),genesis_grids)

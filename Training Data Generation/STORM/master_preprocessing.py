@@ -23,7 +23,7 @@ import xarray as xr
 import preprocessing
 import coefficients
 import environmental
-import genesis_matrix
+import genesis_matrix_python3
 import os
 import sys
 dir_path=os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -73,11 +73,8 @@ These should be downloaded and stored as "Monthly_mean_MSLP.nc" and "Monthly_mea
 
 #environmental.calculate_MPI_fields()
 
-environmental.pressure_coefficients()
+#environmental.pressure_coefficients()
 
 #%%
 
-monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,3,4,11,12],[5,6,7,8,9,10,11]]
-for basin_index in range(0,6):
-    for month in monthsall[basin_index]:
-        genesis_matrix.Makegrid(basin_index,month)
+genesis_matrix_python3.Change_genesis_locations()

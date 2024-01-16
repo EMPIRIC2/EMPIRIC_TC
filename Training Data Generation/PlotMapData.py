@@ -40,7 +40,7 @@ def plotLatLonGridDataMultiple(datas, resolution, basin='SP', show=True, plot_na
         lats = [(len(data) - j) * resolution + lat0 for j in range(len(data))]
         lons = [j * resolution + lon0 - 180 for j in range(len(data[0]))]
 
-        cs = axs[i].contourf(lons, lats, data, clevs, transform=ccrs.PlateCarree(central_longitude=180), extend='both')
+        cs = axs[i].pcolormesh(lons, lats, data, transform=ccrs.PlateCarree(central_longitude=180))
 
         if plot_names is not None and len(plot_names) == len(datas):
             axs[i].set_title(plot_names[i])
@@ -66,16 +66,16 @@ def plotLatLonGridDataMultiple(datas, resolution, basin='SP', show=True, plot_na
 def plotLatLonGridData(data, resolution, basin='SP', show=True, figure_name=""):
 
     plt.figure(figure_name)
-    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=180))
     ax.coastlines()
 
     lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
 
     # convert data into format for contour plot
     lats = [(len(data)-i) * resolution + lat0 for i in range(len(data))]
-    lons = [i * resolution + lon0 for i in range(len(data[0]))]
+    lons = [j * resolution + lon0 - 180 for j in range(len(data[0]))]
 
-    plt.contourf(lons, lats, data, 60, transform=ccrs.PlateCarree())
+    plt.pcolormesh(lons, lats, data, transform=ccrs.PlateCarree(central_longitude=180))
     plt.colorbar()
 
     print(figure_name != "")
@@ -85,3 +85,5 @@ def plotLatLonGridData(data, resolution, basin='SP', show=True, figure_name=""):
 
 def showPlots():
     plt.show()
+
+
