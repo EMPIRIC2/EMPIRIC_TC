@@ -19,7 +19,7 @@ for model,version,grid in zip(['CMCC-CM2-VHR4','CNRM-CM6-1-HR','EC-Earth3P-HR','
                 variable_all[period]={i:np.zeros((360,720)) for i in range(1,13)}  
                 count=0
                 for year0,year1 in zip(year0list,year1list):
-                        data=xr.open_dataset(os.path.join(__location__,'{}_Amon_{}_{}_{}_{}_{}01-{}12.nc'.format(variable,model,period,version,grid,year0,year1)))
+                        data=xr.open_dataset(os.path.join(__location__,'PSL_Amon_Data', '{}_Amon_{}_{}_{}_{}_{}01-{}12.nc'.format(variable,model,period,version,grid,year0,year1)))
                         VARIABLE=data[variable]
                         #120 "time steps", so 1 per month, 10 years
                         for j in range(0,12): #12 months
@@ -42,7 +42,7 @@ for model,version,grid in zip(['CMCC-CM2-VHR4','CNRM-CM6-1-HR','EC-Earth3P-HR','
                 variable_all[period]={i:np.zeros((768,1152)) for i in range(1,13)}
                 for year in yearlist:
                     for month in ['01','02','03','04','05','06','07','08','09','10','11','12']:                    
-                        data=xr.open_dataset(os.path.join(__location__,'{}_Amon_{}_{}_{}_{}_{}{}-{}{}.nc'.format(variable,model,period,version,grid,year,month,year,month)))
+                        data=xr.open_dataset(os.path.join(__location__,'PSL_Amon_Data', '{}_Amon_{}_{}_{}_{}_{}{}-{}{}.nc'.format(variable,model,period,version,grid,year,month,year,month)))
                         VARIABLE=data[variable]
                         
                         variable_all[period][int(month)]+=VARIABLE[0]
@@ -61,7 +61,7 @@ for model,version,grid in zip(['CMCC-CM2-VHR4','CNRM-CM6-1-HR','EC-Earth3P-HR','
                 else: #EC-Earth3P-HR
                     variable_all[period]={i:np.zeros((512,1024)) for i in range(1,13)} 
                 for year in range(year0,year1):             
-                    data=xr.open_dataset(os.path.join(__location__,'{}_Amon_{}_{}_{}_{}_{}01-{}12.nc'.format(variable,model,period,version,grid,year,year)))
+                    data=xr.open_dataset(os.path.join(__location__,'PSL_Amon_Data', '{}_Amon_{}_{}_{}_{}_{}01-{}12.nc'.format(variable,model,period,version,grid,year,year)))
                     VARIABLE=data[variable].values
                     
                     for month in range(0,12):
