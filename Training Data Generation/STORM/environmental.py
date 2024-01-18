@@ -131,9 +131,9 @@ def wind_pressure_relationship():
     month_basin={i:[] for i in range(0,6)}
     
     for i in range(len(latlist)):
-        if len(latlist[i])>0:            
+        if len(latlist[i])>0:
             idx=basinlist[i][0]
-            month=monthlist[i][0]            
+            month=monthlist[i][0]
             check=check_season(idx,month) 
             print(idx,month,check)
             if check==1:
@@ -141,7 +141,7 @@ def wind_pressure_relationship():
                 for j in range(0,len(latlist[i])):
                     #Wind needs to be greater than 15 kt.                         
                         latn=np.abs(lat-latlist[i][j]).argmin()
-                        lonn=np.abs(lon-lonlist[i][j]).argmin()                           
+                        lonn=np.abs(lon-lonlist[i][j]).argmin()
                         if preslist[i][j]>0 and MSLP[latn][lonn]-preslist[i][j]>0 and windlist[i][j]>15.*0.5144444:  
                             pres_basin[idx].append(MSLP[latn][lonn]-preslist[i][j])
                             wind_basin[idx].append(windlist[i][j])
@@ -150,19 +150,19 @@ def wind_pressure_relationship():
     coeff_list={i:[] for i in range(0,6)}    
     months=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,3,4,11,12],[5,6,7,8,9,10,11]]
     
-    for idx in range(0,6):        
-        coeff_list[idx]={i:[] for i in months[idx]}    
-        df=pd.DataFrame({"Wind":wind_basin[idx],"Pressure":pres_basin[idx],"Month":month_basin[idx]})        
+    for idx in range(0,6):
+        coeff_list[idx]={i:[] for i in months[idx]}
+        df=pd.DataFrame({"Wind":wind_basin[idx],"Pressure":pres_basin[idx],"Month":month_basin[idx]})
         for i in range(len(months[idx])):
             m=months[idx][i]
-            df1=df[(df["Month"]==m)]    
+            df1=df[(df["Month"]==m)]
             step=2. #Group in 2 m/s bins to eliminate the effect of more weaker storms (that might skew the fit)
-            to_bin=lambda x:np.floor(x/step)*step            
-            df1["windbin"]=df1.Wind.map(to_bin)                
-            minpres=df1.groupby(["windbin"]).agg({"Pressure":"mean"})["Pressure"]   
-            maxwind=np.unique(df1["windbin"])  
+            to_bin=lambda x:np.floor(x/step)*step
+            df1["windbin"]=df1.Wind.map(to_bin)
+            minpres=df1.groupby(["windbin"]).agg({"Pressure":"mean"})["Pressure"]
+            maxwind=np.unique(df1["windbin"])
             
-            try:     
+            try:
                 opt,l=curve_fit(Vmax_function,minpres,maxwind,maxfev=5000)
                 [a,b]=opt
                 coeff_list[idx][m]=[a,b]
@@ -172,7 +172,7 @@ def wind_pressure_relationship():
             except TypeError:
                 print('Too few items')
             
-    np.save(os.path.join(__location__,'COEFFICIENTS_WPR_PER_MONTH.npy'),coeff_list) 
+    np.save(os.path.join(__location__,'COEFFICIENTS_WPR_PER_MONTH.npy'),coeff_list)
 
 def MPI_function(T,A,B,C):
     """

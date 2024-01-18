@@ -13,9 +13,9 @@ Copyright (C) 2020 Nadia Bloemendaal. All versions released under GNU General Pu
 """
 
 import numpy as np
-from SELECT_BASIN import Basins_WMO
+from .SELECT_BASIN import Basins_WMO
 from math import radians, cos, sin, asin, sqrt
-from SAMPLE_RMAX import Add_Rmax
+from .SAMPLE_RMAX import Add_Rmax
 import math
 import sys
 import os
@@ -270,7 +270,7 @@ def distance_from_coast(lon,lat,fpath,degree_in_km=111.12):
     if lon>180:
         lon=lon-360.
 
-    D = np.load(fpath,encoding = 'latin1').tolist()
+    D = np.load(fpath,encoding = 'latin1', allow_pickle=True).tolist()
 
     lons,lats = D['lons'],D['lats']
 
@@ -310,16 +310,15 @@ def add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm
         if landfallfull[l]==1.:
             distance=0
         else:
-            distance=distance_from_coast(lonfull[l],latfull[l],(os.path.join(dir_path,'coastal_basemap_data.npy')))
+            distance=distance_from_coast(lonfull[l],latfull[l],(os.path.join(__location__,'coastal_basemap_data.npy')))
             
         category=TC_Category(wind_list[l])
         
         TC_data.append([year,month,storm_number,l,idx,latfull[l],lonfull[l],pressure_list[l],wind_list[l],rmax_list[l],category,landfallfull[l],distance])
-    
 
     return TC_data
 
-def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data):  
+def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data, JM_pressure, Genpres, WPR_coefficients, Genwind):
     """
     Calculate TC pressure
 
@@ -345,15 +344,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
     idx=basin_name[basin]
 
     latidx_penv=np.linspace(90,-90,721)
-    lonidx_penv=np.linspace(0,359.75,1440)    
-    
-    JM_pressure=np.load(os.path.join(__location__,'COEFFICIENTS_JM_PRESSURE.npy')).item()
-            
-    Genpres=np.load(os.path.join(__location__,'DP0_PRES_GENESIS.npy')).item()
-            
-    WPR_coefficients=np.load(os.path.join(__location__,'COEFFICIENTS_WPR_PER_MONTH.npy')).item()
-    
-    Genwind=np.load(os.path.join(__location__,'GENESIS_WIND.npy')).item()
+    lonidx_penv=np.linspace(0,359.75,1440)
 
     intlist=[5,3,2,5,5,5]
     
@@ -370,7 +361,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
         p=np.nan
         
         #This is the full MSLP field, with lat0=90 deg, lat1=-90 deg, lon0=0 deg, lon1=359.75 deg. len(lat)=721, len(lon)=1440
-        Penv_field=np.loadtxt(os.path.join(dir_path,'Monthly_mean_MSLP_'+str(month)+'.txt'))
+        Penv_field=np.loadtxt(os.path.join(__location__,'Monthly_mean_MSLP_'+str(month)+'.txt'))
                
         constants_pressure=JM_pressure[idx][month]
         constants_pressure=np.array(constants_pressure)
@@ -427,7 +418,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                      
                     elif vmax<wind_threshold or p>Penv: #The storm makes landfall as a tropical depression
                         TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
-                        i=1000000000000000 
+                        break
                      
                     else:
                        #calculate the landfall pressure
@@ -469,7 +460,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                       if vmax<wind_threshold or p>Penv: #The storm is no longer a tropical storm
                           #print('Dissipated',len(pressure_list),len(landfallfull))
                           TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
-                          i=10000000000000000000000000000000
+                          break
                         
                       else:
                           pressure_list.append(p)
@@ -494,7 +485,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                         if wind_list[-1]<wind_threshold:
                             TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
                                                         
-                            i=10000000000000000000000000.
+                            break
                             
                         #if the storm has not decayed:
                         else:   
@@ -511,7 +502,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                         #print('Decayed over land',len(pressure_list),len(landfallfull))                         
                         TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
                             
-                        i=1000000000000
+                        break
                    
                 else: #no landfall
                     if ((p<p_threshold) | math.isnan(p)):
@@ -523,7 +514,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                         #print('Dissipated',len(pressure_list),len(landfallfull))
                         TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
                         
-                        i=1000000000000000                       
+                        break
                         
                     else: #apply James-Mason formula to find next change in pressure
                         ind=int(find_index_pressure(basin,lat,lon,lat0,lon0,lon1)) #find index for pressure
@@ -569,7 +560,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                         if vmax<wind_threshold or p>Penv: #The storm is no longer a tropical storm
                           #print('Dissipated',len(pressure_list),len(landfallfull))
                           TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
-                          i=10000000000000000000000000000000
+                          break
                         
                         else:
                           pressure_list.append(p)
@@ -582,7 +573,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                         
             else: #we are outside the basin. Move on to the next storm
                 TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)                
-                i=100000000000000000.
+                break
                 
         if i==len(latfull):
             TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)

@@ -67,7 +67,7 @@ def plotLatLonGridData(data, resolution, basin='SP', show=True, figure_name=""):
 
     plt.figure(figure_name)
     ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=180))
-    ax.coastlines()
+    ax.coastlines(resolution='10m')
 
     lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
 
