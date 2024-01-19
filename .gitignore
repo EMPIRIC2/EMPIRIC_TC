@@ -5,4 +5,8 @@ Training Data Generation/Data/
 Training Data Generation/GCM-TC-Tracks-Data
 dap.ceda.ac.uk/
 *.nc
-*.nc.1
+*.nc.*
+Training Data Generation/STORM-climate-change/*.txt
+Training Data Generation/STORM-climate-change/*.npy
+Training Data Generation/STORM-climate-change/ne*
+Training Data Generation/.DS_Store

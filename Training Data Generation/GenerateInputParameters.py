@@ -60,6 +60,7 @@ def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
 
         genesis_location_matrices[month] = randomized_grid
 
+    print(genesis_location_matrices)
     return genesis_location_matrices
 
 
@@ -71,20 +72,20 @@ def getMovementCoefficientData():
 def randomizedMovementCoefficients():
 
     # for now, just perturb the calculated track coefficients. it will be faster than refitting the lsq regressions.
-    coefficientData = getMovementCoefficientData()
 
-    for key, val in coefficientData.items():
+    movementCoefficientsFuture = [np.load('./STORM-climate-change/JM_LONLATBINS_IBTRACSDELTA_{}.npy'.format(model)
+                                          , allow_pickle=True)
+                                  .item()['SP']
+                                  for model in ['CMCC-CM2-VHR4','EC-Earth3P-HR','CNRM-CM6-1-HR','HadGEM3-GC31-HM']]
 
-        coefficientData[key] += np.random.normal(0, 1, np.array(val).shape)
+    # calculate statistics for each variable, per lat bin per month
+    print(np.array(movementCoefficientsFuture))
+    stds = np.std(movementCoefficientsFuture, axis=0)
+    means = np.mean(movementCoefficientsFuture, axis=0)
 
-        # can use slices for this probably
-        for i in range(0, 11):
-            coefficientData[key][i][6] = np.abs(coefficientData[key][i][6])
-            coefficientData[key][i][8] = np.abs(coefficientData[key][i][8])
-            coefficientData[key][i][10] = np.abs(coefficientData[key][i][10])
-            coefficientData[key][i][12] = np.abs(coefficientData[key][i][12])
+    random_coefficients = np.random.normal(means, stds)
 
-    return coefficientData
+    return {4: random_coefficients}
 
 
 def generateInputParameters(basin, monthslist):
@@ -95,7 +96,3 @@ def generateInputParameters(basin, monthslist):
     """
 
     return randomizedGenesisLocationMatrices(basin, monthslist), randomizedMovementCoefficients()
-
-
-
-

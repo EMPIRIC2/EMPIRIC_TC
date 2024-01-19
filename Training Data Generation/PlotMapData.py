@@ -75,7 +75,7 @@ def plotLatLonGridData(data, resolution, basin='SP', show=True, figure_name=""):
     lats = [(len(data)-i) * resolution + lat0 for i in range(len(data))]
     lons = [j * resolution + lon0 - 180 for j in range(len(data[0]))]
 
-    plt.pcolormesh(lons, lats, data, transform=ccrs.PlateCarree(central_longitude=180))
+    plt.pcolormesh(lons, lats, data, transform=ccrs.PlateCarree(central_longitude=180), vmin=-2)
     plt.colorbar()
 
     print(figure_name != "")
