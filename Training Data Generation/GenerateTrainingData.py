@@ -2,29 +2,17 @@
 from SampleSTORM import sampleStorm
 from RiskFactors import averageLandfallsPerMonth
 from GenerateInputParameters import generateInputParameters
+from PlotMapData import plotLatLonGridData
 import ray
-import time
+import os
 import numpy as np
 
 import tensorflow as tf
 
 monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,3,4,11,12],[5,6,7,8,9,10,11]]
 
-
-def convert_to_flat_inputs(genesis_matrix, movement_coefficients):
-
-    # flatten and concatenate the inputs
-    inputs = np.concatenate((genesis_matrix.flatten(), np.array(movement_coefficients).flatten()))
-
-    return inputs
-
-
-def convert_to_flat_outputs(avg_landfalls_per_month):
-    return avg_landfalls_per_month.flatten()
-
-
 @ray.remote
-def generateOneTrainingDataSample(total_years, convert_inputs_to_nn_format, convert_outputs_to_nn_format, basin='SP'):
+def generateOneTrainingDataSample(total_years,  basin='SP'):
     '''
     Generate ML training data
 
@@ -50,14 +38,14 @@ def generateOneTrainingDataSample(total_years, convert_inputs_to_nn_format, conv
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.array([np.nan_to_num(genesis_matrices[month]) for month in monthlist])
 
-    x = convert_inputs_to_nn_format(genesis_matrix, basin_movement_coefficients)
+    plotLatLonGridData(genesis_matrices[1], 1)
 
-    y = convert_outputs_to_nn_format(avg_landfalls_per_month)
+    plotLatLonGridData(np.flipud(np.sum(avg_landfalls_per_month, axis=2)), .5)
 
-    return (x, y)
+    return (genesis_matrix, basin_movement_coefficients), avg_landfalls_per_month
 
 
-def generateTrainingData(total_years, n_train_samples, n_test_samples, convert_inputs_to_nn_format, convert_outputs_to_nn_format, basin='SP', save_location=None):
+def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP', save_location=None):
     all_train_inputs = []
     all_train_outputs = []
 
@@ -77,14 +65,11 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, convert_i
 
             input, output = ray.get(ready_refs[0])
 
-
             all_train_inputs.append(input)
             all_train_outputs.append(output)
 
         training_sample_refs.append(generateOneTrainingDataSample.remote(
             total_years,
-            convert_inputs_to_nn_format,
-            convert_outputs_to_nn_format,
             basin
         ))
 
@@ -102,8 +87,6 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, convert_i
 
         test_sample_refs.append(generateOneTrainingDataSample.remote(
             total_years,
-            convert_inputs_to_nn_format,
-            convert_outputs_to_nn_format,
             basin
         ))
 
@@ -127,14 +110,20 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, convert_i
         all_test_outputs.append(output)
 
     if save_location is not None:
-        train = (np.array(all_train_inputs), np.array(all_train_outputs))
 
-        test = (np.array(all_test_inputs), np.array(all_test_outputs))
+        genesis_matrices, movement_coefficients = zip(*all_train_inputs)
+
+        train = (np.array(genesis_matrices), np.array(movement_coefficients), np.array(all_train_outputs))
+
+        test_genesis_matrices, test_movement_coefficients = zip(*all_test_inputs)
+        test = (np.array(test_genesis_matrices), np.array(test_movement_coefficients), np.array(all_test_outputs))
 
         train_dataset = tf.data.Dataset.from_tensor_slices(train)
         test_dataset = tf.data.Dataset.from_tensor_slices(test)
-        train_dataset.save(save_location)
-        test_dataset.save(save_location)
+
+        train_dataset.save(os.path.join(save_location, 'train'))
+        test_dataset.save(os.path.join(save_location, 'test'))
 
     return all_train_inputs, all_train_outputs, all_test_inputs, all_test_outputs
 
+generateTrainingData(1, 1, 1, save_location='./Data/')
