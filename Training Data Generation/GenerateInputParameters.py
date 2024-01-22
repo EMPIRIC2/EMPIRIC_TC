@@ -42,7 +42,7 @@ def randomizedGenesisLocationMatrices(rng, basin, monthlist, scale=1):
     :return:
     '''
     models = ['CMCC-CM2-VHR4', 'EC-Earth3P-HR', 'CNRM-CM6-1-HR', 'HadGEM3-GC31-HM']
-    future_delta_files = [os.path.join(__location__, 'Storm-climate-change', "GENESIS_LOCATIONS_IBTRACSDELTA_{}.npy".format(model)) for model in models]
+    future_delta_files = [os.path.join(__location__, 'InputData', "GENESIS_LOCATIONS_IBTRACSDELTA_{}.npy".format(model)) for model in models]
 
     future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
     genesis_location_matrices = {}
@@ -72,7 +72,7 @@ def randomizedMovementCoefficients(rng):
 
     # for now, just perturb the calculated track coefficients. it will be faster than refitting the lsq regressions.
 
-    movementCoefficientsFuture = [np.load('./STORM-climate-change/JM_LONLATBINS_IBTRACSDELTA_{}.npy'.format(model)
+    movementCoefficientsFuture = [np.load('./InputData/JM_LONLATBINS_IBTRACSDELTA_{}.npy'.format(model)
                                           , allow_pickle=True)
                                   .item()['SP']
                                   for model in ['CMCC-CM2-VHR4','EC-Earth3P-HR','CNRM-CM6-1-HR','HadGEM3-GC31-HM']]
