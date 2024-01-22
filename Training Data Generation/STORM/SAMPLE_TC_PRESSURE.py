@@ -21,7 +21,7 @@ import sys
 import os
 dir_path=os.path.dirname(os.path.realpath(sys.argv[0]))
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-import random
+
 
 def Calculate_Vmax(Penv,Pc,coef):
     """
@@ -278,7 +278,7 @@ def distance_from_coast(lon,lat,fpath,degree_in_km=111.12):
     mindist=np.min(dists)*degree_in_km
     return mindist  
 
-def add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,lijst,TC_data,idx):
+def add_parameters_to_TC_data(rng,pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,lijst,TC_data,idx):
     """
     Add parameters to the TC data list when TC is dissipated/moved out of basin
 
@@ -302,7 +302,7 @@ def add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm
     TC_data : array of TC data.
 
     """
-    rmax_list=Add_Rmax(pressure_list)
+    rmax_list=Add_Rmax(rng,pressure_list)
     
     x=min(len(landfallfull),len(lijst))    
              
@@ -318,7 +318,7 @@ def add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm
 
     return TC_data
 
-def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data, JM_pressure, Genpres, WPR_coefficients, Genwind):
+def TC_pressure(rng, basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data, JM_pressure, Genpres, WPR_coefficients, Genwind):
     """
     Calculate TC pressure
 
@@ -389,7 +389,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                     vmax=0
                     
                 if i==0: 
-                    vmax=random.choice(Genwind[idx][month])
+                    vmax=rng.choice(Genwind[idx][month])
                     p=Calculate_Pressure(vmax,Penv,coef)
                     
                     
@@ -398,7 +398,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                     #at genesis, we need to sample the genesis pressure and dp1. This is done basin-wide:
                     
                     [Pmu,Pstd,DP0mu,DP0std,dpmin,dpmax]=EP
-                    dp0=np.random.normal(DP0mu,DP0std)
+                    dp0=rng.normal(DP0mu,DP0std)
 
                     dp1=-1.*np.abs(dp0)
 
@@ -417,7 +417,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                     	
                      
                     elif vmax<wind_threshold or p>Penv: #The storm makes landfall as a tropical depression
-                        TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
+                        TC_data=add_parameters_to_TC_data(rng, pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
                         break
                      
                     else:
@@ -427,22 +427,22 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                       
                       [c0,c1,c2,c3,EPmu,EPstd,mpi]=constants_pressure[ind]
                       y=PRESSURE_JAMES_MASON(dp1,p,c0,c1,c2,c3,mpi) 
-                      epsilon=np.random.normal(EPmu,EPstd)
+                      epsilon=rng.normal(EPmu,EPstd)
                       dp0=float(y+epsilon)
                       
                       while dp0<dpmin: #if more intensification than seen in the underlying dataset
                           if y-dpmin>EPmu-2.*EPstd: #epsilon should be resampled
-                              epsilon=np.random.normal(EPmu,EPstd)
+                              epsilon=rng.normal(EPmu,EPstd)
                               dp0=y+epsilon
                           else: #y is already smaller than dpmin. 
-                              dp0=np.random.uniform(dpmin,0)
+                              dp0=rng.uniform(dpmin,0)
                       
                       while dp0>dpmax: #if more weakening than seen in the underlying dataset
                           if y-dpmax<EPmu+2.*EPstd:
-                              epsilon=np.random.normal(EPmu,EPstd)
+                              epsilon=rng.normal(EPmu,EPstd)
                               dp0=y+epsilon
                           else:
-                              dp0=np.random.uniform(0,dpmax)      
+                              dp0=rng.uniform(0,dpmax)
                       
                       if p<mpi:#if pressure has dropped below mpi
                           if dp0<0: #if intensification
@@ -459,7 +459,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                       
                       if vmax<wind_threshold or p>Penv: #The storm is no longer a tropical storm
                           #print('Dissipated',len(pressure_list),len(landfallfull))
-                          TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
+                          TC_data=add_parameters_to_TC_data(rng, pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
                           break
                         
                       else:
@@ -483,7 +483,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
 
                         #if the storm has decayed before moving back over the ocean:    
                         if wind_list[-1]<wind_threshold:
-                            TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
+                            TC_data=add_parameters_to_TC_data(rng, pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
                                                         
                             break
                             
@@ -500,7 +500,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                             wind_list.append(decay_wind[d])
                         
                         #print('Decayed over land',len(pressure_list),len(landfallfull))                         
-                        TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
+                        TC_data=add_parameters_to_TC_data(rng, pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
                             
                         break
                    
@@ -512,7 +512,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                         
                     elif vmax<wind_threshold or p>Penv and i>3: #The storm is no longer a tropical storm
                         #print('Dissipated',len(pressure_list),len(landfallfull))
-                        TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
+                        TC_data=add_parameters_to_TC_data(rng, pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
                         
                         break
                         
@@ -523,24 +523,24 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                         
                         y=PRESSURE_JAMES_MASON(dp1,p,c0,c1,c2,c3,mpi) 
                         
-                        epsilon=np.random.normal(EPmu,EPstd)
+                        epsilon=rng.normal(EPmu,EPstd)
 
                         dp0=float(y+epsilon)  
 
                         
                         while dp0<dpmin: #if more intensification than seen in the underlying dataset
                             if y-dpmin>EPmu-2.*EPstd: #epsilon should be resampled
-                                epsilon=np.random.normal(EPmu,EPstd)
+                                epsilon=rng.normal(EPmu,EPstd)
                                 dp0=y+epsilon
                             else: #y is already smaller than dpmin. 
-                                dp0=np.random.uniform(dpmin,0)
+                                dp0=rng.uniform(dpmin,0)
                         
                         while dp0>dpmax: #if more weakening than seen in the underlying dataset
                             if y-dpmax<EPmu+2.*EPstd:
-                                epsilon=np.random.normal(EPmu,EPstd)
+                                epsilon=rng.normal(EPmu,EPstd)
                                 dp0=y+epsilon
                             else:
-                                dp0=np.random.uniform(0,dpmax)  
+                                dp0=rng.uniform(0,dpmax)
                                 
                         if p<mpi:#if pressure has dropped below mpi
                             if dp0<0: #if intensification
@@ -559,7 +559,7 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                         
                         if vmax<wind_threshold or p>Penv: #The storm is no longer a tropical storm
                           #print('Dissipated',len(pressure_list),len(landfallfull))
-                          TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
+                          TC_data=add_parameters_to_TC_data(rng, pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
                           break
                         
                         else:
@@ -572,11 +572,11 @@ def TC_pressure(basin,latlist,lonlist,landfalllist,year,storms,monthlist,TC_data
                           i=i+1 
                         
             else: #we are outside the basin. Move on to the next storm
-                TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)                
+                TC_data=add_parameters_to_TC_data(rng, pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
                 break
                 
         if i==len(latfull):
-            TC_data=add_parameters_to_TC_data(pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
+            TC_data=add_parameters_to_TC_data(rng, pressure_list,wind_list,latfull,lonfull,year,storm_number,month,basin,landfallfull,pressure_list,TC_data,idx)
            
     return(TC_data)
 

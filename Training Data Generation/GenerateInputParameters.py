@@ -13,7 +13,8 @@
 
 import numpy as np
 import os
-
+import ray
+import secrets
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 def getObservedGenesisLocations(basin, month, matrix_path=None):
@@ -29,7 +30,7 @@ def getObservedGenesisLocations(basin, month, matrix_path=None):
 
     return grid_copy
 
-def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
+def randomizedGenesisLocationMatrices(rng, basin, monthlist, scale=1):
     '''
     Randomly perturb the observed genesis locations.
     Note: the current randomization is not based on any actual characteristics the data should have,
@@ -40,7 +41,6 @@ def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
     :param scale: the scale used to perturb the data
     :return:
     '''
-
     models = ['CMCC-CM2-VHR4', 'EC-Earth3P-HR', 'CNRM-CM6-1-HR', 'HadGEM3-GC31-HM']
     future_delta_files = [os.path.join(__location__, 'Storm-climate-change', "GENESIS_LOCATIONS_IBTRACSDELTA_{}.npy".format(model)) for model in models]
 
@@ -49,8 +49,8 @@ def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
 
     for month in monthlist:
 
-        weighted_factors_norm = np.random.uniform(.9, 1.5)
-        weights = np.random.uniform(0, 1, size=(4,))
+        weighted_factors_norm = rng.uniform(.9, 1.5)
+        weights = rng.uniform(0, 1, size=(4,))
 
         normalized_weights = weighted_factors_norm * weights / np.sum(weights)
         future_data_for_month = [np.nan_to_num(future_data[i][month]) for i in range(len(models))]
@@ -60,7 +60,6 @@ def randomizedGenesisLocationMatrices(basin, monthlist, scale=1):
 
         genesis_location_matrices[month] = randomized_grid
 
-    print(genesis_location_matrices)
     return genesis_location_matrices
 
 
@@ -69,7 +68,7 @@ def getMovementCoefficientData():
 
     return constants_all
 
-def randomizedMovementCoefficients():
+def randomizedMovementCoefficients(rng):
 
     # for now, just perturb the calculated track coefficients. it will be faster than refitting the lsq regressions.
 
@@ -79,11 +78,10 @@ def randomizedMovementCoefficients():
                                   for model in ['CMCC-CM2-VHR4','EC-Earth3P-HR','CNRM-CM6-1-HR','HadGEM3-GC31-HM']]
 
     # calculate statistics for each variable, per lat bin per month
-    print(np.array(movementCoefficientsFuture))
     stds = np.std(movementCoefficientsFuture, axis=0)
     means = np.mean(movementCoefficientsFuture, axis=0)
 
-    random_coefficients = np.random.normal(means, stds)
+    random_coefficients = rng.normal(means, stds)
 
     return {4: random_coefficients}
 
@@ -94,5 +92,8 @@ def generateInputParameters(basin, monthslist):
 
     :return:
     """
+    # create a new seed to avoid generating the same inputs in every worker
 
-    return randomizedGenesisLocationMatrices(basin, monthslist), randomizedMovementCoefficients()
+    rng = np.random.Generator(np.random.PCG64DXSM())
+
+    return randomizedGenesisLocationMatrices(rng, basin, monthslist), randomizedMovementCoefficients(rng)

@@ -4,7 +4,8 @@
 import numpy as np
 import math
 from geopy import distance
-from scipy.interpolate import BSpline, make_interp_spline
+from scipy.interpolate import make_interp_spline
+import ray
 
 def BOUNDARIES_BASINS(idx):
     '''
@@ -106,7 +107,7 @@ def checkCellTouchedByStorm(storm_lat, storm_lon, latCell, lonCell, rmax, resolu
 
     return False
 
-def getGridCellsTouchedByStormRMax(lat, lon, rmax, resolution, basin):
+def updateCellsTouchedByStormRMax(touchedCells, lat, lon, rmax, resolution, basin):
 
 
     # make bounding box based on rmax for which grid cells to iterate through
@@ -129,14 +130,44 @@ def getGridCellsTouchedByStormRMax(lat, lon, rmax, resolution, basin):
     i0, j0 = getGridCell(min_lat, min_lon, resolution, basin)
     i1, j1 = getGridCell(max_lat, max_lon, resolution, basin)
 
-    touched = []
-
     for i in range(i0, i1+1):
         for j in range(j0, j1+1):
             if checkCellTouchedByStorm(lat, lon, i, j, rmax, resolution, basin):
-                touched.append((i, j))
+                touchedCells.add((i, j))
 
-    return touched
+@ray.remote
+def get_cells_touched_by_storm(month, tc, resolution, basin):
+    # interpolate
+    b = make_interp_spline(tc['t'], tc['data'], k=1)
+
+    touched_cells = set()
+
+    for t in tc['t']:
+        step = 1
+
+        # make sure that there is never more than resolution degree change in lat or lon between t values
+        if t != len(tc['t']) - 1:
+
+            lat0 = tc['data'][t][0]
+            lat1 = tc['data'][t + 1][0]
+            lon0 = tc['data'][t][1]
+            lon1 = tc['data'][t + 1][1]
+
+            if abs(lat0 - lat1) + abs(lon0 - lon1) > resolution:
+                # then half the step size until it is small enough
+
+                n = math.ceil(math.log((abs(tc['data'][t][0] - tc['data'][t + 1][0]) + abs(
+                    tc['data'][t][1] - tc['data'][t + 1][1])) / resolution))
+
+                step = 1 / 2 ** n
+
+        # now use the actual step to check the touching points with spline values
+        for j in [h * step + t for h in range(0, int(1 / step))]:
+            lat, lon, pressure, wind, rmax, dist = b(j)
+
+            updateCellsTouchedByStormRMax(touched_cells, lat, lon, rmax, resolution, basin)
+
+    return (month, touched_cells)
 
 def averageLandfallsPerMonth(TC_data, basin, total_years, resolution, onlyLand=False):
     """
@@ -153,20 +184,20 @@ def averageLandfallsPerMonth(TC_data, basin, total_years, resolution, onlyLand=F
 
     # TC_data is list of [year,month,storm_number,l,idx,lat (one),lon (one),pressure (one),wind (one), rmax (one),category,landfall (one),distance]
 
-    # iterate through the data and reorganize into individual storms
-    tcs = {}
-
     grid = createMonthlyLandfallGrid(basin, resolution)
 
     if len(TC_data) == 0: return grid
-
-    current_storm_id = TC_data[0][2]
+    
+    storm_touched_cell_refs = []
+    
     storm = {'t': [], 'data': []}
     for i, storm_point in enumerate(TC_data):
 
         if i != 0 and storm_point[2] != TC_data[i-1][2]:
-            # start a new storm
-            tcs[(storm_point[0], storm_point[1], storm_point[2])] = storm.copy()
+            # start processing storm in worker
+            month = storm_point[1]
+            storm_touched_cell_refs.append(get_cells_touched_by_storm.remote(month, storm, resolution, basin))
+
             storm = {'t': [], 'data': []}
 
         storm['t'].append(storm_point[3])
@@ -174,55 +205,19 @@ def averageLandfallsPerMonth(TC_data, basin, total_years, resolution, onlyLand=F
         data.append(storm_point[12])
         storm['data'].append(data)
 
-        if i == len(TC_data) - 1: tcs[(storm_point[0], storm_point[1], storm_point[2])] = storm
+        if i == len(TC_data) - 1:
+            month = storm_point[1]
+            storm_touched_cell_refs.append(get_cells_touched_by_storm.remote(month, storm, resolution, basin))
 
-    stormsTouchingGridCells = {}  # dict of (lat, lon): { set of storms by (year, month, storm number) }
+    unfinished = storm_touched_cell_refs
 
+    while unfinished:
+        ready_refs, unfinished = ray.wait(unfinished, timeout=None)
+        month, touched_cells = ray.get(ready_refs[0])
 
-
-    for key, tc in tcs.items():
-        # interpolate
-        b = make_interp_spline(tc['t'], tc['data'], k=1)
-
-        year, month, storm_number = key
-
-        for t in tc['t']:
-            step = 1
-
-            # make sure that there is never more than resolution degree change in lat or lon between t values
-            if t != len(tc['t']) - 1:
-
-                lat0 = tc['data'][t][0]
-                lat1 = tc['data'][t+1][0]
-                lon0 = tc['data'][t][1]
-                lon1 = tc['data'][t+1][1]
-
-
-                if abs(lat0 - lat1) + abs(lon0 - lon1) > resolution:
-                    # then half the step size until it is small enough
-
-                    n = math.ceil(math.log((abs(tc['data'][t][0] - tc['data'][t+1][0]) + abs(tc['data'][t][1] - tc['data'][t+1][1]))/resolution))
-
-                    step = 1/2**n
-
-            # now use the actual step to check the touching points with spline values
-            for j in [h * step + t for h in range(0,int(1/step))]:
-                lat, lon, pressure, wind, rmax, dist = b(j)
-
-                if onlyLand and dist > rmax: continue
-
-                touchedCells = getGridCellsTouchedByStormRMax(lat, lon, rmax, resolution, basin)
-
-                for cell in touchedCells:
-                    if cell not in stormsTouchingGridCells:
-                        stormsTouchingGridCells[cell] = {(year, month, storm_number)}
-                    else:
-                        stormsTouchingGridCells[cell].add((year, month, storm_number))
-
-    for gridCell, stormsTouchingCell in stormsTouchingGridCells.items():
-        latCell, lonCell = gridCell
-        for storm in stormsTouchingCell:
-            grid[latCell][lonCell][storm[1]-1] += 1
+        for cell in touched_cells:
+            lat, lon = cell
+            grid[lat][lon][month-1] += 1
 
     return grid
 

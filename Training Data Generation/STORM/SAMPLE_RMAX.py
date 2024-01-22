@@ -18,22 +18,22 @@ import sys
 dir_path=os.path.dirname(os.path.realpath(sys.argv[0]))
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
-def sample_rmax(p,rmax_pres):
+def sample_rmax(rng, p,rmax_pres):
     if p>940.:
-        r=np.random.choice(rmax_pres[2],1)
+        r=rng.choice(rmax_pres[2],1)
     elif p<=940. and p>920.:
-        r=np.random.choice(rmax_pres[1],1)
+        r=rng.choice(rmax_pres[1],1)
     else:
-        r=np.random.choice(rmax_pres[0],1)
+        r=rng.choice(rmax_pres[0],1)
     return float(r)
 
 
-def Add_Rmax(pressure):    
+def Add_Rmax(rng, pressure):
     rmax_pres=np.load(os.path.join(__location__,'RMAX_PRESSURE.npy'),allow_pickle=True).item()
         
     #sample rmax at genesis
     rmaxlist=[]
-    rgenesis=sample_rmax(pressure[0],rmax_pres)
+    rgenesis=sample_rmax(rng,pressure[0],rmax_pres)
     rmaxlist.append(rgenesis)   
      
     #sample rmax at minimum pressure    
@@ -41,7 +41,7 @@ def Add_Rmax(pressure):
     ind=pressure.index(p_min)
     ind=int(ind)
     
-    rmin=sample_rmax(p_min,rmax_pres)
+    rmin=sample_rmax(rng,p_min,rmax_pres)
         
     if rmin<rgenesis and ind>0: #if the new radius is smaller than the old one, AND the min pressure is not at genesis
         for i in range(1,ind+1):
@@ -53,7 +53,7 @@ def Add_Rmax(pressure):
      
     rind=rmaxlist[-1]
     #sample radius at dissipation
-    rdis=sample_rmax(pressure[-1],rmax_pres)
+    rdis=sample_rmax(rng,pressure[-1],rmax_pres)
     if rdis>rind: #if radius is larger than the last added radius to the rmax_list:
         for i in range(ind+1,len(pressure)):
             radius=(rdis-rind)/(len(pressure)-1-ind)*i+rdis-(len(pressure)-1)*(rdis-rind)/(len(pressure)-1-ind)

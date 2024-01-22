@@ -38,8 +38,7 @@ def monthly_mean_pressure(data):
     data_1980_2018_monthly_means = data.sel(time=slice('1980-01-01', '2018-01-01')).groupby('time.month').mean('time')
 
     mean_mslp=data_1980_2018_monthly_means.msl.values/100
-    print(mean_mslp)
-    print(mean_mslp.shape)
+
     for month in range(0,12):
 
         np.savetxt(os.path.join(__location__,'Monthly_mean_MSLP_'+str(month+1)+'.txt'),mean_mslp[month,0,:,:])

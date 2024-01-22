@@ -89,7 +89,7 @@ def Check_if_landfall(lat,lon,lat1,lon0,land_mask):
 
     return l
   
-def TC_movement(lon_genesis_list,lat_genesis_list,basin, constants_all):
+def TC_movement(rng, lon_genesis_list,lat_genesis_list,basin, constants_all):
     """
     Parameters
     ----------
@@ -136,25 +136,25 @@ def TC_movement(lon_genesis_list,lat_genesis_list,basin, constants_all):
             [a0,a1,b0,b1,b2,Elatmu,Elatstd,Elonmu,Elonstd,Dlat0mu,Dlat0std,Dlon0mu,Dlon0std]=constants[ind]    
             
             if len(latlijst)==1: #if this is the first time step after genesis, we need to sample the first change in lon/lat/pressure
-                dlat0=np.random.normal(Dlat0mu,Dlat0std,1)
-                dlon0=np.random.normal(Dlon0mu,Dlon0std,1)              
+                dlat0=rng.normal(Dlat0mu,Dlat0std,1)
+                dlon0=rng.normal(Dlon0mu,Dlon0std,1)
             
             dlat1=LAT_JAMES_MASON(dlat0,lat,b0,b1,b2)
             if basin=='SP' or basin=='SI':
                 if lat>-10.:                    
-                    dlat1=float(dlat1-np.abs(np.random.normal(Elatmu,Elatstd)))
+                    dlat1=float(dlat1-np.abs(rng.normal(Elatmu,Elatstd)))
                 else:
-                    dlat1=float(dlat1+np.random.normal(Elatmu,Elatstd))
+                    dlat1=float(dlat1+rng.normal(Elatmu,Elatstd))
                     
             else:
                 if lat<10.:
-                    dlat1=float(dlat1+np.abs(np.random.normal(Elatmu,Elatstd)))
+                    dlat1=float(dlat1+np.abs(rng.normal(Elatmu,Elatstd)))
                 else:
-                    dlat1=float(dlat1+np.random.normal(Elatmu,Elatstd))
+                    dlat1=float(dlat1+rng.normal(Elatmu,Elatstd))
                     
 
             dlon1=LON_JAMES_MASON(dlon0,a0,a1)
-            epsilon=np.random.normal(Elonmu,Elonstd)
+            epsilon=rng.normal(Elonmu,Elonstd)
             dlon1=float(dlon1+epsilon)
             if np.abs(lat)>=45:
               if dlon1<0.:

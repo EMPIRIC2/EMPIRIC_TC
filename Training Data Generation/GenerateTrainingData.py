@@ -2,12 +2,14 @@
 from SampleSTORM import sampleStorm
 from RiskFactors import averageLandfallsPerMonth
 from GenerateInputParameters import generateInputParameters
-
+import ray
+import time
 import numpy as np
 
 import tensorflow as tf
 
 monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,3,4,11,12],[5,6,7,8,9,10,11]]
+
 
 def convert_to_flat_inputs(genesis_matrix, movement_coefficients):
 
@@ -16,10 +18,12 @@ def convert_to_flat_inputs(genesis_matrix, movement_coefficients):
 
     return inputs
 
+
 def convert_to_flat_outputs(avg_landfalls_per_month):
     return avg_landfalls_per_month.flatten()
 
 
+@ray.remote
 def generateOneTrainingDataSample(total_years, convert_inputs_to_nn_format, convert_outputs_to_nn_format, basin='SP'):
     '''
     Generate ML training data
@@ -39,44 +43,86 @@ def generateOneTrainingDataSample(total_years, convert_inputs_to_nn_format, conv
 
     tc_data = sampleStorm(total_years, genesis_matrices, movement_coefficients)
 
-    avg_landfalls_per_month = averageLandfallsPerMonth(tc_data, basin, total_years, 1)
+    avg_landfalls_per_month = averageLandfallsPerMonth(tc_data, basin, total_years, .5)
 
     basin_movement_coefficients = movement_coefficients[basins.index(basin)]
 
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.array([np.nan_to_num(genesis_matrices[month]) for month in monthlist])
 
-    X = convert_inputs_to_nn_format(genesis_matrix, basin_movement_coefficients)
+    x = convert_inputs_to_nn_format(genesis_matrix, basin_movement_coefficients)
 
-    Y = convert_outputs_to_nn_format(avg_landfalls_per_month)
-    return X, Y
+    y = convert_outputs_to_nn_format(avg_landfalls_per_month)
+
+    return (x, y)
+
 
 def generateTrainingData(total_years, n_train_samples, n_test_samples, convert_inputs_to_nn_format, convert_outputs_to_nn_format, basin='SP', save_location=None):
-
     all_train_inputs = []
     all_train_outputs = []
 
     all_test_inputs = []
     all_test_outputs = []
 
+    training_sample_refs = []
+    MAX_NUM_PENDING_TASKS = 20
+
     for i in range(n_train_samples):
-        input, output = generateOneTrainingDataSample(
+
+        if len(training_sample_refs) > MAX_NUM_PENDING_TASKS:
+
+            # update result_refs to only
+            # track the remaining tasks.
+            ready_refs, training_sample_refs = ray.wait(training_sample_refs, num_returns=1)
+
+            input, output = ray.get(ready_refs[0])
+
+
+            all_train_inputs.append(input)
+            all_train_outputs.append(output)
+
+        training_sample_refs.append(generateOneTrainingDataSample.remote(
             total_years,
             convert_inputs_to_nn_format,
             convert_outputs_to_nn_format,
             basin
-        )
+        ))
+
+    test_sample_refs = []
+    for i in range(n_test_samples):
+
+        if len(test_sample_refs) > MAX_NUM_PENDING_TASKS:
+            ready_refs, test_sample_refs = ray.wait(test_sample_refs, num_returns=1)
+
+            input, output = ray.get(ready_refs[0])
+
+
+            all_test_inputs.append(input)
+            all_test_outputs.append(output)
+
+        test_sample_refs.append(generateOneTrainingDataSample.remote(
+            total_years,
+            convert_inputs_to_nn_format,
+            convert_outputs_to_nn_format,
+            basin
+        ))
+
+    unfinished = training_sample_refs
+    while unfinished:
+        ready_refs, unfinished = ray.wait(unfinished, timeout=None)
+
+        input, output = ray.get(ready_refs[0])
 
         all_train_inputs.append(input)
         all_train_outputs.append(output)
 
-    for i in range(n_test_samples):
-        input, output, = generateOneTrainingDataSample(
-            total_years,
-            convert_inputs_to_nn_format,
-            convert_outputs_to_nn_format,
-            basin
-        )
+    unfinished = test_sample_refs
+
+    while unfinished:
+
+        ready_refs, unfinished = ray.wait(unfinished, timeout=None)
+
+        input, output = ray.get(ready_refs[0])
         all_test_inputs.append(input)
         all_test_outputs.append(output)
 
@@ -92,5 +138,3 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, convert_i
 
     return all_train_inputs, all_train_outputs, all_test_inputs, all_test_outputs
 
-
-generateTrainingData(1, 10, 5, convert_to_flat_inputs, convert_to_flat_outputs, save_location='./Data/')
