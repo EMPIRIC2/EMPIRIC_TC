@@ -10,3 +10,5 @@ Training Data Generation/STORM-climate-change/*.txt
 Training Data Generation/STORM-climate-change/*.npy
 Training Data Generation/STORM-climate-change/ne*
 Training Data Generation/.DS_Store
+*.pyc
+Training Data Generation/STORM-climate-change/.DS_Store

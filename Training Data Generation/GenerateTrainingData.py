@@ -57,6 +57,11 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
 
 def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP', save_location=None):
 
+    print('Beginning Training Data Generation \n')
+    print('Running storm for {} years in each sample\n'.format(total_years))
+    print('Training Samples: {}\n'.format(n_train_samples))
+    print('Test Samples: {}\n'.format(n_test_samples))
+
     basins = ['EP', 'NA', 'NI', 'SI', 'SP', 'WP']
 
     monthlist = monthsall[basins.index(basin)]
@@ -70,6 +75,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
     training_sample_refs = []
     MAX_NUM_PENDING_TASKS = 20
 
+    print("Loading files")
     ## load all files upfront to store in memory, otherwise parallelization is very slow
     JM_pressure = np.load(os.path.join(__location__, 'STORM', 'COEFFICIENTS_JM_PRESSURE.npy'), allow_pickle=True).item()
 
@@ -104,7 +110,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
     monthlist=np.load(os.path.join(__location__,'STORM','GENESIS_MONTHS.npy'), allow_pickle=True).item()
     monthlist_ref = ray.put(monthlist)
 
-    movementCoefficientsFuture = [np.load('./InputData/JM_LONLATBINS_IBTRACSDELTA_{}.npy'.format(model)
+    movementCoefficientsFuture = [np.load(os.path.join(__location__, 'InputData', "JM_LONLATBINS_IBTRACSDELTA_{}.npy".format(model))
                                           , allow_pickle=True)
                                   .item()['SP']
                                   for model in ['CMCC-CM2-VHR4','EC-Earth3P-HR','CNRM-CM6-1-HR','HadGEM3-GC31-HM']]
@@ -118,9 +124,12 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
     rmax_pres=np.load(os.path.join(__location__,'STORM','RMAX_PRESSURE.npy'),allow_pickle=True).item()
     rmax_pres_ref = ray.put(rmax_pres)
 
+    print("Finished loading files")
+
     all_train_tc_data = []
     all_test_tc_data = []
 
+    print("Generating training samples.")
     for i in range(n_train_samples):
         input, output, tc_data = generateOneTrainingDataSample(
             total_years,
@@ -229,6 +238,8 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
 
     if save_location is not None:
 
+        print("Saving to: {}".format(save_location))
+
         genesis_matrices, movement_coefficients = zip(*all_train_inputs)
 
         train = (np.array(genesis_matrices), np.array(movement_coefficients), np.array(all_train_outputs))
@@ -245,5 +256,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
         train_dataset.save(os.path.join(save_location, 'train'))
         test_dataset.save(os.path.join(save_location, 'test'))
 
+    print("Training Data Generation Complete")
     return all_train_inputs, all_train_outputs, all_test_inputs, all_test_outputs
 
+generateTrainingData(1, 1, 1)
