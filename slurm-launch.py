@@ -17,6 +17,9 @@ PARTITION_OPTION = "${PARTITION_OPTION}"
 COMMAND_PLACEHOLDER = "${COMMAND_PLACEHOLDER}"
 GIVEN_NODE = "${GIVEN_NODE}"
 LOAD_ENV = "${LOAD_ENV}"
+WALL_TIME = "${WALL_TIME}"
+MEM = "${MEM}"
+QOS_DEBUG = "${QOS_DEBUG}"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -61,6 +64,25 @@ if __name__ == "__main__":
         " --command 'python test.py'. "
         "Note that the command must be a string.",
     )
+    parser.add_argument(
+        "--time",
+        type=str,
+        required=True,
+        help="The walltime that should be allocated to the job in the format hh:mm:ss"
+    )
+    parser.add_argument(
+        "--mem",
+        type=str,
+        required=True,
+        help="The amount of memory to allocate to the job. For example --mem 512MB"
+    )
+    parser.add_argument(
+        "--debug",
+        type=bool,
+        required=False,
+        help="Flag to run the job with qos=DEBUG",
+        default=""
+    )
     args = parser.parse_args()
 
     if args.node:
@@ -77,6 +99,11 @@ if __name__ == "__main__":
         "#SBATCH --partition={}".format(args.partition) if args.partition else ""
     )
 
+    if args.debug:
+        debug = "#SBATCH qos=debug"
+    else:
+        debug = ""
+
     # ===== Modified the template script =====
     with open(template_file, "r") as f:
         text = f.read()
@@ -87,6 +114,9 @@ if __name__ == "__main__":
     text = text.replace(COMMAND_PLACEHOLDER, str(args.command))
     text = text.replace(LOAD_ENV, str(args.load_env))
     text = text.replace(GIVEN_NODE, node_info)
+    text = text.replace(QOS_DEBUG, debug)
+    text = text.replace(WALL_TIME, str(args.time))
+    text = text.replace(MEM, str(args.mem))
     text = text.replace(
         "# THIS FILE IS A TEMPLATE AND IT SHOULD NOT BE DEPLOYED TO " "PRODUCTION!",
         "# THIS FILE IS MODIFIED AUTOMATICALLY FROM TEMPLATE AND SHOULD BE "
