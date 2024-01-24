@@ -262,14 +262,14 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
     return all_train_inputs, all_train_outputs, all_test_inputs, all_test_outputs
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('total_years', metavar='N', type=int, nargs='1',
+parser.add_argument('total_years',  type=int,
                     help='Number of years to run STORM for when generating training data')
-parser.add_argument('num_training', metavar='N', type=int, nargs='1',
+parser.add_argument('num_training', type=int,
                     help='Number of training samples')
-parser.add_argument('num_test', metavar='N', type=int, nargs='1',
+parser.add_argument('num_test',  type=int,
                     help='number of test samples')
-parser.add_argument('save_location', metavar='N', type=str, default=os.path.join(__location__, 'Data'),
+parser.add_argument('save_location', type=str,
                     help='Directory to save data to.')
 args = parser.parse_args()
 
-generateTrainingData(args.total_years, args.num_training, args.num_test, args.save_location)
+generateTrainingData(args.total_years, args.num_training, args.num_test, save_location=args.save_location)
