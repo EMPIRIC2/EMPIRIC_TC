@@ -13,6 +13,8 @@
 
 import numpy as np
 import os
+
+from scipy.stats import truncnorm
 import ray
 import secrets
 
@@ -30,7 +32,7 @@ def getObservedGenesisLocations(basin, month, matrix_path=None):
 
     return grid_copy
 
-def randomizedGenesisLocationMatrices(rng, basin, monthlist, scale=1):
+def randomizedGenesisLocationMatrices(rng, future_data, monthlist, scale=1):
     '''
     Randomly perturb the observed genesis locations.
     Note: the current randomization is not based on any actual characteristics the data should have,
@@ -42,9 +44,6 @@ def randomizedGenesisLocationMatrices(rng, basin, monthlist, scale=1):
     :return:
     '''
     models = ['CMCC-CM2-VHR4', 'EC-Earth3P-HR', 'CNRM-CM6-1-HR', 'HadGEM3-GC31-HM']
-    future_delta_files = [os.path.join(__location__, 'InputData', "GENESIS_LOCATIONS_IBTRACSDELTA_{}.npy".format(model)) for model in models]
-
-    future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
     genesis_location_matrices = {}
 
     for month in monthlist:
@@ -68,25 +67,34 @@ def getMovementCoefficientData():
 
     return constants_all
 
-def randomizedMovementCoefficients(rng):
+def randomizedMovementCoefficients(rng, movementCoefficientsFuture):
 
     # for now, just perturb the calculated track coefficients. it will be faster than refitting the lsq regressions.
-
-    movementCoefficientsFuture = [np.load('./InputData/JM_LONLATBINS_IBTRACSDELTA_{}.npy'.format(model)
-                                          , allow_pickle=True)
-                                  .item()['SP']
-                                  for model in ['CMCC-CM2-VHR4','EC-Earth3P-HR','CNRM-CM6-1-HR','HadGEM3-GC31-HM']]
 
     # calculate statistics for each variable, per lat bin per month
     stds = np.std(movementCoefficientsFuture, axis=0)
     means = np.mean(movementCoefficientsFuture, axis=0)
 
+    # need to make sure that none of these are 0
     random_coefficients = rng.normal(means, stds)
+    for j in range(6, 13, 2):
+
+        for i in range(0, 11):
+            loc = means[i][j]
+            scale = stds[i][j]
+
+
+            if scale == 0:
+                scale = 10 ** -12
+
+            a, b = (0 - loc) / scale, (100 - loc) / scale
+            rv = truncnorm(a, b, loc=loc, scale=scale)
+            random_coefficients[i][j] = rv.rvs(random_state=rng)
 
     return {4: random_coefficients}
 
 
-def generateInputParameters(basin, monthslist):
+def generateInputParameters(future_data, movementCoefficientsFuture, monthslist):
     """
     Create a genesis probability map and tc track movement distribution
 
@@ -96,4 +104,4 @@ def generateInputParameters(basin, monthslist):
 
     rng = np.random.Generator(np.random.PCG64DXSM())
 
-    return randomizedGenesisLocationMatrices(rng, basin, monthslist), randomizedMovementCoefficients(rng)
+    return randomizedGenesisLocationMatrices(rng, future_data, monthslist), randomizedMovementCoefficients(rng, movementCoefficientsFuture)

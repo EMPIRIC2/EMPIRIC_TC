@@ -18,7 +18,7 @@ import sys
 dir_path=os.path.dirname(os.path.realpath(sys.argv[0]))
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
-def find_lat_index_bins(basin,lat):
+def find_lat_index_bins(basin,lat, mu_list, monthlist):
     """
     find index of latitude bin in coefficients list
 
@@ -32,7 +32,7 @@ def find_lat_index_bins(basin,lat):
     latindex : index of bin.
 
     """
-    s,monthdummy,lat0,lat1,lon0,lon1=Basins_WMO(basin)
+    s,monthdummy,lat0,lat1,lon0,lon1=Basins_WMO(basin, mu_list, monthlist)
     base=5
     latindex=np.floor(float(lat-lat0)/base)
     return latindex
@@ -89,7 +89,7 @@ def Check_if_landfall(lat,lon,lat1,lon0,land_mask):
 
     return l
   
-def TC_movement(rng, lon_genesis_list,lat_genesis_list,basin, constants_all):
+def TC_movement(rng, lon_genesis_list,lat_genesis_list,basin, constants_all, mu_list, monthlist, land_mask):
     """
     Parameters
     ----------
@@ -108,11 +108,9 @@ def TC_movement(rng, lon_genesis_list,lat_genesis_list,basin, constants_all):
     basin_name = dict(zip(basins,[0,1,2,3,4,5]))
     idx=basin_name[basin]
 
-    land_mask=np.loadtxt(os.path.join(__location__,'Land_ocean_mask_'+str(basin)+'.txt'))
-    
     constants=constants_all[idx]
     
-    s,monthdummy,lat0,lat1,lon0,lon1=Basins_WMO(basin)
+    s,monthdummy,lat0,lat1,lon0,lon1=Basins_WMO(basin, mu_list, monthlist)
     latall=[]
     lonall=[]
     landfallall=[]
@@ -131,7 +129,7 @@ def TC_movement(rng, lon_genesis_list,lat_genesis_list,basin, constants_all):
         
         var=0 #var is the 'stop-parameter'. The track generation ends when the storm moves over land or out of the basin
         while var==0:
-            ind=int(find_lat_index_bins(basin,lat))
+            ind=int(find_lat_index_bins(basin,lat, mu_list, monthlist))
             #constants values for latitude/longitude
             [a0,a1,b0,b1,b2,Elatmu,Elatstd,Elonmu,Elonstd,Dlat0mu,Dlat0std,Dlon0mu,Dlon0std]=constants[ind]    
             

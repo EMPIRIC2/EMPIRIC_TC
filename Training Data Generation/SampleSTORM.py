@@ -22,14 +22,18 @@ def concatenate_ref_results(refs, result=None):
 
     while unfinished:
         ready_refs, unfinished = ray.wait(unfinished, timeout=None)
-        result.extend(ray.get(ready_refs[0]))
+        ready = ray.get(ready_refs[0])
+
+        result.extend(ready)
 
     return result
 
 
 @ray.remote
-def stormYear(year, basin, genesis_matrices, movement_coefficients, JM_pressure, Genpres, WPR_coefficients, Genwind):
-    storms_per_year, genesis_month, lat0, lat1, lon0, lon1 = Basins_WMO(basin)
+def stormYear(year, month_map, basin, JM_pressure, Genpres, WPR_coefficients, Genwind, Penv, land_mask, mu_list, monthlist, rmax_pres, genesis_matrix, movement_coefficients):
+
+    storms_per_year, genesis_month, lat0, lat1, lon0, lon1 = Basins_WMO(basin, mu_list, monthlist)
+
 
     rng = np.random.default_rng()
 
@@ -39,7 +43,7 @@ def stormYear(year, basin, genesis_matrices, movement_coefficients, JM_pressure,
         # ==============================================================================
         # Step 3: Generate (list of) genesis locations
         # ==============================================================================
-        lon_genesis_list, lat_genesis_list = Startingpoint(storms_per_year, genesis_month, basin, genesis_matrices)
+        lon_genesis_list, lat_genesis_list = Startingpoint(storms_per_year, genesis_month, basin, genesis_matrix, month_map, land_mask, mu_list, monthlist)
 
         # ==============================================================================
         # Step 4: Generate initial conditions
@@ -49,11 +53,15 @@ def stormYear(year, basin, genesis_matrices, movement_coefficients, JM_pressure,
             lon_genesis_list,
             lat_genesis_list,
             basin,
-            movement_coefficients
+            movement_coefficients,
+            mu_list,
+            monthlist,
+            land_mask
         )
 
         TC_data = TC_pressure(
             rng,
+            month_map,
             basin,
             latlist,
             lonlist,
@@ -65,12 +73,20 @@ def stormYear(year, basin, genesis_matrices, movement_coefficients, JM_pressure,
             JM_pressure,
             Genpres,
             WPR_coefficients,
-            Genwind)
+            Genwind,
+            Penv,
+            mu_list,
+            monthlist,
+            rmax_pres
+        )
 
     return TC_data
 
 
-def sampleStorm(total_years, genesis_matrices, movement_coefficients, basin='SP'):
+def sampleStorm(total_years,
+                month_map,
+                refs,
+                basin='SP'):
     """
     rewrite of STORM.MASTER to only get TC tracks without intensity data
     :param total_years
@@ -85,15 +101,7 @@ def sampleStorm(total_years, genesis_matrices, movement_coefficients, basin='SP'
     # ==============================================================================
     # please set basin (EP,NA,NI,SI,SP,WP)
 
-    JM_pressure = np.load(os.path.join(__location__, 'STORM', 'COEFFICIENTS_JM_PRESSURE.npy'), allow_pickle=True).item()
 
-    Genpres = np.load(os.path.join(__location__, 'STORM', 'DP0_PRES_GENESIS.npy'), allow_pickle=True).item()
-
-    # this is the wind pressure relationship coefficients: eq. 3 in the
-    WPR_coefficients = np.load(os.path.join(__location__, 'STORM', 'COEFFICIENTS_WPR_PER_MONTH.npy'),
-                               allow_pickle=True).item()
-
-    Genwind = np.load(os.path.join(__location__, 'STORM', 'GENESIS_WIND.npy'), allow_pickle=True).item()
 
     storm_year_refs = []
     # ==============================================================================
@@ -113,8 +121,7 @@ def sampleStorm(total_years, genesis_matrices, movement_coefficients, basin='SP'
             TC_data.extend(ray.get(ready_refs[0]))
 
         storm_year_refs.append(
-            stormYear.remote(year, basin, genesis_matrices, movement_coefficients, JM_pressure, Genpres,
-                             WPR_coefficients, Genwind))
+            stormYear.remote(year, month_map, basin, *refs))
 
     TC_data = concatenate_ref_results(storm_year_refs, TC_data)
 

@@ -28,9 +28,8 @@ def sample_rmax(rng, p,rmax_pres):
     return float(r)
 
 
-def Add_Rmax(rng, pressure):
-    rmax_pres=np.load(os.path.join(__location__,'RMAX_PRESSURE.npy'),allow_pickle=True).item()
-        
+def Add_Rmax(rng, pressure, rmax_pres):
+
     #sample rmax at genesis
     rmaxlist=[]
     rgenesis=sample_rmax(rng,pressure[0],rmax_pres)

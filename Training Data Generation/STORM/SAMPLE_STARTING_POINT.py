@@ -84,7 +84,7 @@ def Check_NA_formation(lat,lon):
         l=0
     return l
 
-def Check_if_landfall(lat,lon,basin,land_mask):
+def Check_if_landfall(lat,lon,basin,land_mask, mu_list, monthlist):
     """
     Parameters
     ----------
@@ -99,7 +99,7 @@ def Check_if_landfall(lat,lon,basin,land_mask):
     l : 0=no landfall, 1=landfall
 
     """
-    s,monthdummy,lat0_WMO,lat1_WMO,lon0_WMO,lon1_WMO=Basins_WMO(basin)
+    s,monthdummy,lat0_WMO,lat1_WMO,lon0_WMO,lon1_WMO=Basins_WMO(basin, mu_list, monthlist)
     
     x=int(10*(lon-lon0_WMO))
     y=int(10*(lat1_WMO-lat))
@@ -109,7 +109,7 @@ def Check_if_landfall(lat,lon,basin,land_mask):
 def getGenesisMatrix(grid_genesis_matrices, month):
     return grid_genesis_matrices[month]
 
-def Startingpoint(no_storms,monthlist,basin, grid_genesis_matrices):
+def Startingpoint(no_storms,genesis_months,basin, grid_genesis_matrix, month_map, land_mask, mu_list, monthlist):
     """
     This function samples the genesis locations of every TC in a given year
 
@@ -132,16 +132,13 @@ def Startingpoint(no_storms,monthlist,basin, grid_genesis_matrices):
     weighted_list=[]
 
 
-    s,monthdummy,lat0,lat1,lon0,lon1=Basins_WMO(basin)
+    s,monthdummy,lat0,lat1,lon0,lon1=Basins_WMO(basin, mu_list, monthlist)
 
-    land_mask=np.loadtxt(os.path.join(__location__,'Land_ocean_mask_'+str(basin)+'.txt'))
 
-    for month in monthlist:
+    for month in genesis_months:
 
-        grid_copy = getGenesisMatrix(grid_genesis_matrices, month)
+        grid_copy = grid_genesis_matrix[month_map[month]]
 
-        grid_copy=np.array(grid_copy)
-        grid_copy=np.round(grid_copy,1)
         #==============================================================================
         # Make a list with weighted averages. The corresponding grid-index is calculated as len(col)*row_index+col_index
         #==============================================================================
@@ -173,7 +170,7 @@ def Startingpoint(no_storms,monthlist,basin, grid_genesis_matrices):
             
             
             if lon<lon1 and lat<lat1:
-                check=Check_if_landfall(lat,lon,basin,land_mask) #make sure the coordinate isn't on land
+                check=Check_if_landfall(lat,lon,basin,land_mask, mu_list, monthlist) #make sure the coordinate isn't on land
                 
                 if basin=='EP':
                     check=Check_NA_formation(lat,lon)

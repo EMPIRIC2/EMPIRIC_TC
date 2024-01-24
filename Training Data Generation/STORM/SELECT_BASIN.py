@@ -26,7 +26,7 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 # 4 = SP = South Pacific
 # 5 = WP = Western Pacific
 
-def Genesis_month(idx,storms):
+def Genesis_month(idx,storms,monthlist):
     """
     Sample the genesis months for every TC
     Parameters
@@ -39,7 +39,6 @@ def Genesis_month(idx,storms):
     monthall : list of all genesis months.
 
     """
-    monthlist=np.load(os.path.join(__location__,'GENESIS_MONTHS.npy'), allow_pickle=True).item()
 
     monthall=[]
     for i in range(0,storms):
@@ -49,7 +48,7 @@ def Genesis_month(idx,storms):
 
 
     
-def Storms(idx): 
+def Storms(idx, mu_list):
     """
     Sample the number of TC formations in a given year
 
@@ -62,7 +61,6 @@ def Storms(idx):
     s : number of storms.
 
     """
-    mu_list=np.loadtxt(os.path.join(__location__,'POISSON_GENESIS_PARAMETERS.txt'))
     #mu_list has the shape [EP,NA,NI,SI,SP,WP]
     
     mu=mu_list[idx]
@@ -71,7 +69,7 @@ def Storms(idx):
     s=random.choice(poisson)
     return s
 
-def Basins_WMO(basin):
+def Basins_WMO(basin, mu_list, monthlist):
     """
     Basin definitions
 
@@ -96,9 +94,9 @@ def Basins_WMO(basin):
     basin_name = dict(zip(basins,[0,1,2,3,4,5]))
     idx=basin_name[basin]
     
-    s=Storms(idx)
+    s=Storms(idx, mu_list)
     
-    month=Genesis_month(idx,s)
+    month=Genesis_month(idx,s, monthlist)
   
     if idx==0: #Eastern Pacific
         lat0,lat1,lon0,lon1=5,60,180,285

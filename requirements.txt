@@ -26,7 +26,6 @@ flatbuffers==23.5.26
 fonttools==4.47.0
 frozenlist==1.4.1
 gast==0.5.4
-GDAL==3.8.3
 geographiclib==2.0
 geopy==2.4.1
 google-api-core==2.15.0
