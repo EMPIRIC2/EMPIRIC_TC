@@ -7,9 +7,10 @@ import argparse
 import subprocess
 import sys
 import time
-from pathlib import Path
+import os
 
-template_file = Path(__file__) / "slurm-template.sh"
+template_file = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))), "slurm-template.sh")
+
 JOB_NAME = "${JOB_NAME}"
 NUM_NODES = "${NUM_NODES}"
 NUM_GPUS_PER_NODE = "${NUM_GPUS_PER_NODE}"
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     )
 
     if args.debug:
-        debug = "#SBATCH qos=debug"
+        debug = "#SBATCH --qos=debug"
     else:
         debug = ""
 
