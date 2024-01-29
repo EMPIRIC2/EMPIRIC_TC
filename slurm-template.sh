@@ -36,14 +36,17 @@ fi
 fi
 port=6379
 
-echo "STARTING HEAD at $head_node"
-echo "Head node IP: $head_node_ip"
-srun --nodes=1 --ntasks=1 -w $head_node start-head.sh $head_node_ip &
+srun --nodes=1 --ntasks=1 -w "$node_1" \
+  ray start --head --node-ip-address=$1 --port=6379 --include-dashboard False --disable-usage-stat --block &
 sleep 10
 
-worker_num=$(($SLURM_JOB_NUM_NODES - 1)) #number of nodes other than the head node
-srun -n $worker_num --nodes=$worker_num --ntasks-per-node=1 --exclude $head_node start-worker.sh $head_node_ip:$port &
-sleep 5
+worker_num=$((SLURM_JOB_NUM_NODES - 1)) #number of nodes other than the head node
+for ((i = 1; i <= worker_num; i++)); do
+  node_i=${nodes_array[$i]}
+  echo "STARTING WORKER $i at $node_i"
+  srun --nodes=1 --ntasks=1 -w "$node_i" ray start --address "$ip_head" --block &
+  sleep 5
+done
 ##############################################################################################
 
 # ===== Call your code below =====
