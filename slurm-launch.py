@@ -9,7 +9,7 @@ import sys
 import time
 import os
 
-template_file = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))), "slurm-template.sh")
+template_file = os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))), "new-slurm.sh")
 
 JOB_NAME = "${JOB_NAME}"
 NUM_NODES = "${NUM_NODES}"
