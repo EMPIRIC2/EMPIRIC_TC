@@ -8,28 +8,15 @@ from STORM.SAMPLE_TC_MOVEMENT import TC_movement
 from STORM.SAMPLE_TC_PRESSURE import TC_pressure
 from STORM.SELECT_BASIN import Basins_WMO
 import numpy as np
+from multiprocessing import Pool, cpu_count
+
+
 import os
-import ray
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
-def concatenate_ref_results(refs, result=None):
 
-    unfinished = refs
-    if result is None:
-        result = []
-
-    while unfinished:
-        ready_refs, unfinished = ray.wait(unfinished, timeout=None)
-        ready = ray.get(ready_refs[0])
-
-        result.extend(ready)
-
-    return result
-
-
-@ray.remote
 def stormYear(year, month_map, basin, JM_pressure, Genpres, WPR_coefficients, Genwind, Penv, land_mask, mu_list, monthlist, rmax_pres, genesis_matrix, movement_coefficients):
 
     storms_per_year, genesis_month, lat0, lat1, lon0, lon1 = Basins_WMO(basin, mu_list, monthlist)
@@ -96,33 +83,19 @@ def sampleStorm(total_years,
     :return:
     """
 
-    # ==============================================================================
-    # Step 1: Define basin and number of years to run
-    # ==============================================================================
-    # please set basin (EP,NA,NI,SI,SP,WP)
-
-
-
-    storm_year_refs = []
-    # ==============================================================================
-    #     Step 2: load grid with weighted genesis counts
-    # ==============================================================================
-
-    # start all year computations as individual workers
-
-    MAX_NUM_PENDING_TASKS = 20
+    # number of cores you have allocated for your slurm task:
+    #number_of_cores = int(os.environ['SLURM_CPUS_PER_TASK'])
+    number_of_cores = cpu_count() # if not on the cluster you should do this instead
+    print(number_of_cores)
+    args = [(year, month_map, basin, *refs) for year in range(total_years)]
+    # multiprocssing pool to distribute tasks to:
+    with Pool(number_of_cores) as pool:
+        # distribute computations and collect results:
+        results = pool.starmap(stormYear, args)
 
     TC_data = []
-    for year in range(0, total_years):
-        if len(storm_year_refs) > MAX_NUM_PENDING_TASKS:
+    for result in results:
+        TC_data += result
 
-            ready_refs, storm_year_refs = ray.wait(storm_year_refs, num_returns=1)
-
-            TC_data.extend(ray.get(ready_refs[0]))
-
-        storm_year_refs.append(
-            stormYear.remote(year, month_map, basin, *refs))
-
-    TC_data = concatenate_ref_results(storm_year_refs, TC_data)
-
+    print(TC_data)
     return TC_data

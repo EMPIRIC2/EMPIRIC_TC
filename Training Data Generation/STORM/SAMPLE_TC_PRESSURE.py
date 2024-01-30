@@ -307,11 +307,10 @@ def add_parameters_to_TC_data(rng,pressure_list,wind_list,latfull,lonfull,year,s
     x=min(len(landfallfull),len(lijst))    
              
     for l in range(0,x):
-        distance=0
 
         category=TC_Category(wind_list[l])
         
-        TC_data.append([year,month,storm_number,l,idx,latfull[l],lonfull[l],pressure_list[l],wind_list[l],rmax_list[l],category,landfallfull[l],distance])
+        TC_data.append([year,month,storm_number,l,idx,latfull[l],lonfull[l],pressure_list[l],wind_list[l],rmax_list[l],category,landfallfull[l]])
 
     return TC_data
 
