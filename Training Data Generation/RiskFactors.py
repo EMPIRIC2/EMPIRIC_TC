@@ -5,6 +5,7 @@ import numpy as np
 import math
 from geopy import distance
 from scipy.interpolate import make_interp_spline
+from multiprocessing import Pool, cpu_count
 
 def BOUNDARIES_BASINS(idx):
     '''
@@ -167,6 +168,7 @@ def get_cells_touched_by_storm(tc, resolution, basin):
 
     return touched_cells
 
+
 def averageLandfallsPerMonth(TC_data, basin, total_years, resolution, onlyLand=False):
     """
     Calculate average landfalls per month within lat, lon bins from synthetic TC data.
@@ -186,31 +188,42 @@ def averageLandfallsPerMonth(TC_data, basin, total_years, resolution, onlyLand=F
 
     if len(TC_data) == 0: return grid
 
-    storm_touched_cell = []
+    storms = []
 
     storm = {'t': [], 'data': []}
     for i, storm_point in enumerate(TC_data):
 
         if i != 0 and storm_point[2] != TC_data[i-1][2]:
             # start processing storm in worker
-            month = storm_point[1]
-            touched_cells = get_cells_touched_by_storm(storm, resolution, basin)
-            for cell in touched_cells:
-                lat, lon = cell
-                grid[lat][lon][month - 1] += 1
+            storm['month'] = storm_point[1]
+            storms.append(storm)
 
-            storm = {'t': [], 'data': []}
+            storm = {'t': [], 'data': [], 'month': None}
 
         storm['t'].append(storm_point[3])
         data = storm_point[5:10]
         storm['data'].append(data)
 
         if i == len(TC_data) - 1:
-            month = storm_point[1]
+            storm['month'] = storm_point[1]
+            storms.append(storm)
 
-            touched_cells = get_cells_touched_by_storm(storm, resolution, basin)
+
+    # number of cores you have allocated for your slurm task:
+    #number_of_cores = int(os.environ['SLURM_CPUS_PER_TASK'])
+    number_of_cores = cpu_count() # if not on the cluster you should do this instead
+
+    args = [(storm, resolution, basin) for storm in storms]
+
+    with Pool(number_of_cores) as pool:
+        touched_cell_results = pool.starmap(get_cells_touched_by_storm, args)
+
+        for i, touched_cells in enumerate(touched_cell_results):
+            month = storms[i]['month']
+
             for cell in touched_cells:
                 lat, lon = cell
+
                 grid[lat][lon][month - 1] += 1
 
     return grid

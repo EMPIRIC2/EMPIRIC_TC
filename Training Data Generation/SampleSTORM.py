@@ -97,5 +97,5 @@ def sampleStorm(total_years,
     for result in results:
         TC_data += result
 
-    print(TC_data)
+
     return TC_data
