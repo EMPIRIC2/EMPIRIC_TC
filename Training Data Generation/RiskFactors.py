@@ -6,7 +6,7 @@ import math
 from geopy import distance
 from scipy.interpolate import make_interp_spline
 from multiprocessing import Pool, cpu_count
-
+import os
 def BOUNDARIES_BASINS(idx):
     '''
     Copied from STORM model

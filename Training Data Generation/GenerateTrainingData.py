@@ -1,10 +1,10 @@
-
 from SampleSTORM import sampleStorm
 from RiskFactors import averageLandfallsPerMonth
 from GenerateInputParameters import generateInputParameters
 import os
 import numpy as np
 import argparse
+import h5py
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -36,17 +36,17 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
     tc_data = sampleStorm(total_years, month_map, refs)
 
     avg_landfalls_per_month = averageLandfallsPerMonth(tc_data, basin, total_years, .5)
-
     basin_movement_coefficients = movement_coefficients[basins.index(basin)]
 
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
 
+
     return (genesis_matrix, basin_movement_coefficients), avg_landfalls_per_month, tc_data
 
 
-def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP', save_location=None):
+def generateTrainingData(total_years, n_train_samples, n_test_samples, save_location, basin='SP'):
 
     print('Beginning Training Data Generation \n')
     print('Running storm for {} years in each sample\n'.format(total_years))
@@ -56,6 +56,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
     basins = ['EP', 'NA', 'NI', 'SI', 'SP', 'WP']
 
     monthlist = monthsall[basins.index(basin)]
+
 
     all_train_inputs = []
     all_train_outputs = []
@@ -104,7 +105,23 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
 
     future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
 
-    rmax_pres = np.load(os.path.join(__location__,'STORM','RMAX_PRESSURE.npy'),allow_pickle=True).item()
+    data = h5py.File(os.path.join(save_location, 'AllData.hdf5'), 'w')
+
+    lat, lon = future_data[0][1].shape
+
+    genesis_train_data = data.create_dataset('train_genesis', (n_train_samples, 6, lat, lon))
+    genesis_test_data = data.create_dataset('test_genesis', (n_test_samples, 6, lat, lon))
+
+    w = len(movementCoefficientsFuture[0])
+    h = len(movementCoefficientsFuture[0][0])
+    movement_coefficient_train_data = data.create_dataset('train_movement', (n_train_samples, w, h))
+    movement_coefficient_test_data = data.create_dataset('test_movement', (n_test_samples, w, h))
+
+    output_train_data = data.create_dataset('train_output', (n_train_samples, 2*lat, 2*lon, 12))
+    output_test_data = data.create_dataset('test_output', (n_test_samples, 2*lat, 2*lon, 12))
+
+
+    rmax_pres = np.load(os.path.join(__location__, 'STORM', 'RMAX_PRESSURE.npy'),allow_pickle=True).item()
 
     print("Finished loading files")
 
@@ -129,10 +146,11 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
             ],
             basin
         )
+        genesis_matrices, movement_coefficients = input
+        genesis_train_data[i] = genesis_matrices
+        movement_coefficient_train_data[i] = movement_coefficients
+        output_train_data[i] = output
 
-        all_train_inputs.append(input)
-        all_train_outputs.append(output)
-        all_train_tc_data.append(tc_data)
         '''
         if len(training_sample_refs) > MAX_NUM_PENDING_TASKS:
 
@@ -174,9 +192,11 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
             basin
         )
 
-        all_test_inputs.append(input)
-        all_test_outputs.append(output)
-        all_test_tc_data.append(tc_data)
+        genesis_matrices, movement_coefficients = input
+        genesis_test_data[i] = genesis_matrices
+        movement_coefficient_test_data[i] = movement_coefficients
+        output_test_data[i] = output
+
         '''
         if len(test_sample_refs) > MAX_NUM_PENDING_TASKS:
             ready_refs, test_sample_refs = ray.wait(test_sample_refs, num_returns=1)
@@ -222,26 +242,10 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, basin='SP
 
         print("Saving to: {}".format(save_location))
 
-        genesis_matrices, movement_coefficients = zip(*all_train_inputs)
-
-        #train = (np.array(genesis_matrices), np.array(movement_coefficients), np.array(all_train_outputs))
-
-        test_genesis_matrices, test_movement_coefficients = zip(*all_test_inputs)
-        #test = (np.array(test_genesis_matrices), np.array(test_movement_coefficients), np.array(all_test_outputs))
-
-        np.save(os.path.join(save_location, 'train', 'genesis_matrix_input'), genesis_matrices, allow_pickle=True)
-        np.save(os.path.join(save_location, 'train', 'movement_input'), movement_coefficients, allow_pickle=True)
-
-        np.save(os.path.join(save_location, 'train', 'output'), all_train_outputs, allow_pickle=True)
-
-        np.save(os.path.join(save_location, 'test', 'genesis_matrix_input'), test_genesis_matrices, allow_pickle=True)
-        np.save(os.path.join(save_location, 'test', 'movement_input'), test_movement_coefficients, allow_pickle=True)
-
-        np.save(os.path.join(save_location, 'test', 'output'), all_test_outputs, allow_pickle=True)
         np.save(os.path.join(save_location, 'train', 'tc_data'), np.array(all_train_tc_data, dtype=object), allow_pickle=True)
         np.save(os.path.join(save_location, 'test', 'tc_data'), np.array(all_test_tc_data, dtype=object), allow_pickle=True)
 
-
+    data.close()
     print("Training Data Generation Complete")
     return all_train_inputs, all_train_outputs, all_test_inputs, all_test_outputs
 
@@ -261,4 +265,4 @@ if __name__ == "__main__":
                     help='Directory to save data to.')
     args = parser.parse_args()
 
-    generateTrainingData(args.total_years, args.num_training, args.num_test, save_location=args.save_location)
+    generateTrainingData(args.total_years, args.num_training, args.num_test, args.save_location)
