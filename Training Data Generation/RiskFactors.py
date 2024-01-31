@@ -194,25 +194,26 @@ def averageLandfallsPerMonth(TC_data, basin, total_years, resolution, onlyLand=F
     for i, storm_point in enumerate(TC_data):
 
         if i != 0 and storm_point[2] != TC_data[i-1][2]:
-            # start processing storm in worker
+
             storm['month'] = storm_point[1]
+            storm['t'] = [i for i in range(len(storm['data']))]
             storms.append(storm)
 
             storm = {'t': [], 'data': [], 'month': None}
 
-        storm['t'].append(storm_point[3])
         data = storm_point[5:10]
         storm['data'].append(data)
 
         if i == len(TC_data) - 1:
             storm['month'] = storm_point[1]
+            storm['t'] = [i for i in range(len(storm['data']))]
             storms.append(storm)
 
 
     # number of cores you have allocated for your slurm task:
     #number_of_cores = int(os.environ['SLURM_CPUS_PER_TASK'])
     number_of_cores = cpu_count() # if not on the cluster you should do this instead
-
+    print(storms)
     args = [(storm, resolution, basin) for storm in storms]
 
     with Pool(number_of_cores) as pool:
