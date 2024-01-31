@@ -5,6 +5,7 @@ from GenerateInputParameters import generateInputParameters
 import os
 import numpy as np
 import argparse
+import cProfile
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -261,4 +262,4 @@ if __name__ == "__main__":
                     help='Directory to save data to.')
     args = parser.parse_args()
 
-    generateTrainingData(args.total_years, args.num_training, args.num_test, save_location=args.save_location)
+    cProfile.run("generateTrainingData(args.total_years, args.num_training, args.num_test, save_location=args.save_location)")
