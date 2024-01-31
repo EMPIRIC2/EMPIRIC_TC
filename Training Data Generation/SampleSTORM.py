@@ -84,8 +84,8 @@ def sampleStorm(total_years,
     """
 
     # number of cores you have allocated for your slurm task:
-    #number_of_cores = int(os.environ['SLURM_CPUS_PER_TASK'])
-    number_of_cores = cpu_count() # if not on the cluster you should do this instead
+    number_of_cores = int(os.environ['SLURM_CPUS_PER_TASK'])
+    #number_of_cores = cpu_count() # if not on the cluster you should do this instead
     
     args = [(year, month_map, basin, *refs) for year in range(total_years)]
     # multiprocssing pool to distribute tasks to:
@@ -96,5 +96,5 @@ def sampleStorm(total_years,
     TC_data = []
     for result in results:
         TC_data += result
-
+    
     return TC_data
