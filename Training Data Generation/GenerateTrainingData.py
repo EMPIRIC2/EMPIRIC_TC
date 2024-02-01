@@ -7,6 +7,7 @@ import argparse
 
 import cProfile
 import h5py
+import time
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -107,21 +108,21 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, save_loca
 
     future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
 
-    data = h5py.File(os.path.join(save_location, 'AllData.hdf5'), 'w')
+    file_time = time.time()
+    with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'w-') as data:
 
-    lat, lon = future_data[0][1].shape
+        lat, lon = future_data[0][1].shape
 
-    genesis_train_data = data.create_dataset('train_genesis', (n_train_samples, 6, lat, lon))
-    genesis_test_data = data.create_dataset('test_genesis', (n_test_samples, 6, lat, lon))
+        data.create_dataset('train_genesis', (n_train_samples, 6, lat, lon))
+        data.create_dataset('test_genesis', (n_test_samples, 6, lat, lon))
 
-    w = len(movementCoefficientsFuture[0])
-    h = len(movementCoefficientsFuture[0][0])
-    movement_coefficient_train_data = data.create_dataset('train_movement', (n_train_samples, w, h))
-    movement_coefficient_test_data = data.create_dataset('test_movement', (n_test_samples, w, h))
+        w = len(movementCoefficientsFuture[0])
+        h = len(movementCoefficientsFuture[0][0])
+        data.create_dataset('train_movement', (n_train_samples, w, h))
+        data.create_dataset('test_movement', (n_test_samples, w, h))
 
-    output_train_data = data.create_dataset('train_output', (n_train_samples, 2*lat, 2*lon, 12))
-    output_test_data = data.create_dataset('test_output', (n_test_samples, 2*lat, 2*lon, 12))
-
+        data.create_dataset('train_output', (n_train_samples, 2*lat, 2*lon, 12))
+        data.create_dataset('test_output', (n_test_samples, 2*lat, 2*lon, 12))
 
     rmax_pres = np.load(os.path.join(__location__, 'STORM', 'RMAX_PRESSURE.npy'),allow_pickle=True).item()
 
@@ -148,10 +149,12 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, save_loca
             ],
             basin
         )
-        genesis_matrices, movement_coefficients = input
-        genesis_train_data[i] = genesis_matrices
-        movement_coefficient_train_data[i] = movement_coefficients
-        output_train_data[i] = output
+
+        with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'r+') as data:
+            genesis_matrices, movement_coefficients = input
+            data['train_genesis'][i] = genesis_matrices
+            data['train_movement'][i] = movement_coefficients
+            data['train_output'][i] = output
 
         '''
         if len(training_sample_refs) > MAX_NUM_PENDING_TASKS:
@@ -194,10 +197,11 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, save_loca
             basin
         )
 
-        genesis_matrices, movement_coefficients = input
-        genesis_test_data[i] = genesis_matrices
-        movement_coefficient_test_data[i] = movement_coefficients
-        output_test_data[i] = output
+        with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'r+') as data:
+            genesis_matrices, movement_coefficients = input
+            data['test_genesis'][i] = genesis_matrices
+            data['test_movement'][i] = movement_coefficients
+            data['test_output'][i] = output
 
         '''
         if len(test_sample_refs) > MAX_NUM_PENDING_TASKS:
