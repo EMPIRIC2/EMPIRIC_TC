@@ -253,7 +253,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, save_loca
     print("Training Data Generation Complete")
     return all_train_inputs, all_train_outputs, all_test_inputs, all_test_outputs
 
-print(__name__)
+
 if __name__ == "__main__":
 
     print("CALLED", flush=True)

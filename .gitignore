@@ -1,6 +1,6 @@
 .idea/
 env/
-*.pyc
+*.pyc*
 Training Data Generation/Data/
 Training Data Generation/GCM-TC-Tracks-Data
 dap.ceda.ac.uk/
@@ -10,5 +10,9 @@ Training Data Generation/STORM-climate-change/*.txt
 Training Data Generation/STORM-climate-change/*.npy
 Training Data Generation/STORM-climate-change/ne*
 Training Data Generation/.DS_Store
+Training Data Generation/STORM-climate-change/.DS_Store
 *.pyc
+Training Data Generation/STORM/__pycache__/SELECT_BASIN.cpython-39.pyc
+Training Data Generation/STORM/__pycache__/SAMPLE_TC_MOVEMENT.cpython-39.pyc
+Training Data Generation/STORM/__pycache__/SAMPLE_STARTING_POINT.cpython-39.pyc
 Training Data Generation/STORM-climate-change/.DS_Store
