@@ -133,6 +133,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, save_loca
 
     print("Generating training samples.")
     for i in range(n_train_samples):
+        print("Generating training sample: ", i)
         input, output, tc_data = generateOneTrainingDataSample(
             total_years,
             future_data,
@@ -179,6 +180,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, save_loca
 
     test_sample_refs = []
     for i in range(n_test_samples):
+        print("Generating test sample: ", i)
         input, output, tc_data = generateOneTrainingDataSample(
             total_years,
             future_data,
