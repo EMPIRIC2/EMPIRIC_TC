@@ -24,7 +24,7 @@ dir_path=os.path.dirname(os.path.realpath(sys.argv[0]))
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
-def Calculate_Vmax(Penv,Pc,coef):
+def  Calculate_Vmax(Penv,Pc,coef):
     """
     Function to convert pressure to vmax. The equation is based on the empirical wind-pressure relationship 
     (Harper 2002, Atkinson and Holliday 1977)
@@ -232,7 +232,10 @@ def decay_after_landfall(lat_landfall,lon_landfall,latlijst,lonlijst,p,coef,Penv
                 C_KM=M*np.log(D/D0)+b_KM
                 
                 v=vb+(R*v0-vb)*np.exp(-alpha*t)-C_KM # v in kt
-                            
+
+                # add a check to avoid NaN values in odd cases
+                if v < 0: v = 0
+
                 pres_landfall=Calculate_Pressure(v*0.514444,Penv,coef) #v in m/s
                                 
                 pres_landfall=round(pres_landfall,1)
