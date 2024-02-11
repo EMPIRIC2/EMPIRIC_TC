@@ -1,23 +1,24 @@
 ### Here we define our own modified UNet: (link paper)
 
-from keras import Sequential, Model
+from keras import Sequential, Model, activations
 
-from keras.layers import Input, Dense, Activation, BatchNormalization, Dropout, Conv2D, UpSampling2D, MaxPooling2D, concatenate
+from keras.layers import Input, Dense, BatchNormalization, Dropout, Conv2D, UpSampling2D, MaxPooling2D, concatenate, LeakyReLU, ReLU, Softmax, ZeroPadding2D, Cropping2D
 
-def upsample_block(filters, size, dropout=False):
+def upsample_block(filters, up_sample_size, kernel_size, dropout=False):
 
     ## Upsample using nearest neighbors -> conv2d -> batchnorm -> dropout -> Relu
 
     result = Sequential()
-    result.add(UpSampling2D(size = size, interpolation="nearest"))
-    result.add(Conv2D(filters = filters, kernel_size=(3,3), padding='same', use_bias=False))
+
+    result.add(UpSampling2D(size = up_sample_size, interpolation="nearest"))
+    result.add(Conv2D(filters = filters, kernel_size=kernel_size, padding='same', use_bias=False))
 
     result.add(BatchNormalization())
 
     if dropout:
         result.add(Dropout(0.5))
 
-    result.add(Activation.ReLU())
+    result.add(ReLU())
 
     return result
 
@@ -27,7 +28,7 @@ def downsample_block(filters, size, dropout=False):
 
     result = Sequential()
     result.add(
-        Conv2D(filters, size, strides=2, padding='same', use_bias=False, activation=Activation.LeakyReLU()))
+        Conv2D(filters, size, padding='same', use_bias=False, activation=LeakyReLU()))
 
     result.add(BatchNormalization())
 
@@ -35,49 +36,63 @@ def downsample_block(filters, size, dropout=False):
         result.add(Dropout(0.5))
 
     result.add(
-        Conv2D(filters, size, strides=2, padding='same', use_bias=False, activation=Activation.LeakyReLU()))
+        Conv2D(filters, size, padding='same', use_bias=False, activation=LeakyReLU()))
 
     result.add(BatchNormalization())
 
-    result.add(MaxPooling2D((2,2), padding="same"))
+    result.add(MaxPooling2D((2,2), padding='same'))
 
     return result
 
-def bottleneck(size):
+def bottleneck():
     # we add a fully connected layer to try to capture non-local spatial interactions
 
     result = Sequential()
-    result.add(Dense(size, activation=Activation.LeakyReLU()))
+    result.add(Dense(256, activation=LeakyReLU()))
 
     return result
 
 
-def UNet(input_size, output_channels = 1):
+def UNet(input_size, output_channels = 12):
 
     input = Input(input_size)
-
+    print(input.shape)
     skips = []
 
-    x = Conv2D(64, (3,3), activation=Activation.LeakyReLU)
-
+    x = Conv2D(64, (3,3), activation=LeakyReLU(), padding='same')(input)
+    print(x.shape)
     down_filters = [64, 128, 256]
     for filters in down_filters:
 
-        x = downsample_block(filters, (3,3), dropout=True)(x)
         skips.append(x)
+        x = downsample_block(filters, (3,3), dropout=True)(x)
+        print(x.shape)
 
-    x = bottleneck((input_size / 2**len(down_filters)) + (256,))
+    x = bottleneck()(x)
 
     ## outputs are twice as big as inputs
     up_filters = [256, 128, 64, 32]
     for i, filters in enumerate(up_filters):
 
-        x = upsample_block(filters, (3,3), dropout=True)(x)
+        x = upsample_block(filters, (2,2), (3,3), dropout=True)(x)
+
         if i < len(down_filters):
-            x = concatenate([x, skips[len(down_filters) - i - 1]])
+            skip = skips[len(down_filters) - i - 1]
+            b, h, w, c = skip.shape
+            b, h1, w1, c = x.shape
+            diffY = h1 - h
+            diffX = w1 - w
 
-    output = Conv2D(output_channels, (1,1), activation=Activation.Softmax)(x)
+            #padded_skip = ZeroPadding2D(padding=()(skip)
+            cropped_x = Cropping2D(cropping=((diffY // 2, diffY - diffY//2), (diffX // 2, diffX - diffX // 2)))(x)
+            x = concatenate([cropped_x,skip])
 
+            print(x.shape)
+
+    output = Conv2D(output_channels, (1,1), activation=Softmax())(x)
+
+    print(output.shape)
     model = Model(inputs=[input], outputs=[output])
 
     return model
+
