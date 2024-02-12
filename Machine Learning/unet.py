@@ -89,7 +89,7 @@ def UNet(input_size, output_channels = 12):
 
             print(x.shape)
 
-    output = Conv2D(output_channels, (1,1), activation=Softmax())(x)
+    output = Conv2D(output_channels, (1,1), activation=ReLU())(x)
 
     print(output.shape)
     model = Model(inputs=[input], outputs=[output])
