@@ -12,12 +12,12 @@ class hdf5_generator:
         if test: self.dataset = "test"
 
     def __call__(self):
-        print("Called generator")
+        
         for file_path in self.file_paths:
             with h5py.File(file_path, 'r') as file:
                 for genesis, output in zip(file[self.dataset + "_genesis"], file[self.dataset + "_output"]):
                     if np.count_nonzero(genesis) != 0:# data has been made
-                        print(genesis.shape)
+                        
                         yield tf.transpose(genesis, [1, 2, 0]), output
 
                     else: # this sample was never generated
@@ -32,7 +32,7 @@ def get_dataset(folder_path, batch_size=32, genesis_size=None, output_size=None,
         output_types = (tf.float32, tf.float32),
         output_shapes = (genesis_size, output_size)
     )
-    print(dataset)
+    
     batched_dataset = dataset.batch(batch_size)
 
     return batched_dataset

@@ -56,17 +56,17 @@ def bottleneck():
 def UNet(input_size, output_channels = 12):
 
     input = Input(input_size)
-    print(input.shape)
+    
     skips = []
 
     x = Conv2D(64, (3,3), activation=LeakyReLU(), padding='same')(input)
-    print(x.shape)
+    
     down_filters = [64, 128, 256]
     for filters in down_filters:
 
         skips.append(x)
         x = downsample_block(filters, (3,3), dropout=True)(x)
-        print(x.shape)
+        
 
     x = bottleneck()(x)
 
@@ -87,11 +87,10 @@ def UNet(input_size, output_channels = 12):
             cropped_x = Cropping2D(cropping=((diffY // 2, diffY - diffY//2), (diffX // 2, diffX - diffX // 2)))(x)
             x = concatenate([cropped_x,skip])
 
-            print(x.shape)
+            
 
     output = Conv2D(output_channels, (1,1), activation=Softmax())(x)
 
-    print(output.shape)
     model = Model(inputs=[input], outputs=[output])
 
     return model
