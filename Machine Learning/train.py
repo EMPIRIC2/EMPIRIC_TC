@@ -1,6 +1,7 @@
 import keras
 from dataset import get_dataset
 from unet import UNet
+import time
 
 genesis_size_default = (55, 105, 6)
 movement_size_default = (11, 13)
@@ -29,7 +30,7 @@ def train_unet(data_folder, genesis_size=genesis_size_default, output_size=outpu
         x=test_data,
     )
 
-    model.save('models/unet.keras')
+    model.save('models/unet_{}.keras'.format(str(time.time()))
 
 keras.backend.clear_session()
 train_unet('../Training Data Generation/Data/train/')

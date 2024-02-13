@@ -17,6 +17,10 @@ def upsample_block(filters, up_sample_size, kernel_size, dropout=False):
 
     if dropout:
         result.add(Dropout(0.5))
+    
+    result.add(Conv2D(filters = filters, kernel_size=kernel_size, padding='same', use_bias=False))
+    
+    result.add(BatchNormalization())
 
     result.add(ReLU())
 
