@@ -6,6 +6,7 @@ import math
 from geopy import distance
 from scipy.interpolate import make_interp_spline
 from multiprocessing import Pool, cpu_count
+import os
 
 month_to_index = {month: i for i, month in enumerate([1,2,3,4,11,12])}
 
