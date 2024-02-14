@@ -32,7 +32,7 @@ def train_unet(data_folder, epochs=50,genesis_size=genesis_size_default, output_
         x=test_data,
     )
 
-    model.save('models/unet_{}.keras'.format(time.time()))
+    model.save('models/unet_{}.keras'.format(str(time.time()))
 
 keras.backend.clear_session()
 train_unet('Data/run1/')

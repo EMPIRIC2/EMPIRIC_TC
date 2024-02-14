@@ -8,7 +8,9 @@ from scipy.interpolate import make_interp_spline
 from multiprocessing import Pool, cpu_count
 import os
 
+month_to_index = {month: i for i, month in enumerate([1,2,3,4,11,12])}
 
+decade_length = 1
 def BOUNDARIES_BASINS(idx):
     '''
     Copied from STORM model
@@ -39,15 +41,35 @@ def createMonthlyLandfallGrid(basin, resolution):
     :return:
     '''
     # create lat lon grid (only needs to cover the basin) at 1 degree resolution
-    # with [0] * 12 matrix in each
+    # with [0] * 6 matrix in each
 
     lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
 
-    return np.zeros((
-        math.ceil((lat1 - lat0) * 1/resolution),
-        math.ceil((lon1 - lon0) * 1/resolution),
-        12)
-    )
+
+    shape = (
+            math.ceil((lat1 - lat0) * 1/resolution),
+            math.ceil((lon1 - lon0) * 1/resolution),
+            6, # storm producing months
+            5 # storm categories
+        )
+
+    return np.zeros(shape)
+
+def create_site_landfall_vector(sites):
+
+    if sites is None: return None
+
+    site_data = np.zeros((
+            len(sites),
+            6, # storm producing months
+            5 # storm categories
+    ))
+
+    return site_data
+
+def get_site_to_index(sites):
+    if sites is None: return None
+    return {site: i for i, site in enumerate(sites)}
 
 def getGridCell(lat, lon, resolution, basin):
     '''
@@ -109,14 +131,16 @@ def checkCellTouchedByStorm(storm_lat, storm_lon, latCell, lonCell, rmax, resolu
 
     return False
 
-def updateCellsTouchedByStormRMax(touchedCells, lat, lon, rmax, resolution, basin):
+def checkSiteTouchedByStormRMax(site, lat, lon, rmax):
+    return distance.distance(site, (lat, lon)).km <= rmax
+
+def updateCellsAndSitesTouchedByStormRMax(touchedCells, lat, lon, rmax, resolution, basin, touched_sites, sites):
 
 
     # make bounding box based on rmax for which grid cells to iterate through
     lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
 
     latitudeRmax = rmax/111 # approximate conversion of kms to latitude degrees
-
 
     ## TODO, fix bounding box
     max_lat = min((lat + latitudeRmax), lat1-resolution)
@@ -137,11 +161,17 @@ def updateCellsTouchedByStormRMax(touchedCells, lat, lon, rmax, resolution, basi
             if checkCellTouchedByStorm(lat, lon, i, j, rmax, resolution, basin):
                 touchedCells.add((i, j))
 
-def get_cells_touched_by_storm(tc, resolution, basin):
+    if sites is not None:
+        for site in sites:
+            if checkSiteTouchedByStormRMax(site, lat, lon, rmax):
+                touched_sites.add(site)
+
+def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites=None):
     # interpolate
     b = make_interp_spline(tc['t'], tc['data'], k=1)
 
     touched_cells = set()
+    touched_sites = set()
 
     for t in tc['t']:
         step = 1
@@ -166,12 +196,48 @@ def get_cells_touched_by_storm(tc, resolution, basin):
         for j in [h * step + t for h in range(0, int(1 / step))]:
             lat, lon, pressure, wind, rmax = b(j)
 
-            updateCellsTouchedByStormRMax(touched_cells, lat, lon, rmax, resolution, basin)
+            updateCellsAndSitesTouchedByStormRMax(
+                touched_cells,
+                lat,
+                lon,
+                rmax,
+                resolution,
+                basin,
+                touched_sites,
+                sites
+            )
 
-    return touched_cells
+    return touched_cells, touched_sites
 
+def landfallsPerMonthForDecade(decade_grid, decade, storms, resolution, basin, sites=None, site_data=None, site_index_map = None):
 
-def averageLandfallsPerMonth(TC_data, basin, total_years, resolution, onlyLand=False):
+    for storm in storms:
+
+        touched_cells, touched_sites = get_cells_and_sites_touched_by_storm(storm, resolution, basin, sites)
+
+        month = storm['month']
+        category = storm['category']
+        for cell in touched_cells:
+            lat, lon = cell
+            decade_grid[lat][lon][month_to_index[month]][category] += 1
+
+        if touched_sites is not None:
+            for site in touched_sites:
+                site_data[site_index_map[site]][month_to_index[month]][category] += 1
+
+    return decade_grid, site_data, decade
+
+def getQuantilesFromDecadeGrids(decade_grids):
+    probs = [0, 0.001, 0.01, 0.1, 0.3, .5, .7, .9, .99, .999, 1]
+    quantiles = []
+    for p in probs:
+
+        quantile = np.quantile(decade_grids, p, axis=0)
+        quantiles.append(quantile)
+
+    return np.array(quantiles)
+
+def getLandfallsData(TC_data, basin, total_years, resolution, sites=None):
     """
     Calculate average landfalls per month within lat, lon bins from synthetic TC data.
     For use as the training output of ML model.
@@ -186,10 +252,6 @@ def averageLandfallsPerMonth(TC_data, basin, total_years, resolution, onlyLand=F
 
     # TC_data is list of [year,month,storm_number,l,idx,lat (one),lon (one),pressure (one),wind (one), rmax (one),category,landfall (one),distance]
 
-    grid = createMonthlyLandfallGrid(basin, resolution)
-
-    if len(TC_data) == 0: return grid
-
     storms = []
 
     storm = {'t': [], 'data': []}
@@ -198,6 +260,8 @@ def averageLandfallsPerMonth(TC_data, basin, total_years, resolution, onlyLand=F
         if i != 0 and storm_point[2] != TC_data[i-1][2]:
 
             storm['month'] = storm_point[1]
+            storm['category'] = storm_point[10]
+            storm['year'] = storm_point[0]
             storm['t'] = [i for i in range(len(storm['data']))]
             storms.append(storm)
 
@@ -209,26 +273,50 @@ def averageLandfallsPerMonth(TC_data, basin, total_years, resolution, onlyLand=F
         if i == len(TC_data) - 1:
             storm['month'] = storm_point[1]
             storm['t'] = [i for i in range(len(storm['data']))]
+            storm['category'] = storm_point[10]
+            storm['year'] = storm_point[0]
             storms.append(storm)
-
 
     # number of cores you have allocated for your slurm task:
 
     number_of_cores = int(os.environ['SLURM_CPUS_PER_TASK'])
     #number_of_cores = cpu_count() # if not on the cluster you should do this instead
 
-    args = [(storm, resolution, basin) for storm in storms]
+    decades_of_storms = [[] for i in range(total_years // decade_length)]
+
+    decade = 0
+
+    for storm in storms:
+        if storm['year'] >= (decade+1) * decade_length:
+            decade += 1
+
+        decades_of_storms[decade].append(storm)
+
+    args = [(createMonthlyLandfallGrid(basin, resolution),
+             decade,
+             decade_of_storms,
+             resolution,
+             basin,
+             sites,
+             create_site_landfall_vector(sites),
+             get_site_to_index(sites)
+             )
+            for decade, decade_of_storms
+            in enumerate(decades_of_storms)
+            ]
 
     with Pool(number_of_cores) as pool:
-        touched_cell_results = pool.starmap(get_cells_touched_by_storm, args)
+        decade_grid_results = pool.starmap(landfallsPerMonthForDecade, args)
 
-        for i, touched_cells in enumerate(touched_cell_results):
-            month = storms[i]['month']
+        decade_grids = []
+        decade_site_data = []
+        for i, decade_result in enumerate(decade_grid_results):
+            decade_grid, site_data, decade = decade_result
+            decade_grids.append(decade_grid)
 
-            for cell in touched_cells:
-                lat, lon = cell
+            if site_data is not None:
+                decade_site_data.append(site_data)
 
-                grid[lat][lon][month - 1] += 1
+    decade_grids = np.array(decade_grids)
 
-    return grid
-
+    return decade_grids, decade_site_data

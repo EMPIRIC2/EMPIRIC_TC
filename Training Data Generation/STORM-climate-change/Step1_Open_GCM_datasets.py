@@ -125,7 +125,7 @@ monthsall={'EP':[6,7,8,9,10,11],'NA':[6,7,8,9,10,11],'NI':[4,5,6,9,10,11],'SI':[
 #'CMCC-CM2-VHR4'
 for model in ['CMCC-CM2-VHR4','CNRM-CM6-1-HR','EC-Earth3P-HR','HadGEM3-GC31-HM']:  
     for period in ['PRESENT','FUTURE']:
-        __datasets__=os.path.realpath("/Users/eliwinkelman/PycharmProjects/TropicalCycloneAI/Training Data Generation/GCM-TC-Tracks-Data")
+        __datasets__=os.path.realpath("/Training Data Generation/GCM-TC-Tracks-Data")
         __location__=os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))))
                 
         months={i:[] for i in ['EP','NA','NI','SI','SP','WP']}

@@ -17,8 +17,8 @@ class hdf5_generator:
             with h5py.File(file_path, 'r') as file:
                 for genesis, output in zip(file[self.dataset + "_genesis"], file[self.dataset + "_output"]):
                     if np.count_nonzero(genesis) != 0:# data has been made
-                        # switch the order of genesis matrix and divide by number of years
-                        yield tf.transpose(genesis, [1, 2, 0]), np.flipud(output[:,:,[0,1,2,3,10,11]])
+                        # switch the order of genesis matrix and divide output by number of years
+                        yield tf.transpose(genesis, [1, 2, 0]), output/1000
                     else: # this sample was never generated
                         break
 
