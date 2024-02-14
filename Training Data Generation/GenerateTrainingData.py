@@ -107,8 +107,8 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
                           for model in models]
 
     future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
-
-    sites = getHealthFacilityData()
+    site_files = [os.path.join(__location__, file_name) for file_name in ['SPC_health_data_hub_Kiribati.csv', 'SPC_health_data_hub_Solomon_Islands.csv', 'SPC_health_data_hub_Tonga.csv', 'SPC_health_data_hub_Vanuatu.csv']]
+    sites = getHealthFacilityData(site_files)
 
     file_time = time.time()
     with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'w-') as data:

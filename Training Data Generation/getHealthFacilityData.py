@@ -22,4 +22,3 @@ def getHealthFacilityData(file_paths = None):
 
     return locations
 
-getHealthFacilityData()
