@@ -17,7 +17,9 @@ def upsample_block(filters, up_sample_size, kernel_size, dropout=False):
 
     if dropout:
         result.add(Dropout(0.5))
-
+    
+    result.add(Conv2D(filters = filters, kernel_size=kernel_size, padding='same', use_bias=False))
+   
     result.add(ReLU())
 
     return result
@@ -53,9 +55,9 @@ def bottleneck():
     return result
 
 
-def UNet(input_size, output_channels = 12):
+def UNet(input_size, output_channels = 6):
 
-    input = Input(input_size)
+    input = Input(shape=input_size)
     
     skips = []
 
@@ -84,12 +86,12 @@ def UNet(input_size, output_channels = 12):
             diffX = w1 - w
 
             #padded_skip = ZeroPadding2D(padding=()(skip)
-            cropped_x = Cropping2D(cropping=((diffY // 2, diffY - diffY//2), (diffX // 2, diffX - diffX // 2)))(x)
-            x = concatenate([cropped_x,skip])
+            x = Cropping2D(cropping=((diffY // 2, diffY - diffY//2), (diffX // 2, diffX - diffX // 2)))(x)
+            #x = concatenate([cropped_x,skip])
 
             
 
-    output = Conv2D(output_channels, (1,1), activation=ReLU())(x)
+    output = Conv2D(output_channels, (1,1), activation=ReLU(max_value=1000))(x)
 
     model = Model(inputs=[input], outputs=[output])
 
