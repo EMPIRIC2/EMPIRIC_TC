@@ -125,13 +125,13 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
         data.create_dataset('test_movement', (n_test_samples, w, h))
         data.create_dataset('validation_movement', (n_validation_samples, w, h))
 
-        data.create_dataset('train_decade_grids', (n_train_samples, total_years//decade_length, 2*lat, 2*lon, 6, 5))
-        data.create_dataset('test_decade_grids', (n_test_samples, total_years // decade_length, 2*lat, 2*lon, 6, 5))
-        data.create_dataset('train_decade_sites', (n_train_samples, total_years//decade_length, len(sites), 6, 5))
-        data.create_dataset('test_decade_sites', (n_test_samples, total_years//decade_length, len(sites), 6, 5))
+        data.create_dataset('train_grids', (n_train_samples, total_years, 2*lat, 2*lon, 6, 5))
+        data.create_dataset('test_grids', (n_test_samples, total_years, 2*lat, 2*lon, 6, 5))
+        data.create_dataset('train_sites', (n_train_samples, total_years, len(sites), 6, 5))
+        data.create_dataset('test_sites', (n_test_samples, total_years, len(sites), 6, 5))
 
-        data.create_dataset('validation_decade_grids', (n_validation_samples, total_years//decade_length, 2*lat, 2*lon, 6, 5))
-        data.create_dataset('validation_decade_sites', (n_validation_samples, total_years // decade_length, len(sites), 6, 5))
+        data.create_dataset('validation_grids', (n_validation_samples, total_years, 2*lat, 2*lon, 6, 5))
+        data.create_dataset('validation_sites', (n_validation_samples, total_years, len(sites), 6, 5))
 
     rmax_pres = np.load(os.path.join(__location__, 'STORM', 'RMAX_PRESSURE.npy'),allow_pickle=True).item()
 
@@ -179,8 +179,8 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
             data['{}_genesis'.format(dataset)][i - offset] = genesis_matrices
             data['{}_movement'.format(dataset)][i - offset] = movement_coefficients
-            data['{}_decade_grids'.format(dataset)][i - offset] = decade_grids
-            data['{}_decade_sites'.format(dataset)][i - offset] = decade_site_data
+            data['{}_grids'.format(dataset)][i - offset] = decade_grids
+            data['{}_sites'.format(dataset)][i - offset] = decade_site_data
 
     if save_location is not None:
 
@@ -194,7 +194,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
 
 if __name__ == "__main__":
-
+    cProfile.run("generateTrainingData(5, 1, 0, 0, './Data/v2/')")
 
     parser = argparse.ArgumentParser(description='Generate machine learning training data from STORM')
     parser.add_argument('total_years',  type=int,

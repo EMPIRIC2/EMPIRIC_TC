@@ -2,8 +2,8 @@ from PlotMapData import plotLatLonGridData
 import numpy as np
 import matplotlib.pyplot as plt
 
-model_predictions = np.load("../Machine Learning/predictions/model_predictions.npy")
-real_outputs = np.load("../Machine Learning/predictions/real_outputs.npy")
+model_predictions = np.load("../Machine Learning/predictions/model_predictions2.npy")
+real_outputs = np.load("../Machine Learning/predictions/real_outputs2.npy")
 
 print(model_predictions.shape)
 
@@ -12,10 +12,14 @@ print(model_predictions.shape)
 
 for i, prediction in enumerate(model_predictions):
     print("Prediction diff", np.mean(((model_predictions[0] - model_predictions[i])) ** 2))
-
+    plt.imshow(np.sum(prediction, axis=2))
+    plt.show()
     plt.imshow(np.sum(model_predictions[0] - model_predictions[i], axis=2))
     plt.show()
+
+    plt.imshow(np.sum(prediction - real_outputs[i], axis=2))
+    plt.show()
     #print(np.mean((model_predictions[i]*1000 - real_outputs[i])**2))
-    print("real diff", np.mean((real_outputs[0]*1000 - real_outputs[i]*1000) ** 2))
-    plotLatLonGridData(np.flipud(np.sum(real_outputs[i]*1000, axis=2)), .5)
-    plotLatLonGridData(np.flipud(np.sum(real_outputs[i]*1000 - real_outputs[0]*1000, axis=2)), .5)
+    print("real diff", np.mean((real_outputs[0] - real_outputs[i]) ** 2))
+    plotLatLonGridData(np.sum(real_outputs[i], axis=2), .5)
+    plotLatLonGridData(np.sum(real_outputs[i] - real_outputs[0], axis=2), .5)
