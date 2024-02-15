@@ -4,7 +4,7 @@ import tensorflow as tf
 import os
 import glob
 
-class hdf5_generator_v2:
+class hdf5_generator_v1:
     def __init__(self, file_paths, dataset="train", year_grouping_size=1, use_sites=False):
 
         self.file_paths = file_paths
@@ -35,12 +35,11 @@ class hdf5_generator_v2:
 
 
 
-class hdf5_generator_v1:
-    def __init__(self, file_paths, test=False):
+class hdf5_generator_v0:
+    def __init__(self, file_paths, dataset="train"):
 
         self.file_paths = file_paths
-        self.dataset = "train"
-        if test: self.dataset = "test"
+        self.dataset = dataset
 
     def __call__(self):
         
@@ -53,12 +52,18 @@ class hdf5_generator_v1:
                     else: # this sample was never generated
                         break
 
-def get_dataset(folder_path, batch_size=32, genesis_size=None, output_size=None, test=False, data_version=0):
+def get_dataset(folder_path, batch_size=32, genesis_size=None, output_size=None, dataset="train", data_version=0):
 
     file_paths = glob.glob(os.path.join(folder_path, "*.hdf5"))
-    print(file_paths)
+
+    generator = None
+    if data_version == 0:
+        generator = hdf5_generator_v0
+    if data_version == 1:
+        generator = hdf5_generator_v1
+
     dataset = tf.data.Dataset.from_generator(
-        hdf5_generator_v1(file_paths, test=test),
+        generator(file_paths, dataset=dataset),
         output_types = (tf.float32, tf.float32),
         output_shapes = (genesis_size, output_size)
     )

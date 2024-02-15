@@ -2,8 +2,8 @@ from PlotMapData import plotLatLonGridData
 import numpy as np
 import matplotlib.pyplot as plt
 
-model_predictions = np.load("../Machine Learning/predictions/model_predictions2.npy")
-real_outputs = np.load("../Machine Learning/predictions/real_outputs2.npy")
+model_predictions = np.load("../Machine Learning/predictions/model_predictions3.npy")
+real_outputs = np.load("../Machine Learning/predictions/real_outputs3.npy")
 
 print(model_predictions.shape)
 
