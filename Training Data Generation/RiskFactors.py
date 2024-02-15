@@ -7,6 +7,7 @@ from geopy import distance
 from scipy.interpolate import make_interp_spline
 from multiprocessing import Pool, cpu_count
 import os
+import time
 
 month_to_index = {month: i for i, month in enumerate([1,2,3,4,11,12])}
 
@@ -54,22 +55,6 @@ def createMonthlyLandfallGrid(basin, resolution):
         )
 
     return np.zeros(shape)
-
-def create_site_landfall_vector(sites):
-
-    if sites is None: return None
-
-    site_data = np.zeros((
-            len(sites),
-            6, # storm producing months
-            5 # storm categories
-    ))
-
-    return site_data
-
-def get_site_to_index(sites):
-    if sites is None: return None
-    return {site: i for i, site in enumerate(sites)}
 
 def getGridCell(lat, lon, resolution, basin):
     '''
@@ -161,12 +146,11 @@ def updateCellsAndSitesTouchedByStormRMax(touchedCells, lat, lon, rmax, resoluti
             if checkCellTouchedByStorm(lat, lon, i, j, rmax, resolution, basin):
                 touchedCells.add((i, j))
 
-    if sites is not None:
-        for site in sites:
-            if checkSiteTouchedByStormRMax(site, lat, lon, rmax):
-                touched_sites.add(site)
+    sites.update_sites_touched_by_storm(touched_sites, lat, lon, rmax, (min_lat, max_lat, min_lon, max_lon))
 
-def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites=None):
+
+
+def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites):
     # interpolate
     b = make_interp_spline(tc['t'], tc['data'], k=1)
 
@@ -209,7 +193,7 @@ def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites=None):
 
     return touched_cells, touched_sites
 
-def landfallsPerMonthForDecade(decade_grid, decade, storms, resolution, basin, sites=None, site_data=None, site_index_map = None):
+def landfallsPerMonthForDecade(decade_grid, decade, storms, resolution, basin, sites, site_data):
 
     for storm in storms:
 
@@ -222,8 +206,9 @@ def landfallsPerMonthForDecade(decade_grid, decade, storms, resolution, basin, s
             decade_grid[lat][lon][month_to_index[month]][category] += 1
 
         if touched_sites is not None:
+
             for site in touched_sites:
-                site_data[site_index_map[site]][month_to_index[month]][category] += 1
+                site_data[sites.site_to_index[site]][month_to_index[month]][category] += 1
 
     return decade_grid, site_data, decade
 
@@ -237,7 +222,7 @@ def getQuantilesFromDecadeGrids(decade_grids):
 
     return np.array(quantiles)
 
-def getLandfallsData(TC_data, basin, total_years, resolution, sites=None):
+def getLandfallsData(TC_data, basin, total_years, resolution, sites):
     """
     Calculate average landfalls per month within lat, lon bins from synthetic TC data.
     For use as the training output of ML model.
@@ -279,8 +264,8 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites=None):
 
     # number of cores you have allocated for your slurm task:
 
-    number_of_cores = int(os.environ['SLURM_CPUS_PER_TASK'])
-    #number_of_cores = cpu_count() # if not on the cluster you should do this instead
+    #number_of_cores = int(os.environ['SLURM_CPUS_PER_TASK'])
+    number_of_cores = cpu_count() # if not on the cluster you should do this instead
 
     decades_of_storms = [[] for i in range(total_years // decade_length)]
 
@@ -298,8 +283,7 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites=None):
              resolution,
              basin,
              sites,
-             create_site_landfall_vector(sites),
-             get_site_to_index(sites)
+             sites.create_site_landfall_vector()
              )
             for decade, decade_of_storms
             in enumerate(decades_of_storms)
