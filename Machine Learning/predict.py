@@ -6,7 +6,7 @@ import os
 
 genesis_size = (55, 105, 6)
 movement_size = (11, 13)
-output_size = (110, 210, 12)
+output_size = (110, 210, 6)
 
 def predictions(model_path, data_folder, prediction_save_folder):
     train_data = get_dataset(data_folder, genesis_size=genesis_size, output_size=output_size)
@@ -29,7 +29,7 @@ def predictions(model_path, data_folder, prediction_save_folder):
             steps=1
     )
 
-    np.save(os.path.join(prediction_save_folder, "model_predictions.npy"), predictions)
-    np.save(os.path.join(prediction_save_folder, "real_outputs.npy"), outputs)
+    np.save(os.path.join(prediction_save_folder, "model_predictions3.npy"), predictions)
+    np.save(os.path.join(prediction_save_folder, "real_outputs3.npy"), outputs)
 
-predictions("models/unet.keras", "../Training Data Generation/Data/train/", "predictions/")
+predictions("models/unet_1707955854.3774817.keras", "Data/run1/", "predictions/")
