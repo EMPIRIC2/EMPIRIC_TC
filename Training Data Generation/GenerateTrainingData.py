@@ -194,7 +194,6 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
 
 if __name__ == "__main__":
-    cProfile.run("generateTrainingData(5, 1, 0, 0, './Data/v2/')")
 
     parser = argparse.ArgumentParser(description='Generate machine learning training data from STORM')
     parser.add_argument('total_years',  type=int,
