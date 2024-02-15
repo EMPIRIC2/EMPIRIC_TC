@@ -1,12 +1,10 @@
 from SampleSTORM import sampleStorm
 from RiskFactors import getLandfallsData
 from GenerateInputParameters import generateInputParameters
-from getHealthFacilityData import getHealthFacilityData
+from getHealthFacilityData import Sites
 import os
 import numpy as np
 import argparse
-
-import cProfile
 import h5py
 import time
 
@@ -14,6 +12,8 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 
 monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,3,4,11,12],[5,6,7,8,9,10,11]]
 decade_length = 1
+
+
 
 def generateOneTrainingDataSample(total_years, future_data, movementCoefficientsFuture, refs, sites, basin='SP'):
     '''
@@ -108,7 +108,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
     future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
     site_files = [os.path.join(__location__, file_name) for file_name in ['SPC_health_data_hub_Kiribati.csv', 'SPC_health_data_hub_Solomon_Islands.csv', 'SPC_health_data_hub_Tonga.csv', 'SPC_health_data_hub_Vanuatu.csv']]
-    sites = getHealthFacilityData(site_files)
+    sites = Sites(site_files, 5)
 
     file_time = time.time()
     with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'w-') as data:
@@ -127,11 +127,11 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
         data.create_dataset('train_grids', (n_train_samples, total_years, 2*lat, 2*lon, 6, 5))
         data.create_dataset('test_grids', (n_test_samples, total_years, 2*lat, 2*lon, 6, 5))
-        data.create_dataset('train_sites', (n_train_samples, total_years, len(sites), 6, 5))
-        data.create_dataset('test_sites', (n_test_samples, total_years, len(sites), 6, 5))
+        data.create_dataset('train_sites', (n_train_samples, total_years, len(sites.sites), 6, 5))
+        data.create_dataset('test_sites', (n_test_samples, total_years, len(sites.sites), 6, 5))
 
         data.create_dataset('validation_grids', (n_validation_samples, total_years, 2*lat, 2*lon, 6, 5))
-        data.create_dataset('validation_sites', (n_validation_samples, total_years, len(sites), 6, 5))
+        data.create_dataset('validation_sites', (n_validation_samples, total_years, len(sites.sites), 6, 5))
 
     rmax_pres = np.load(os.path.join(__location__, 'STORM', 'RMAX_PRESSURE.npy'),allow_pickle=True).item()
 
@@ -194,7 +194,6 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
 
 if __name__ == "__main__":
-    cProfile.run("generateTrainingData(5, 1, 0, 0, './Data/v2/')")
 
     parser = argparse.ArgumentParser(description='Generate machine learning training data from STORM')
     parser.add_argument('total_years',  type=int,
