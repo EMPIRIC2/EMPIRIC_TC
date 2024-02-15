@@ -19,7 +19,6 @@ from .SAMPLE_RMAX import Add_Rmax
 import math
 import sys
 import os
-import ray
 dir_path=os.path.dirname(os.path.realpath(sys.argv[0]))
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
