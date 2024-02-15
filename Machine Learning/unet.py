@@ -88,8 +88,8 @@ def UNet(input_size, output_channels = 6):
             diffX = w1 - w
 
             #padded_skip = ZeroPadding2D(padding=()(skip)
-            x = Cropping2D(cropping=((diffY // 2, diffY - diffY//2), (diffX // 2, diffX - diffX // 2)))(x)
-            #x = concatenate([cropped_x,skip])
+            cropped_x = Cropping2D(cropping=((diffY // 2, diffY - diffY//2), (diffX // 2, diffX - diffX // 2)))(x)
+            x = concatenate([cropped_x,skip])
 
             
 

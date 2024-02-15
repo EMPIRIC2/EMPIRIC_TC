@@ -17,7 +17,7 @@ def train_unet(data_folder, epochs=50,genesis_size=genesis_size_default, output_
 
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=0.0003),
-        loss=keras.losses.MeanSquaredError(reduction="sum_over_batch_size", name="mean_squared_error"),
+        loss=keras.losses.MeanAbsolutePercentageError(),
         metrics=[keras.metrics.MeanSquaredError(), keras.metrics.MeanAbsoluteError()]
     )
 
@@ -32,8 +32,7 @@ def train_unet(data_folder, epochs=50,genesis_size=genesis_size_default, output_
         x=test_data,
     )
 
-    model.save('models/unet_{}.keras'.format(str(time.time()))
-
+    model.save('models/unet_{}.keras'.format(str(time.time())))
 keras.backend.clear_session()
 train_unet('Data/run1/')
 
