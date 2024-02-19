@@ -4,10 +4,8 @@ from sklearn.cluster import KMeans
 import numpy as np
 from geopy import distance
 
-
 class Sites:
     def __init__(self, file_paths=None, n_clusters=10):
-
         self.sites = None
         self.cluster_bounding_boxes = None
         self.clusters_to_sites = None
@@ -16,23 +14,27 @@ class Sites:
         self.getHealthFacilityData(file_paths)
         self.createSiteClusters(n_clusters)
         self.set_site_to_index()
+
+    @staticmethod
+    def siteTouchedByStormRMax(site, lat, lon, rmax):
+        return distance.distance(site, (lat, lon)).km <= rmax
+
+    @staticmethod
+    def boxes_intersect(box1, box2):
+        cond1 = box2[1] > box1[0] > box2[0] or box2[1] > box1[1] > box2[0]
+        cond2 = box2[3] > box1[2] > box2[2] or box2[3] > box1[3] > box1[2]
+
+        return cond1 and cond2
+
+
     def update_sites_touched_by_storm(self, sites_touched_by_storm, lat, lon, rmax, storm_bounding_box):
-        def siteTouchedByStormRMax(site, lat, lon, rmax):
-            return distance.distance(site, (lat, lon)).km <= rmax
-        def boxes_intersect(box1, box2):
-            cond1 = box2[1] > box1[0] > box2[0] or box2[1] > box1[1] > box2[0]
-            cond2 = box2[3] > box1[2] > box2[2] or box2[3] > box1[3] > box1[2]
-
-            return cond1 and cond2
-
-
 
         for i,cluster_bounding_box in self.cluster_bounding_boxes.items():
 
-            if boxes_intersect(cluster_bounding_box, storm_bounding_box):
+            if Sites.boxes_intersect(cluster_bounding_box, storm_bounding_box):
 
                 for site in self.clusters_to_sites[i]:
-                    if siteTouchedByStormRMax(site, lat, lon, rmax):
+                    if Sites.siteTouchedByStormRMax(site, lat, lon, rmax):
                         sites_touched_by_storm.add(site)
 
         return sites_touched_by_storm
@@ -71,7 +73,6 @@ class Sites:
             clusters_to_sites[label].append(site)
 
             center = est.cluster_centers_[label]
-            dist = np.array(site) - center
 
             cluster_bounding_boxes[label][0] = min(site[0], cluster_bounding_boxes[label][0]) if \
             cluster_bounding_boxes[label][0] is not None else site[0]
@@ -111,5 +112,3 @@ class Sites:
             locations += zip(latitudes, longitudes)
 
         self.sites = locations
-
-

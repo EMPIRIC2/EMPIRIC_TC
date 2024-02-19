@@ -14,7 +14,6 @@ monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,
 decade_length = 1
 
 
-
 def generateOneTrainingDataSample(total_years, future_data, movementCoefficientsFuture, refs, sites, basin='SP'):
     '''
     Generate ML training data
@@ -40,14 +39,13 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
 
     tc_data = sampleStorm(total_years, month_map, refs)
 
-    decade_grids, decade_site_data = getLandfallsData(tc_data, basin, total_years, .5, sites)
+    decade_site_data = getLandfallsData(tc_data, basin, total_years, .5, sites)
     basin_movement_coefficients = movement_coefficients[basins.index(basin)]
 
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
-    return (genesis_matrix, basin_movement_coefficients), decade_grids, decade_site_data, tc_data
-
+    return (genesis_matrix, basin_movement_coefficients),  decade_site_data, tc_data
 
 def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validation_samples, save_location, basin='SP'):
 
@@ -157,7 +155,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
         print("Generating {} sample: {}".format(dataset, i - offset))
 
-        input, decade_grids, decade_site_data,  tc_data = generateOneTrainingDataSample(
+        input,  decade_site_data,  tc_data = generateOneTrainingDataSample(
             total_years,
             future_data,
             movementCoefficientsFuture,
@@ -173,13 +171,15 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
             sites,
             basin
         )
+        print(np.array(decade_site_data).shape)
+        print(np.sum(np.sum(np.sum(np.array(decade_site_data), axis=-1), axis=-1), axis=0))
 
         with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'r+') as data:
             genesis_matrices, movement_coefficients = input
 
             data['{}_genesis'.format(dataset)][i - offset] = genesis_matrices
             data['{}_movement'.format(dataset)][i - offset] = movement_coefficients
-            data['{}_grids'.format(dataset)][i - offset] = decade_grids
+            #data['{}_grids'.format(dataset)][i - offset] = decade_grids
             data['{}_sites'.format(dataset)][i - offset] = decade_site_data
 
     if save_location is not None:
