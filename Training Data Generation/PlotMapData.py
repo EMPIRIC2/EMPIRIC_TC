@@ -2,6 +2,7 @@ import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+from matplotlib.patches import Rectangle
 
 def BOUNDARIES_BASINS(idx):
     '''
@@ -63,7 +64,7 @@ def plotLatLonGridDataMultiple(datas, resolution, basin='SP', show=True, plot_na
         plt.show()
 
 
-def plotLatLonGridData(data, resolution, basin='SP', show=True, figure_name=""):
+def plotLatLonGridData(data, resolution, basin='SP', show=True, figure_name="", points=None, point_weight=None, boxes = None):
 
     plt.figure(figure_name)
     ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=180))
@@ -77,8 +78,16 @@ def plotLatLonGridData(data, resolution, basin='SP', show=True, figure_name=""):
 
     plt.pcolormesh(lons, lats, data, transform=ccrs.PlateCarree(central_longitude=180), vmin=-2)
     plt.colorbar()
+    if points is not None:
+        assert len(points) == len(point_weight)
 
-    print(figure_name != "")
+        y, x= zip(*points)
+        x = [x[i] - 180 for i in range(len(x))]
+        plt.scatter(x, y, s=point_weight, c=point_weight)
+    if boxes is not None:
+        for box in boxes:
+            rect = Rectangle((box[2] - 180, box[0]), box[3] - box[2], box[1] - box[0], linewidth=1, edgecolor='r', facecolor='none')
+            ax.add_patch(rect)
 
     if show is True:
         plt.show()

@@ -7,6 +7,8 @@ import numpy as np
 import argparse
 import h5py
 import time
+from PlotMapData import plotLatLonGridData
+import matplotlib.pyplot as plt
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -39,13 +41,13 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
 
     tc_data = sampleStorm(total_years, month_map, refs)
 
-    decade_site_data = getLandfallsData(tc_data, basin, total_years, .5, sites)
+    decade_grids, decade_site_data = getLandfallsData(tc_data, basin, total_years, .5, sites)
     basin_movement_coefficients = movement_coefficients[basins.index(basin)]
 
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
-    return (genesis_matrix, basin_movement_coefficients),  decade_site_data, tc_data
+    return (genesis_matrix, basin_movement_coefficients), decade_grids, decade_site_data, tc_data
 
 def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validation_samples, save_location, basin='SP'):
 
@@ -108,6 +110,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
     site_files = [os.path.join(__location__, file_name) for file_name in ['SPC_health_data_hub_Kiribati.csv', 'SPC_health_data_hub_Solomon_Islands.csv', 'SPC_health_data_hub_Tonga.csv', 'SPC_health_data_hub_Vanuatu.csv']]
     sites = Sites(site_files, 5)
 
+
     file_time = time.time()
     with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'w-') as data:
 
@@ -155,7 +158,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
         print("Generating {} sample: {}".format(dataset, i - offset))
 
-        input,  decade_site_data,  tc_data = generateOneTrainingDataSample(
+        input,  decade_grids, decade_site_data,  tc_data = generateOneTrainingDataSample(
             total_years,
             future_data,
             movementCoefficientsFuture,
@@ -171,8 +174,14 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
             sites,
             basin
         )
+
         print(np.array(decade_site_data).shape)
-        print(np.sum(np.sum(np.sum(np.array(decade_site_data), axis=-1), axis=-1), axis=0))
+        summed_grids = np.sum(np.sum(np.sum(np.array(decade_grids), axis=-1), axis=-1), axis=0)
+        summed_sites = np.sum(np.sum(np.sum(np.array(decade_site_data), axis=-1), axis=-1), axis=0)
+        print(summed_sites)
+        scaled_weights = (summed_sites)*20
+
+        plotLatLonGridData(np.flipud(summed_grids), resolution =0.5, points=sites.sites, point_weight=scaled_weights, boxes=sites.cluster_bounding_boxes.values())
 
         with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'r+') as data:
             genesis_matrices, movement_coefficients = input
@@ -194,7 +203,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
 
 if __name__ == "__main__":
-
+    generateTrainingData(15, 1, 0, 0, './Data')
     parser = argparse.ArgumentParser(description='Generate machine learning training data from STORM')
     parser.add_argument('total_years',  type=int,
                     help='Number of years to run STORM for when generating training data')

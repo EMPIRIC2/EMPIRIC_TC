@@ -21,10 +21,17 @@ class Sites:
 
     @staticmethod
     def boxes_intersect(box1, box2):
-        cond1 = box2[1] > box1[0] > box2[0] or box2[1] > box1[1] > box2[0]
-        cond2 = box2[3] > box1[2] > box2[2] or box2[3] > box1[3] > box1[2]
+        top_right = (box1[1], box1[3])
+        bottom_left_other = (box2[0], box2[2])
+        bottom_left_self = (box1[0], box1[2])
+        top_right_other = (box2[1], box2[3])
 
-        return cond1 and cond2
+        return not (box1[3] < box2[2]
+         or box1[2] > box2[3]
+         or box1[1] < box2[0]
+         or box1[0] > box2[1]
+    )
+
 
 
     def update_sites_touched_by_storm(self, sites_touched_by_storm, lat, lon, rmax, storm_bounding_box):
@@ -34,6 +41,9 @@ class Sites:
             if Sites.boxes_intersect(cluster_bounding_box, storm_bounding_box):
 
                 for site in self.clusters_to_sites[i]:
+                    print("site: ", site)
+                    print(lat, lon, rmax)
+                    if site[0] < storm_bounding_box[0] or site[0] > storm_bounding_box[1] or site[1] < storm_bounding_box[2] or site[1] > storm_bounding_box[3]: continue
                     if Sites.siteTouchedByStormRMax(site, lat, lon, rmax):
                         sites_touched_by_storm.add(site)
 
