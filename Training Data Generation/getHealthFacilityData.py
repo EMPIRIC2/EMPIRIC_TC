@@ -41,8 +41,7 @@ class Sites:
             if Sites.boxes_intersect(cluster_bounding_box, storm_bounding_box):
 
                 for site in self.clusters_to_sites[i]:
-                    print("site: ", site)
-                    print(lat, lon, rmax)
+
                     if site[0] < storm_bounding_box[0] or site[0] > storm_bounding_box[1] or site[1] < storm_bounding_box[2] or site[1] > storm_bounding_box[3]: continue
                     if Sites.siteTouchedByStormRMax(site, lat, lon, rmax):
                         sites_touched_by_storm.add(site)
@@ -114,11 +113,14 @@ class Sites:
             latitudes = df.loc[:, "LATITUDE: Latitude"]
             longitudes = df.loc[:, "LONGITUDE: Longitude"]
 
+
             ## adjust because our longitudes go from 0 to 360 not -180 to 180
             for i in range(len(longitudes)):
+                if latitudes.loc[i] > -5 or latitudes.loc[i] < -60: continue# not in basin
+
                 if longitudes.loc[i] < 0:
                     df.loc[i, "LONGITUDE: Longitude"] += 360
 
-            locations += zip(latitudes, longitudes)
+                locations.append((latitudes.loc[i], longitudes.loc[i]))
 
         self.sites = locations

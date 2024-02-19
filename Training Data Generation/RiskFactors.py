@@ -6,7 +6,6 @@ import math
 from geopy import distance
 from scipy.interpolate import make_interp_spline
 from multiprocessing import Pool, cpu_count
-
 import sys
 
 import os
@@ -122,8 +121,7 @@ def checkCellTouchedByStorm(storm_lat, storm_lon, latCell, lonCell, rmax, resolu
 def checkSiteTouchedByStormRMax(site, lat, lon, rmax):
     return distance.distance(site, (lat, lon)).km <= rmax
 
-def updateCellsAndSitesTouchedByStormRMax(touchedCells, lat, lon, rmax, resolution, basin, touched_sites, sites):
-
+def updateCellsAndSitesTouchedByStormRMax(touchedCells, lat, lon, rmax, resolution, basin, touched_sites, sites, include_grids=False):
 
     # make bounding box based on rmax for which grid cells to iterate through
     lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
@@ -141,19 +139,20 @@ def updateCellsAndSitesTouchedByStormRMax(touchedCells, lat, lon, rmax, resoluti
     max_lon = min(lon + longitudeRmax, lon1-resolution)
     min_lon = max(lon - longitudeRmax, lon0)
 
-    i0, j0 = getGridCell(min_lat, min_lon, resolution, basin)
-    i1, j1 = getGridCell(max_lat, max_lon, resolution, basin)
+    if include_grids:
+        i0, j0 = getGridCell(min_lat, min_lon, resolution, basin)
+        i1, j1 = getGridCell(max_lat, max_lon, resolution, basin)
 
-    for i in range(i0, i1+1):
-        for j in range(j0, j1+1):
-            if checkCellTouchedByStorm(lat, lon, i, j, rmax, resolution, basin):
-                touchedCells.add((i, j))
+        for i in range(i0, i1+1):
+            for j in range(j0, j1+1):
+                if checkCellTouchedByStorm(lat, lon, i, j, rmax, resolution, basin):
+                    touchedCells.add((i, j))
 
     sites.update_sites_touched_by_storm(touched_sites, lat, lon, rmax, (min_lat, max_lat, min_lon, max_lon))
 
 
 
-def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites):
+def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites, include_grids=False):
     # interpolate
     b = make_interp_spline(tc['t'], tc['data'], k=1)
 
@@ -196,20 +195,25 @@ def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites):
 
     return touched_cells, touched_sites
 
-def landfallsPerMonthForDecade(decade, storms, resolution, basin, sites):
+def landfallsPerMonthForDecade(decade, storms, resolution, basin, sites, include_grids=False):
 
     site_data = sites.create_site_landfall_vector()
-    decade_grid = createMonthlyLandfallGrid(basin, resolution)
+
+    if include_grids:
+        decade_grid = createMonthlyLandfallGrid(basin, resolution)
+    else: decade_grid = None
 
     for storm in storms:
 
-        touched_cells, touched_sites = get_cells_and_sites_touched_by_storm(storm, resolution, basin, sites)
+        touched_cells, touched_sites = get_cells_and_sites_touched_by_storm(storm, resolution, basin, sites, include_grids=include_grids)
 
         month = storm['month']
         category = storm['category']
-        for cell in touched_cells:
-            lat, lon = cell
-            decade_grid[lat][lon][month_to_index[month]][category] += 1
+
+        if include_grids:
+            for cell in touched_cells:
+                lat, lon = cell
+                decade_grid[lat][lon][month_to_index[month]][category] += 1
 
         if touched_sites is not None:
             for site in touched_sites:
@@ -218,7 +222,7 @@ def landfallsPerMonthForDecade(decade, storms, resolution, basin, sites):
         del touched_cells
         del touched_sites
 
-    return decade_grid, site_data, decade
+    return site_data, decade_grid, decade
 
 def getQuantilesFromDecadeGrids(decade_grids):
     probs = [0, 0.001, 0.01, 0.1, 0.3, .5, .7, .9, .99, .999, 1]
@@ -230,8 +234,7 @@ def getQuantilesFromDecadeGrids(decade_grids):
 
     return np.array(quantiles)
 
-
-def getLandfallsData(TC_data, basin, total_years, resolution, sites):
+def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_grids=False):
     """
     Calculate average landfalls per month within lat, lon bins from synthetic TC data.
     For use as the training output of ML model.
@@ -286,34 +289,29 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites):
 
         decades_of_storms[decade].append(storm)
 
-    args = [(decade,
-             decade_of_storms,
-             resolution,
-             basin,
-             sites)
-            for decade, decade_of_storms
-            in enumerate(decades_of_storms)
-            ]
-
-    args_item_memory_size = 0
-    for i in range(len(args[0])):
-        if isinstance(args[0][i], np.ndarray):
-            args_item_memory_size += args[0][i].itemsize * len(args[0][i])
-        else:
-            args_item_memory_size += sys.getsizeof(args[0][i])
-
-    print("Args size: ", args_item_memory_size * len(args))
 
     decade_grids = []
     decade_site_data = []
 
     with Pool(number_of_cores) as pool:
+        args = [(decade,
+                 decade_of_storms,
+                 resolution,
+                 basin,
+                 sites,
+                 False
+                 )
+                for decade, decade_of_storms
+                in enumerate(decades_of_storms)
+                ]
 
-        decade_grid_results = pool.starmap(landfallsPerMonthForDecade, args)
+        decade_results = pool.starmap(landfallsPerMonthForDecade, args)
 
-        for i, decade_result in enumerate(decade_grid_results):
-            decade_grid, site_data, decade = decade_result
-            decade_grids.append(decade_grid)
+        for i, decade_result in enumerate(decade_results):
+            site_data, decade_grid, decade = decade_result
+
+            if include_grids:
+                decade_grids.append(decade_grid)
 
             if site_data is not None:
                 decade_site_data.append(site_data)
