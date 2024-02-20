@@ -26,7 +26,7 @@ class hdf5_generator_v1:
                         # switch the order of genesis matrix and divide output by number of years
                         for i in range(0,output.shape[0], self.year_grouping_size):
                             for month in range(0, 6):
-                                yield genesis[month], np.sum(output[i:i + self.year_grouping_size], axis=0)[:,month,:]
+                                yield np.expand_dims(genesis[month], axis=-1), np.sum(np.sum(output[i:i + self.year_grouping_size], axis=0)[:,month,:], -1)
 
                     else:  # this sample was never generated
                         break
@@ -62,8 +62,8 @@ def get_dataset(folder_path, batch_size=32, genesis_size=None, output_size=None,
 
     if data_version == 1:
         generator = hdf5_generator_v1
-        genesis_size = (55, 105)
-        output_size = (657, 5)
+        genesis_size = (55, 105,1)
+        output_size = (542,)
 
     dataset = tf.data.Dataset.from_generator(
         generator(file_paths, dataset=dataset),
@@ -77,6 +77,6 @@ def get_dataset(folder_path, batch_size=32, genesis_size=None, output_size=None,
 
     return batched_dataset
 
-test_v2 = get_dataset('../Training Data Generation/Data/v2/', data_version=1)
-for elem in test_v2.take(1):
-    print(elem)
+#test_v2 = get_dataset('../Training Data Generation/Data/v2/', data_version=1)
+#for elem in test_v2.take(1):
+    #print(elem)
