@@ -90,6 +90,7 @@ def train(data_folder):
     test_data = get_dataset(data_folder, data_version=1, dataset="test")
     validation_data = get_dataset(data_folder, data_version=1, dataset="validation")
 
+
     # update this!
     input_shape = (55, 105, 1)
     num_outputs = 542
@@ -109,4 +110,4 @@ def train(data_folder):
         verbose=2
     )
 
-
+train("/nesi/nobackup/uoa03669/storm_data/v2")
