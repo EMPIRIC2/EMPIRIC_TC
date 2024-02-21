@@ -5,7 +5,7 @@ import os
 import glob
 
 class hdf5_generator_v1:
-    def __init__(self, file_paths, dataset="train", year_grouping_size=1):
+    def __init__(self, file_paths, dataset="train", year_grouping_size=30):
 
         self.file_paths = file_paths
         self.dataset = dataset
@@ -20,13 +20,15 @@ class hdf5_generator_v1:
 
                 outputs = file[self.dataset + "_sites"]
 
-
+                
                 for genesis, movement, output in zip(geneses, movements, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
                         # switch the order of genesis matrix and divide output by number of years
+                       
                         for i in range(0,output.shape[0], self.year_grouping_size):
+                            
                             for month in range(0, 6):
-                                yield np.expand_dims(genesis[month], axis=-1), np.sum(np.sum(output[i:i + self.year_grouping_size], axis=0)[:,month,:], -1)
+                                yield np.expand_dims(genesis[month], axis=-1), np.sum(output[i:i + self.year_grouping_size], axis=0)[:,month,0]
 
                     else:  # this sample was never generated
                         break
