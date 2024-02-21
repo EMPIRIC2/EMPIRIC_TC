@@ -57,7 +57,7 @@ def NegLogLik(n_outputs):
 
     return loss
 
-def conv_prob_predictor_v2(genesis_shape, movement_shape, num_outputs):
+def conv_prob_predictor(genesis_shape, movement_shape, num_outputs):
     genesis_matrix = Input(genesis_shape)
     movement_coefficients = Input(movement_shape)
     conv = Sequential()
@@ -85,53 +85,20 @@ def conv_prob_predictor_v2(genesis_shape, movement_shape, num_outputs):
 
     return model
 
-def build_conv_prob_predictor(genesis_shape, num_outputs):
 
-    inputs = Input(genesis_shape)
+def train(data_folder):
 
-    conv = Sequential()
-
-    n_filters = [64,128,256,512]
-    for filters in n_filters:
-        conv.add(Conv2D(filters, (3,3), padding='same', activation=LeakyReLU(), kernel_regularizer='l2'))
-        conv.add(BatchNormalization())
-
-        conv.add(Conv2D(filters, (3,3), padding='same', activation=LeakyReLU(), kernel_regularizer='l2'))
-        conv.add(BatchNormalization())
-        conv.add(Dropout(0.5))
-
-        conv.add(MaxPooling2D((2,2), padding='same'))
-
-    conv.add(Flatten())
-
-    x = conv(inputs)
-
-    x = Dense(1024, LeakyReLU(), kernel_regularizer='l2')(x)
-    outputs = TPNormalMultivariateLayer(num_outputs)(x)
-
-    model = Model(inputs=inputs,outputs=outputs)
-
-    return model
-
-
-def train(data_folder, version=1):
-
-    train_data = get_dataset(data_folder, data_version=version)
+    train_data = get_dataset(data_folder, data_version=2)
     #test_data = get_dataset(data_folder, data_version=1, dataset="test")
-    validation_data = get_dataset(data_folder, data_version=version, dataset="validation")
+    validation_data = get_dataset(data_folder, data_version=2, dataset="validation")
 
 
     # update this!
     genesis_shape = (55, 105, 1)
-    movement_shape = (12, )
+    movement_shape = (13,)
     num_outputs = 542
 
-    if version == 1:
-        model = build_conv_prob_predictor(genesis_shape, num_outputs)
-    if version ==2:
-        model = conv_prob_predictor_v2(genesis_shape, movement_shape, num_outputs )
-    else:
-        raise "Invalid version number, must be 1 or 2"
+    model = conv_prob_predictor(genesis_shape, movement_shape, num_outputs )
 
 
     # TODO: add CPRS metric
@@ -153,4 +120,4 @@ def train(data_folder, version=1):
 
     model.save('models/site_prob_{}.keras'.format(str(time.time())))
 
-train("../Training Data Generation/Data/v3/", version = 2)
+train("../Training Data Generation/Data/v3/")

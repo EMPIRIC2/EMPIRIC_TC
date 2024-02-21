@@ -4,6 +4,8 @@ import tensorflow as tf
 import os
 import glob
 
+months = [1,2,3,4,11,12]
+
 class hdf5_generator_v2:
     # similar to v1 but adding more data sources
     def __init__(self, file_paths, dataset="train", year_grouping_size=1):
@@ -26,7 +28,7 @@ class hdf5_generator_v2:
                         # switch the order of genesis matrix and divide output by number of years
                         for i in range(0,output.shape[0], self.year_grouping_size):
                             month = 3
-                            yield {"genesis": np.expand_dims(genesis[month], axis=-1), "movement": movement[month]}, np.sum(np.sum(output[i:i + self.year_grouping_size], axis=0)[:, month, :], -1)
+                            yield (np.expand_dims(genesis[month], axis=-1), movement[months[month]]), np.sum(np.sum(output[i:i + self.year_grouping_size], axis=0)[:, month, :], -1)
 
 
                     else:  # this sample was never generated
@@ -84,7 +86,7 @@ def get_dataset(folder_path, batch_size=32, genesis_size=None, output_size=None,
 
     generator = None
     output_signature = None
-
+    
     if data_version == 0:
         generator = hdf5_generator_v0
         genesis_size = (55, 105, 6)
@@ -104,16 +106,20 @@ def get_dataset(folder_path, batch_size=32, genesis_size=None, output_size=None,
         )
 
     if data_version == 2:
-
-
+        generator = hdf5_generator_v2
+        genesis_size = (55, 105,1)
+        movement_size = (13,)
+        output_size = (542,)
+        output_signature = ((
+                tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
+                tf.TensorSpec(shape=movement_size, dtype=tf.float32)),
+                tf.TensorSpec(shape=output_size, dtype=tf.float32)
+            )
 
     dataset = tf.data.Dataset.from_generator(
             generator(file_paths, dataset=dataset),
-            output_signature = output_signature
+            output_signature=output_signature
     )
-
-
-
     
     batched_dataset = dataset.batch(batch_size)
 
