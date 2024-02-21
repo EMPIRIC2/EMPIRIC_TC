@@ -3,6 +3,7 @@ import tensorflow as tf
 from keras import Sequential, Model, optimizers, activations
 from keras.layers import Layer, Input, Dense, BatchNormalization, Dropout, Conv2D, MaxPooling2D, concatenate, Flatten, LeakyReLU, ReLU
 from dataset import get_dataset
+import time
 
 tfd = tfp.distributions
 
@@ -10,11 +11,11 @@ tfd = tfp.distributions
 class TPNormalMultivariateLayer(Layer):
     def __init__(self, num_prob_outputs=2):
         super().__init__()
-        self.dense = Dense(num_prob_outputs + num_prob_outputs * (num_prob_outputs - 1) / 2)
+        self.dense = Dense(num_prob_outputs + num_prob_outputs * (num_prob_outputs - 1) / 2, kernel_regularizer='l2')
         
         self.num_prob_outputs = num_prob_outputs
 
-        self.locs_fn = Dense(self.num_prob_outputs, ReLU())
+        self.locs_fn = Dense(self.num_prob_outputs, ReLU(), kernel_regularizer='l2')
 
         # we don't actually use it here because of tensorflow bug, but keep it defined for when it needs to be used later
         self.dist = tfp.layers.DistributionLambda(
@@ -56,18 +57,46 @@ def NegLogLik(n_outputs):
 
     return loss
 
-def build_conv_prob_predictor(input_shape, num_outputs):
+def conv_prob_predictor_v2(genesis_shape, movement_shape, num_outputs):
+    genesis_matrix = Input(genesis_shape)
+    movement_coefficients = Input(movement_shape)
+    conv = Sequential()
 
-    inputs = Input(input_shape)
+    n_filters = [64, 128, 256, 512]
+    for filters in n_filters:
+        conv.add(Conv2D(filters, (3, 3), padding='same', activation=LeakyReLU(), kernel_regularizer='l2'))
+        conv.add(BatchNormalization())
+
+        conv.add(Conv2D(filters, (3, 3), padding='same', activation=LeakyReLU(), kernel_regularizer='l2'))
+        conv.add(BatchNormalization())
+        conv.add(Dropout(0.5))
+
+        conv.add(MaxPooling2D((2, 2), padding='same'))
+
+    conv.add(Flatten())
+
+    x = conv(genesis_matrix)
+    x = concatenate([x, movement_coefficients])
+
+    x = Dense(1024, LeakyReLU())(x)
+    outputs = TPNormalMultivariateLayer(num_outputs)(x)
+
+    model = Model(inputs=[genesis_matrix, movement_coefficients], outputs=outputs)
+
+    return model
+
+def build_conv_prob_predictor(genesis_shape, num_outputs):
+
+    inputs = Input(genesis_shape)
 
     conv = Sequential()
 
     n_filters = [64,128,256,512]
     for filters in n_filters:
-        conv.add(Conv2D(filters, (3,3), padding='same', activation=LeakyReLU()))
+        conv.add(Conv2D(filters, (3,3), padding='same', activation=LeakyReLU(), kernel_regularizer='l2'))
         conv.add(BatchNormalization())
 
-        conv.add(Conv2D(filters, (3,3), padding='same', activation=LeakyReLU()))
+        conv.add(Conv2D(filters, (3,3), padding='same', activation=LeakyReLU(), kernel_regularizer='l2'))
         conv.add(BatchNormalization())
         conv.add(Dropout(0.5))
 
@@ -76,7 +105,8 @@ def build_conv_prob_predictor(input_shape, num_outputs):
     conv.add(Flatten())
 
     x = conv(inputs)
-    x = Dense(1024, LeakyReLU())(x)
+
+    x = Dense(1024, LeakyReLU(), kernel_regularizer='l2')(x)
     outputs = TPNormalMultivariateLayer(num_outputs)(x)
 
     model = Model(inputs=inputs,outputs=outputs)
@@ -84,30 +114,43 @@ def build_conv_prob_predictor(input_shape, num_outputs):
     return model
 
 
-def train(data_folder):
+def train(data_folder, version=1):
 
-    train_data = get_dataset(data_folder, data_version=1)
-    test_data = get_dataset(data_folder, data_version=1, dataset="test")
-    validation_data = get_dataset(data_folder, data_version=1, dataset="validation")
+    train_data = get_dataset(data_folder, data_version=version)
+    #test_data = get_dataset(data_folder, data_version=1, dataset="test")
+    validation_data = get_dataset(data_folder, data_version=version, dataset="validation")
 
 
     # update this!
-    input_shape = (55, 105, 1)
+    genesis_shape = (55, 105, 1)
+    movement_shape = (12, )
     num_outputs = 542
 
-    model = build_conv_prob_predictor(input_shape, num_outputs)
+    if version == 1:
+        model = build_conv_prob_predictor(genesis_shape, num_outputs)
+    if version ==2:
+        model = conv_prob_predictor_v2(genesis_shape, movement_shape, num_outputs )
+    else:
+        raise "Invalid version number, must be 1 or 2"
+
 
     # TODO: add CPRS metric
     model.compile(
-        optimizer=optimizers.Adam(learning_rate=0.0001),
+        optimizer=optimizers.Adam(learning_rate=0.0005),
         loss=NegLogLik(num_outputs)
     )
 
-    model.fit(train_data, validation_data=validation_data, verbose=2)
+    model.fit(train_data,
+              epochs=1,
+              validation_data=validation_data,
+              verbose=2
+             )
 
-    model.evaluate(
-        test_data,
-        verbose=2
-    )
+    #model.evaluate(
+       # test_data,
+      #  verbose=2
+    #)
 
-train("/nesi/nobackup/uoa03669/storm_data/v2")
+    model.save('models/site_prob_{}.keras'.format(str(time.time())))
+
+train("../Training Data Generation/Data/v3/", version = 2)
