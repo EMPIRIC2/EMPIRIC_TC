@@ -1,7 +1,7 @@
 from SampleSTORM import sampleStorm
 from RiskFactors import getLandfallsData
 from GenerateInputParameters import generateInputParameters
-from getHealthFacilityData import Sites
+from .. HealthFacilities.getHealthFacilityData import Sites
 import os
 import numpy as np
 import argparse

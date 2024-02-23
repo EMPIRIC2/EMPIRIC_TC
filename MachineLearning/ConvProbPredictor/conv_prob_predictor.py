@@ -2,7 +2,6 @@ import tensorflow_probability as tfp
 import tensorflow as tf
 from keras import Sequential, Model, optimizers, activations
 from keras.layers import Layer, Input, Dense, BatchNormalization, Dropout, Conv2D, MaxPooling2D, concatenate, Flatten, LeakyReLU, ReLU
-import time
 import keras
 
 tfd = tfp.distributions
@@ -88,4 +87,4 @@ def conv_prob_predictor(genesis_shape, movement_shape, num_outputs):
     return model
 
 
-#train("../TrainingDataGeneration/Data/v3/")
+#train("../Training Data Generation/Data/v3/")

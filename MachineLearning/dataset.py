@@ -120,6 +120,6 @@ def get_dataset(folder_path, batch_size=32, dataset="train", data_version=0):
 
     return batched_dataset
 
-#test_v2 = get_dataset('../TrainingDataGeneration/Data/v2/', data_version=1)
+#test_v2 = get_dataset('../Training Data Generation/Data/v2/', data_version=1)
 #for elem in test_v2.take(1):
     #print(elem)

@@ -3,15 +3,16 @@ import pandas as pd
 from sklearn.cluster import KMeans
 import numpy as np
 from geopy import distance
+import os
 
 class Sites:
-    def __init__(self, file_paths=None, n_clusters=10):
+    def __init__(self, n_clusters=10):
         self.sites = None
         self.cluster_bounding_boxes = None
         self.clusters_to_sites = None
         self.site_to_index = None
 
-        self.getHealthFacilityData(file_paths)
+        self.getHealthFacilityData()
         self.createSiteClusters(n_clusters)
         self.set_site_to_index()
 
@@ -96,15 +97,16 @@ class Sites:
         self.cluster_bounding_boxes = cluster_bounding_boxes
         self.clusters_to_sites = clusters_to_sites
 
-    def getHealthFacilityData(self, file_paths = None):
+    def getHealthFacilityData(self):
         """
 
         :param file_paths:
         :return:
         """
-        if file_paths is None:
-            file_paths = ['./SPC_health_data_hub_Kiribati.csv', './SPC_health_data_hub_Solomon_Islands.csv', './SPC_health_data_hub_Tonga.csv', './SPC_health_data_hub_Vanuatu.csv']
+        __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
+        files = ['SPC_health_data_hub_Kiribati.csv', 'SPC_health_data_hub_Solomon_Islands.csv', 'SPC_health_data_hub_Tonga.csv', 'SPC_health_data_hub_Vanuatu.csv']
+        file_paths = [os.path.join(__location__, file) for file in files]
         locations = []
 
         for file_path in file_paths:

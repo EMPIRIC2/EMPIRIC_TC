@@ -1,1 +1,1 @@
-__package__ = 'TrainingDataGeneration'
+__package__ = 'Training Data Generation'

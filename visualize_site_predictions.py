@@ -1,17 +1,12 @@
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy as np
-from TrainingDataGeneration.getHealthFacilityData import Sites
+from HealthFacilities.getHealthFacilityData import Sites
 import argparse
 
 def plot_site_predictions(predictions_path):
 
-    sites_files = ['./TrainingDataGeneration/SPC_health_data_hub_Kiribati.csv',
-                   './TrainingDataGeneration/SPC_health_data_hub_Solomon_Islands.csv',
-                   './TrainingDataGeneration/SPC_health_data_hub_Tonga.csv',
-                   './TrainingDataGeneration/SPC_health_data_hub_Vanuatu.csv']
-
-    sites = Sites(sites_files).sites
+    sites = Sites().sites
 
     prediction = np.load(predictions_path, allow_pickle=True)
 
@@ -23,9 +18,12 @@ def plot_site_predictions(predictions_path):
 
     x = [x[i] - 180 for i in range(len(x))]
 
-    mean = np.squeeze(prediction[..., :1])
+    mean = np.squeeze(prediction[0][..., :1])
 
-    std = np.diagonal(prediction[..., 1:])
+    std = np.diagonal(prediction[0][..., 1:])
+
+    print(mean.shape)
+    print(std.shape)
 
     smallest = mean - 2 * std
     largest = mean + 2 * std

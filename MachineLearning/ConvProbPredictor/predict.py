@@ -37,4 +37,4 @@ def make_site_predictions(data_folder, weight_path, prediction_save_folder, inde
 
     return predictions, outputs
 
-make_site_predictions("../../TrainingDataGeneration/Data/v3", "../models/site_prob_1708640562.211484.weights.h5", "./predictions/")
+make_site_predictions("../../Training Data Generation/Data/v3", "../models/site_prob_1708640562.211484.weights.h5", "./predictions/")
