@@ -8,7 +8,7 @@ months = [1,2,3,4,11,12]
 
 class hdf5_generator_v2:
     # similar to v1 but adding more data sources
-    def __init__(self, file_paths, dataset="train", year_grouping_size=1):
+    def __init__(self, file_paths, dataset="train", year_grouping_size=30):
 
         self.file_paths = file_paths
         self.dataset = dataset
@@ -26,6 +26,7 @@ class hdf5_generator_v2:
                 for genesis, movement, output in zip(geneses, movements, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
                         # switch the order of genesis matrix and divide output by number of years
+                        
                         for i in range(0,output.shape[0], self.year_grouping_size):
                             month = 3
                             yield (np.expand_dims(genesis[month], axis=-1), movement[months[month]]), np.sum(np.sum(output[i:i + self.year_grouping_size], axis=0)[:, month, :], -1)

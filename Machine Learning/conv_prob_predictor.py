@@ -4,6 +4,7 @@ from keras import Sequential, Model, optimizers, activations
 from keras.layers import Layer, Input, Dense, BatchNormalization, Dropout, Conv2D, MaxPooling2D, concatenate, Flatten, LeakyReLU, ReLU
 from dataset import get_dataset
 import time
+import keras
 
 tfd = tfp.distributions
 
@@ -99,18 +100,19 @@ def train(data_folder):
     num_outputs = 542
 
     model = conv_prob_predictor(genesis_shape, movement_shape, num_outputs )
-
+    callback = keras.callbacks.EarlyStopping()
 
     # TODO: add CPRS metric
     model.compile(
-        optimizer=optimizers.Adam(learning_rate=0.0005),
+        optimizer=optimizers.Adam(learning_rate=0.00001),
         loss=NegLogLik(num_outputs)
     )
 
     model.fit(train_data,
-              epochs=1,
+              epochs=10,
               validation_data=validation_data,
-              verbose=2
+              verbose=2,
+              callbacks=[callback]
              )
 
     #model.evaluate(
@@ -120,4 +122,4 @@ def train(data_folder):
 
     model.save('models/site_prob_{}.keras'.format(str(time.time())))
 
-train("../Training Data Generation/Data/v3/")
+train("/nesi/project/uoa03669/ewin313/storm_data/v2")
