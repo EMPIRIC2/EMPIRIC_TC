@@ -15,6 +15,7 @@ class hdf5_generator_v2:
         self.year_grouping_size = year_grouping_size
 
     def __call__(self):
+
         for file_path in self.file_paths:
             with h5py.File(file_path, 'r') as file:
                 geneses = file[self.dataset + "_genesis"]
@@ -41,7 +42,6 @@ class hdf5_generator_v1:
         self.year_grouping_size = year_grouping_size
 
     def __call__(self):
-
         for file_path in self.file_paths:
             with h5py.File(file_path, 'r') as file:
                 geneses = file[self.dataset + "_genesis"]
@@ -49,7 +49,6 @@ class hdf5_generator_v1:
 
                 outputs = file[self.dataset + "_sites"]
 
-                
                 for genesis, movement, output in zip(geneses, movements, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
                         # switch the order of genesis matrix and divide output by number of years
@@ -77,8 +76,7 @@ class hdf5_generator_v0:
                     else: # this sample was never generated
                         break
 
-def get_dataset(folder_path, batch_size=32, genesis_size=None, output_size=None, dataset="train", data_version=0):
-
+def get_dataset(folder_path, batch_size=32, dataset="train", data_version=0):
     file_paths = glob.glob(os.path.join(folder_path, "*.hdf5"))
 
     generator = None
@@ -122,6 +120,6 @@ def get_dataset(folder_path, batch_size=32, genesis_size=None, output_size=None,
 
     return batched_dataset
 
-#test_v2 = get_dataset('../Training Data Generation/Data/v2/', data_version=1)
+#test_v2 = get_dataset('../TrainingDataGeneration/Data/v2/', data_version=1)
 #for elem in test_v2.take(1):
     #print(elem)

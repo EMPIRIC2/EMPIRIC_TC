@@ -1,1 +1,3 @@
-__package__ = 'EmpiricAI'
+__package__ = 'TropicalCycloneAI'
+
+__all__=['MachineLearning', 'TrainingDataGeneration']
