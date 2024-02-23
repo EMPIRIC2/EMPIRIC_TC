@@ -13,6 +13,8 @@ def train(data_folder):
     movement_shape = (13,)
     num_outputs = 542
 
+    callback = keras.callbacks.EarlyStopping()
+
     model = conv_prob_predictor(genesis_shape, movement_shape, num_outputs )
 
 
@@ -25,7 +27,8 @@ def train(data_folder):
     model.fit(train_data,
               epochs=1,
               validation_data=validation_data,
-              verbose=2
+              verbose=2,
+              callbacks=[callback]
              )
 
     #model.evaluate(

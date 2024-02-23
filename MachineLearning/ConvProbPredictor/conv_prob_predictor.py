@@ -85,6 +85,3 @@ def conv_prob_predictor(genesis_shape, movement_shape, num_outputs):
     model = Model(inputs=[genesis_matrix, movement_coefficients], outputs=outputs)
 
     return model
-
-
-#train("../Training Data Generation/Data/v3/")
