@@ -1,6 +1,8 @@
 
-from ..dataset import get_dataset
-from conv_prob_predictor import *
+from MachineLearning.dataset import get_dataset
+from MachineLearning.ConvProbPredictor.conv_prob_predictor import *
+import time
+
 def train(data_folder):
 
     train_data = get_dataset(data_folder, data_version=2)

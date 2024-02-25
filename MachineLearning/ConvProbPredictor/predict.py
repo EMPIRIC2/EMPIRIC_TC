@@ -18,9 +18,22 @@ def make_site_predictions(data_folder, weight_path, prediction_save_folder, inde
     model = conv_prob_predictor(genesis_shape, movement_shape, num_outputs)
     model.load_weights(weight_path)
 
-    samples = [item for i, item in enumerate(train_data.as_numpy_iterator()) if i < 10]
+    samples = [item for i, item in enumerate(train_data.as_numpy_iterator()) if i < 100]
 
-    outputs = samples[0][1]
+    # group outputs by the input genesis matrix
+    outputs = []
+    outputs_for_genesis = []
+    for i in range(len(samples)):
+        if i != 0 and samples[i][0] != samples[i-1][0]:
+            outputs.append(outputs_for_genesis)
+            outputs_for_genesis = []
+        outputs_for_genesis.append(samples[i][1])
+
+        if i == len(samples) - 1:
+            outputs.append(outputs_for_genesis)
+
+
+    print(outputs)
     print("making predictions")
 
     predictions = model.predict(
@@ -29,8 +42,6 @@ def make_site_predictions(data_folder, weight_path, prediction_save_folder, inde
         verbose=2,
         steps=1
     )
-
-    print(predictions)
 
     np.save(os.path.join(prediction_save_folder, "model_predictions{}.npy".format(index)), predictions)
     np.save(os.path.join(prediction_save_folder, "real_outputs{}.npy".format(index)), outputs)
