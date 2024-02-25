@@ -22,12 +22,12 @@ def train(data_folder):
 
     # TODO: add CPRS metric
     model.compile(
-        optimizer=optimizers.Adam(learning_rate=0.0005),
+        optimizer=optimizers.Adam(learning_rate=0.0001),
         loss=NegLogLik
     )
 
     model.fit(train_data,
-              epochs=1,
+              epochs=20,
               validation_data=validation_data,
               verbose=2,
               callbacks=[callback]
@@ -40,4 +40,3 @@ def train(data_folder):
 
     model.save_weights("models/site_prob_{}.weights.h5".format(str(time.time())))
     #model.save('models/site_prob_{}.keras'.format(str(time.time())))
-

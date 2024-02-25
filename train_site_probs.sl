@@ -12,4 +12,4 @@ source load-ml-environment.sh
 export PYTHONNOUSERSITE=1
 export CUDA_VISIBLE_DEVICES=''
 
-srun python Machine\ Learning/conv_prob_predictor.py
+srun python train_site_probs.py
