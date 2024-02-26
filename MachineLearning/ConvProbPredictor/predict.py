@@ -1,5 +1,5 @@
 
-from conv_prob_predictor import *
+from MachineLearning.ConvProbPredictor.conv_prob_predictor import *
 from MachineLearning.dataset import get_dataset
 import numpy as np
 import os
@@ -24,7 +24,7 @@ def make_site_predictions(data_folder, weight_path, prediction_save_folder, inde
     outputs = []
     outputs_for_genesis = []
     for i in range(len(samples)):
-        if i != 0 and samples[i][0] != samples[i-1][0]:
+        if i != 0 and np.array_equal(samples[i][0], samples[i-1][0]):
             outputs.append(outputs_for_genesis)
             outputs_for_genesis = []
         outputs_for_genesis.append(samples[i][1])
@@ -48,4 +48,4 @@ def make_site_predictions(data_folder, weight_path, prediction_save_folder, inde
 
     return predictions, outputs
 
-make_site_predictions("../../Training Data Generation/Data/v3", "../models/site_prob_1708640562.211484.weights.h5", "./predictions/")
+#make_site_predictions("/nesi/project/uoa03669/ewin313/storm_data/v2/", "/nesi/project/uoa03669/ewin313/TropicalCycloneAI/models/site_prob_1708895505.3277183.weights.h5", "./predictions/")
