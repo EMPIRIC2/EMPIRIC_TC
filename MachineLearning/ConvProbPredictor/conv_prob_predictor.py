@@ -49,7 +49,7 @@ def NegLogLik(y_true, y_pred):
     # this is because of a bug in Tensorflow/Keras where Tensor.log_prob is not found
 
 
-    distribution = lambda t: tfd.MultivariateNormalTriL(loc=tf.squeeze(t[..., :1]), scale_tril=t[..., 1:])
+    distribution = lambda t: tfd.Poisson(rate=t)
     y_params = y_pred
     y_dist = distribution(y_params)
 
@@ -79,9 +79,8 @@ def conv_prob_predictor(genesis_shape, movement_shape, num_outputs):
     x = conv(genesis_matrix)
     x = concatenate([x, movement_coefficients])
 
-    x = Dense(1024, LeakyReLU())(x)
-    outputs = TPNormalMultivariateLayer(num_outputs)(x)
+    output = Dense(num_outputs, activation=activations.softplus)(x)
 
-    model = Model(inputs=[genesis_matrix, movement_coefficients], outputs=outputs)
+    model = Model(inputs=[genesis_matrix, movement_coefficients], outputs=output)
 
     return model
