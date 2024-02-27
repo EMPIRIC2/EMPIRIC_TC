@@ -1,7 +1,7 @@
 from SampleSTORM import sampleStorm
 from RiskFactors import getLandfallsData
 from GenerateInputParameters import generateInputParameters
-from .. HealthFacilities.getHealthFacilityData import Sites
+from HealthFacilities.getHealthFacilityData import Sites
 import os
 import numpy as np
 import argparse
@@ -108,7 +108,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
     future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
     site_files = [os.path.join(__location__, file_name) for file_name in ['SPC_health_data_hub_Kiribati.csv', 'SPC_health_data_hub_Solomon_Islands.csv', 'SPC_health_data_hub_Tonga.csv', 'SPC_health_data_hub_Vanuatu.csv']]
-    sites = Sites(site_files, 5)
+    sites = Sites(5)
     print("n sites", len(sites.sites))
 
     file_time = time.time()
@@ -195,7 +195,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
 
 if __name__ == "__main__":
-    generateTrainingData(5, 4, 0, 0, 'Data/v3')
+    generateTrainingData(5, 4, 0, 0, 'Data/v2')
     parser = argparse.ArgumentParser(description='Generate machine learning training data from STORM')
     parser.add_argument('total_years',  type=int,
                     help='Number of years to run STORM for when generating training data')

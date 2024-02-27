@@ -234,7 +234,7 @@ def getQuantilesFromDecadeGrids(decade_grids):
 
     return np.array(quantiles)
 
-def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_grids=False):
+def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_grids=True):
     """
     Calculate average landfalls per month within lat, lon bins from synthetic TC data.
     For use as the training output of ML model.
