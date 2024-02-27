@@ -23,24 +23,25 @@ def plot_site_distributions(predictions_path, real_output_path, dist_index=0):
 
     plt.rcParams['figure.figsize'] = [12, 6]
     plt.rcParams['figure.dpi'] = 100
-
-    mean = np.squeeze(prediction[0][..., :1])[dist_index]
-
-    std = np.diagonal(prediction[0][..., 1:])[dist_index]
+    print(prediction.shape)
+    rate = prediction[0][dist_index]
+    print(rate)
+    #std = np.diagonal(prediction[0][..., 1:])[dist_index]
 
     plt.figure()
     ax = plt.axes()
-    sample = pd.DataFrame(real_outputs[dist_index], columns=["count"])
-
-    sns.histplot(data=sample, x="count", stat='density', color=sns_c[0], kde=False, ax=ax)
+    print(real_outputs.shape)
+    print(real_outputs[0, :, 0, dist_index])
+    sample = pd.DataFrame(real_outputs[0, :, 0, dist_index], columns=["count"])
+    sns.histplot(data=sample, x="count", stat='probability', color=sns_c[0], kde=False, ax=ax)
 
     # calculate the pdf
-    x0, x1 = ax.get_xlim()  # extract the endpoints for the x-axis
-    x_pdf = np.linspace(x0, x1, 100)
+    x = np.arange(scipy.stats.poisson.ppf(0.0001, rate),
+                  scipy.stats.poisson.ppf(0.9999, rate))
 
-    y_pdf = scipy.stats.norm.pdf(x_pdf, loc=mean, scale=std)
+    y_pmf = scipy.stats.poisson.pmf(x, rate)
 
-    ax.plot(x_pdf, y_pdf, 'r', lw=2, label='pdf')
+    ax.plot(x, y_pmf, 'bo', ms=8, label='poisson pmf')
 
     plt.show()
 
@@ -78,6 +79,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Visualize site predictions on the map')
     parser.add_argument('file',  type=str,
                     help='path to file with the predictions in it')
+    parser.add_argument('output_file', type=str,
+                        help='path to file with the storm outputs in it')
     args = parser.parse_args()
 
-    plot_site_distributions(args.file, 0)
+    plot_site_distributions(args.file, args.output_file, 150)
