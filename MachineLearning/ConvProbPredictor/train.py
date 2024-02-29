@@ -4,7 +4,7 @@ from MachineLearning.ConvProbPredictor.conv_prob_predictor import *
 import time
 
 def train(data_folder):
-
+    train_time = time.time()
     train_data = get_dataset(data_folder, data_version=2)
     #test_data = get_dataset(data_folder, data_version=1, dataset="test")
     validation_data = get_dataset(data_folder, data_version=2, dataset="validation")
@@ -15,10 +15,10 @@ def train(data_folder):
     movement_shape = (13,)
     num_outputs = 542
 
-    callback = keras.callbacks.EarlyStopping()
-
-    model = conv_prob_predictor(genesis_shape, movement_shape, num_outputs )
-
+    save_path = "models/site_prob_{}.weights.h5".format(str(train_time))
+    early_stopping = keras.callbacks.EarlyStopping()
+    checkpoint = keras.callbacks.ModelCheckpoint(save_path, save_best_only=True, save_weights_only=True, mode='min', verbose=1)
+    model = conv_prob_predictor(genesis_shape, movement_shape, num_outputs)
 
     # TODO: add CPRS metric
     model.compile(
@@ -30,7 +30,7 @@ def train(data_folder):
               epochs=20,
               validation_data=validation_data,
               verbose=2,
-              callbacks=[callback]
+              callbacks=[early_stopping, checkpoint]
              )
 
     #model.evaluate(
@@ -38,5 +38,5 @@ def train(data_folder):
       #  verbose=2
     #)
 
-    model.save_weights("models/site_prob_{}.weights.h5".format(str(time.time())))
+    #model.save_weights("models/site_prob_{}.weights.h5".format(str(time.time())))
     #model.save('models/site_prob_{}.keras'.format(str(time.time())))
