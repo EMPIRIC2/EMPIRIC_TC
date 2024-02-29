@@ -3,6 +3,7 @@ import h5py
 import tensorflow as tf
 import os
 import glob
+import itertools
 
 months = [1,2,3,4,11,12]
 
@@ -38,7 +39,7 @@ class hdf5_generator_v2_grid:
 
 class hdf5_generator_v2:
     # similar to v1 but adding more data sources
-    def __init__(self, file_paths, dataset="train", year_grouping_size=30):
+    def __init__(self, file_paths, dataset="train", year_grouping_size=50):
 
         self.file_paths = file_paths
         self.dataset = dataset
@@ -52,17 +53,20 @@ class hdf5_generator_v2:
                 movements = file[self.dataset + "_movement"]
 
                 outputs = file[self.dataset + "_sites"]
-
-
-                for genesis, movement, output in zip(geneses, movements, outputs):
-                    if np.count_nonzero(genesis) != 0:  # data has been made
+                if self.dataset == "test":
+                    for genesis, movement, output in zip(geneses, movements, outputs):
+                        if np.count_nonzero(genesis) != 0:  # data has been made
+                            for year_indices in itertools.islice(itertools.combinations(list(range(1000)), self.year_grouping_size), 1000):
+                                month = 3
+                                yield (np.expand_dims(genesis[month], axis=-1), movement[months[month]]), np.sum(np.sum(output[list(year_indices)], axis=0)[:, month, :], -1)
+                
+                # spread out training examples with the same genesis matrix to avoid overfitting
+                for year_indices in itertools.islice(itertools.combinations(list(range(1000)), self.year_grouping_size), 1000):
+                    for genesis, movement, output in zip(geneses, movements, outputs):
+                        if np.count_nonzero(genesis) != 0:  # data has been made
                         # switch the order of genesis matrix and divide output by number of years
-                        
-                        for i in range(0,output.shape[0], self.year_grouping_size):
                             month = 3
-                            yield (np.expand_dims(genesis[month], axis=-1), movement[months[month]]), np.sum(np.sum(output[i:i + self.year_grouping_size], axis=0)[:, month, :], -1)
-
-
+                            yield (np.expand_dims(genesis[month], axis=-1), movement[months[month]]), np.sum(np.sum(output[list(year_indices)], axis=0)[:, month, :], -1)
                     else:  # this sample was never generated
                         break
 class hdf5_generator_v1:
@@ -157,6 +161,9 @@ def get_dataset(folder_path, batch_size=32, dataset="train", data_version=0):
             output_signature=output_signature
     )
     
+    # do not shuffle test dataset so we can get all outputs
+    if dataset != "test":
+        dataset = dataset.shuffle(100)
     batched_dataset = dataset.batch(batch_size)
 
     return batched_dataset

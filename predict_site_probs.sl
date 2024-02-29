@@ -4,7 +4,7 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --cpus-per-task=2
 #SBATCH --time 00:05:00
-#SBATCH --mem 3G
+#SBATCH --mem 6G
 #SBATCH --qos=debug
 
 module purge
