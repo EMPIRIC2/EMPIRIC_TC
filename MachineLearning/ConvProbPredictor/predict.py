@@ -7,7 +7,7 @@ import os
 def make_site_predictions(data_folder, weight_path, prediction_save_folder, index=0):
     print("getting data")
 
-    train_data = get_dataset(data_folder, data_version=2)
+    train_data = get_dataset(data_folder, data_version=2, dataset="test")
 
     print("loading model")
 
@@ -18,7 +18,7 @@ def make_site_predictions(data_folder, weight_path, prediction_save_folder, inde
     model = conv_prob_predictor(genesis_shape, movement_shape, num_outputs)
     model.load_weights(weight_path)
 
-    samples = [item for i, item in enumerate(train_data.as_numpy_iterator()) if i < 100]
+    samples = [item for i, item in enumerate(train_data.as_numpy_iterator()) if i < 1000]
 
     # group outputs by the input genesis matrix
     outputs = []

@@ -39,7 +39,7 @@ class hdf5_generator_v2_grid:
 
 class hdf5_generator_v2:
     # similar to v1 but adding more data sources
-    def __init__(self, file_paths, dataset="train", year_grouping_size=50):
+    def __init__(self, file_paths, dataset="train", year_grouping_size=100):
 
         self.file_paths = file_paths
         self.dataset = dataset
@@ -74,7 +74,7 @@ class hdf5_generator_v2:
                 outputs = file[self.dataset + "_sites"]
 
                 #randomly select combinations of years for training
-                year_indices = self.get_random_year_combinations(1000, 1000, 10)
+                year_indices = self.get_random_year_combinations(1000, 1000, self.year_grouping_size)
 
                 # keep test samples with genesis matrix in order to make it simpler to assess the real output distribution
                 if self.dataset == "test":
