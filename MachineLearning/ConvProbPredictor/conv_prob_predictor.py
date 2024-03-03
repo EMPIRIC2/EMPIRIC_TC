@@ -78,13 +78,13 @@ def conv_prob_predictor(genesis_shape, movement_shape, num_outputs, max_storms =
     x = conv(genesis_matrix)
     x = concatenate([x, movement_coefficients])
 
-    x = Dense(1000, activation=LeakyReLU())(x)
-
-    x = Dense(num_outputs * max_storms, activation=LeakyReLU())(x)
+    x = Dense(1000, activation=LeakyReLU(), kernel_regularizer='l2')(x)
+    x = Dropout(0.5)(x)
+    x = Dense(num_outputs * max_storms, activation=LeakyReLU(), kernel_regularizer='l2')(x)
 
     x = Reshape((num_outputs, max_storms))(x)
 
-    output = Dense(max_storms, activation=activations.softmax)(x)
+    output = Dense(max_storms, activation=activations.softmax, kernel_regularizer='l2')(x)
 
     model = Model(inputs=[genesis_matrix, movement_coefficients], outputs=output)
 
