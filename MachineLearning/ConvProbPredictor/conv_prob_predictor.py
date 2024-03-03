@@ -1,7 +1,7 @@
 import tensorflow_probability as tfp
 import tensorflow as tf
 from keras import Sequential, Model, optimizers, activations
-from keras.layers import Layer, Input, Dense, BatchNormalization, Dropout, Conv2D, MaxPooling2D, concatenate, Flatten, LeakyReLU, ReLU
+from keras.layers import Reshape, Layer, Input, Dense, BatchNormalization, Dropout, Conv2D, MaxPooling2D, concatenate, Flatten, LeakyReLU, ReLU
 import keras
 
 tfd = tfp.distributions
@@ -57,13 +57,12 @@ def NegLogLik(y_true, y_pred):
 
     return negloglik(y_dist, y_true)
 
-
-def conv_prob_predictor(genesis_shape, movement_shape, num_outputs):
+def conv_prob_predictor(genesis_shape, movement_shape, num_outputs, max_storms = 8):
     genesis_matrix = Input(genesis_shape)
     movement_coefficients = Input(movement_shape)
     conv = Sequential()
 
-    n_filters = [64, 128, 256, 512]
+    n_filters = [64, 128, 256]
     for filters in n_filters:
         conv.add(Conv2D(filters, (3, 3), padding='same', activation=LeakyReLU(), kernel_regularizer='l2'))
         conv.add(BatchNormalization())
@@ -79,7 +78,13 @@ def conv_prob_predictor(genesis_shape, movement_shape, num_outputs):
     x = conv(genesis_matrix)
     x = concatenate([x, movement_coefficients])
 
-    output = Dense(num_outputs, activation=activations.softplus)(x)
+    x = Dense(1000, activation=LeakyReLU())(x)
+
+    x = Dense(num_outputs * max_storms, activation=LeakyReLU())(x)
+
+    x = Reshape((num_outputs, max_storms))(x)
+
+    output = Dense(max_storms, activation=activations.softmax)(x)
 
     model = Model(inputs=[genesis_matrix, movement_coefficients], outputs=output)
 

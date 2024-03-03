@@ -2,6 +2,19 @@
 from MachineLearning.dataset import get_dataset
 from MachineLearning.ConvProbPredictor.conv_prob_predictor import *
 import time
+import tensorflow as tf
+import keras
+
+def sparse_categorical_focal_cross_entropy(y_true, y_pred):
+    max_storms = 8
+    ### convert y_real to one hot vectors and then compute the cross-entropy loss
+
+    y_true = tf.cast(y_true, tf.int8)
+    y_one_hot = tf.one_hot(y_true, max_storms)
+
+    return keras.losses.CategoricalFocalCrossentropy()(y_pred, y_one_hot)
+
+
 
 def train(data_folder):
     train_time = time.time()
@@ -23,7 +36,7 @@ def train(data_folder):
     # TODO: add CPRS metric
     model.compile(
         optimizer=optimizers.Adam(learning_rate=0.0005),
-        loss=NegLogLik
+        loss=sparse_categorical_focal_cross_entropy,
     )
 
     model.fit(train_data,
