@@ -41,21 +41,34 @@ class TPNormalMultivariateLayer(Layer):
 
         return x
 
-@keras.saving.register_keras_serializable(package="ProbabilityLayers", name="NegLogLik")
-def NegLogLik(y_true, y_pred):
+@keras.saving.register_keras_serializable(package="ProbabilityLayers", name="NegLogLikPoisson")
+def NegLogLikPoisson(y_true, y_pred):
     # a custom negative log likelihood loss
     # we use the network to get the params for a distribution
     # and then calculate that neg log likelihood using that dist.
     # this is because of a bug in Tensorflow/Keras where Tensor.log_prob is not found
 
 
-    distribution = lambda t: tfd.Poisson(rate=t)
+    distribution = lambda t: tfd.Poisson(total_count=t[:])
     y_params = y_pred
     y_dist = distribution(y_params)
 
     negloglik = lambda p_y, y: -p_y.log_prob(y)
 
     return negloglik(y_dist, y_true)
+
+@keras.saving.register_keras_serializable(package="ProbabilityLayers", name="NegativeLogLikBinomial")
+def NegLogLikNegBinomial(y_true, y_pred):
+    num_sites = 542
+
+    distribution = lambda t: tfd.NegativeBinomial(total_count=t[:num_sites], probs=t[num_sites:])
+
+    y_dist = distribution(y_pred)
+
+    negloglik = lambda p_y, y: -p_y.log_prob(y)
+
+    return negloglik(y_dist, y_true)
+
 
 def conv_prob_predictor(genesis_shape, movement_shape, num_outputs, max_storms = 8):
     genesis_matrix = Input(genesis_shape)
@@ -64,12 +77,11 @@ def conv_prob_predictor(genesis_shape, movement_shape, num_outputs, max_storms =
 
     n_filters = [64, 128, 256]
     for filters in n_filters:
-        conv.add(Conv2D(filters, (3, 3), padding='same', activation=LeakyReLU(), kernel_regularizer='l2'))
+        conv.add(Conv2D(filters, (3, 3), padding='same', activation=LeakyReLU()))
         conv.add(BatchNormalization())
 
-        conv.add(Conv2D(filters, (3, 3), padding='same', activation=LeakyReLU(), kernel_regularizer='l2'))
+        conv.add(Conv2D(filters, (3, 3), padding='same', activation=LeakyReLU()))
         conv.add(BatchNormalization())
-        conv.add(Dropout(0.5))
 
         conv.add(MaxPooling2D((2, 2), padding='same'))
 
@@ -80,11 +92,7 @@ def conv_prob_predictor(genesis_shape, movement_shape, num_outputs, max_storms =
 
     x = Dense(1000, activation=LeakyReLU(), kernel_regularizer='l2')(x)
     x = Dropout(0.5)(x)
-    x = Dense(num_outputs * max_storms, activation=LeakyReLU(), kernel_regularizer='l2')(x)
-
-    x = Reshape((num_outputs, max_storms))(x)
-
-    output = Dense(max_storms, activation=activations.softmax, kernel_regularizer='l2')(x)
+    output = Dense(num_outputs * 2, activation=activations.softplus, kernel_regularizer='l2')(x)
 
     model = Model(inputs=[genesis_matrix, movement_coefficients], outputs=output)
 

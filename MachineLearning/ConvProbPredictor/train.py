@@ -28,7 +28,7 @@ def train(data_folder):
     movement_shape = (13,)
     num_outputs = 542
 
-    save_path = "models/site_prob_{}.weights.h5".format(str(train_time))
+    save_path = "models/site_prob_negbin_{}.weights.h5".format(str(train_time))
     early_stopping = keras.callbacks.EarlyStopping()
     checkpoint = keras.callbacks.ModelCheckpoint(save_path, save_best_only=True, save_weights_only=True, mode='min', verbose=1)
     model = conv_prob_predictor(genesis_shape, movement_shape, num_outputs)
@@ -36,7 +36,7 @@ def train(data_folder):
     # TODO: add CPRS metric
     model.compile(
         optimizer=optimizers.Adam(learning_rate=0.0005),
-        loss=sparse_categorical_focal_cross_entropy,
+        loss=NegLogLikNegBinomial
     )
 
     model.fit(train_data,
