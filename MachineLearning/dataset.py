@@ -1,12 +1,15 @@
 import numpy as np
 import h5py
 import tensorflow as tf
+import tensorflow_transform as tft
 import os
 import glob
 import itertools
 import random
 months = [1,2,3,4,11,12]
 
+def normalize_genesis_matrix(genesis_matrix):
+    return tft.scale_to_0_1(5*genesis_matrix / np.sum(genesis_matrix))
 
 class hdf5_generator_v2_grid:
     def __init__(self, file_paths, dataset="train", year_grouping_size=30):
@@ -91,7 +94,8 @@ class hdf5_generator_v2:
                         if np.count_nonzero(genesis) != 0:  # data has been made
                         # switch the order of genesis matrix and divide output by number of years
                             month = 3
-                            yield (np.expand_dims(genesis[month], axis=-1), movement[months[month]]), np.sum(np.sum(output[list(year_index)], axis=0)[:, month, :], -1)
+
+                            yield (np.expand_dims(normalize_genesis_matrix(genesis[month]), axis=-1), movement[months[month]]), np.sum(np.sum(output[list(year_index)], axis=0)[:, month, :], -1)
                     else:  # this sample was never generated
                         break
 class hdf5_generator_v1:
