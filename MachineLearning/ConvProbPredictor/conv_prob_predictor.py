@@ -43,12 +43,16 @@ class TPNormalMultivariateLayer(Layer):
 
 @keras.saving.register_keras_serializable(package="ProbabilityLayers", name="NegLogLikDiscrete")
 def NegLogLikDiscrete(y_true, y_pred):
+    ## NOTE: Need to convert y_pred to one hot
+
+    y_true = tf.cast(y_true, tf.int8)
+    y_one_hot = tf.one_hot(y_true, 8) # max number of storms is set to 8 here
 
     distribution = lambda t: tfd.FiniteDiscrete(logits=t)
     y_dist = distribution(y_pred)
     negloglik = lambda p_y, y: -p_y.log_prob(y)
 
-    return negloglik(y_dist, y_true)
+    return negloglik(y_dist, y_one_hot)
 
 @keras.saving.register_keras_serializable(package="ProbabilityLayers", name="NegLogLikPoisson")
 def NegLogLikPoisson(y_true, y_pred):
