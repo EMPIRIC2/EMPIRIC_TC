@@ -16,7 +16,7 @@ monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,
 decade_length = 1
 
 
-def generateOneTrainingDataSample(total_years, future_data, movementCoefficientsFuture, refs, sites, basin='SP', include_grids=True):
+def generateOneTrainingDataSample(total_years, future_data, movementCoefficientsFuture, refs, sites, basin='SP', include_grids=False):
     '''
     Generate ML training data
 
@@ -49,7 +49,7 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
 
     return (genesis_matrix, basin_movement_coefficients), yearly_grids, yearly_site_data, tc_data
 
-def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validation_samples, save_location, basin='SP'):
+def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validation_samples, save_location, basin='SP', include_grids=False):
 
     print('Beginning Training Data Generation \n')
     print('Running storm for {} years in each sample\n'.format(total_years))
@@ -126,12 +126,13 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
         data.create_dataset('test_movement', (n_test_samples, w, h))
         data.create_dataset('validation_movement', (n_validation_samples, w, h))
 
-        data.create_dataset('train_grids', (n_train_samples, total_years, 2*lat, 2*lon, 6, 5))
-        data.create_dataset('test_grids', (n_test_samples, total_years, 2*lat, 2*lon, 6, 5))
+        if include_grids:
+            data.create_dataset('train_grids', (n_train_samples, total_years, 2*lat, 2*lon, 6, 5))
+            data.create_dataset('test_grids', (n_test_samples, total_years, 2*lat, 2*lon, 6, 5))
+            data.create_dataset('validation_grids', (n_validation_samples, total_years, 2 * lat, 2 * lon, 6, 5))
+
         data.create_dataset('train_sites', (n_train_samples, total_years, len(sites.sites), 6, 5))
         data.create_dataset('test_sites', (n_test_samples, total_years, len(sites.sites), 6, 5))
-
-        data.create_dataset('validation_grids', (n_validation_samples, total_years, 2*lat, 2*lon, 6, 5))
         data.create_dataset('validation_sites', (n_validation_samples, total_years, len(sites.sites), 6, 5))
 
     rmax_pres = np.load(os.path.join(__location__, 'STORM', 'RMAX_PRESSURE.npy'),allow_pickle=True).item()
@@ -172,7 +173,8 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
                 monthlist,
                 rmax_pres],
             sites,
-            basin
+            basin,
+            include_grids=include_grids
         )
 
         with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'r+') as data:
@@ -180,7 +182,10 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
             data['{}_genesis'.format(dataset)][i - offset] = genesis_matrices
             data['{}_movement'.format(dataset)][i - offset] = movement_coefficients
-            data['{}_grids'.format(dataset)][i - offset] = yearly_grids
+            
+            if include_grids:
+                data['{}_grids'.format(dataset)][i - offset] = yearly_grids
+
             data['{}_sites'.format(dataset)][i - offset] = yearly_site_data
 
     if save_location is not None:
