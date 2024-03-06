@@ -41,6 +41,15 @@ class TPNormalMultivariateLayer(Layer):
 
         return x
 
+@keras.saving.register_keras_serializable(package="ProbabilityLayers", name="NegLogLikDiscrete")
+def NegLogLikDiscrete(y_true, y_pred):
+
+    distribution = lambda t: tfd.FiniteDiscrete(logits=t)
+    y_dist = distribution(y_pred)
+    negloglik = lambda p_y, y: -p_y.log_prob(y)
+
+    return negloglik(y_dist, y_true)
+
 @keras.saving.register_keras_serializable(package="ProbabilityLayers", name="NegLogLikPoisson")
 def NegLogLikPoisson(y_true, y_pred):
     # a custom negative log likelihood loss
@@ -92,7 +101,9 @@ def conv_prob_predictor(genesis_shape, movement_shape, num_outputs, max_storms =
 
     x = Dense(1000, activation=LeakyReLU(), kernel_regularizer='l2')(x)
     x = Dropout(0.5)(x)
-    output = Dense(num_outputs * 2, activation=activations.softplus, kernel_regularizer='l2')(x)
+    x = Dense(num_outputs * max_storms, activation=LeakyReLU(), kernel_regularizer='l2')(x)
+
+    output = Reshape((num_outputs, max_storms))(x)
 
     model = Model(inputs=[genesis_matrix, movement_coefficients], outputs=output)
 
