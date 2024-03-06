@@ -43,7 +43,7 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
 
     yearly_grids, yearly_site_data = getLandfallsData(tc_data, basin, total_years, .5, sites, include_grids)
     basin_movement_coefficients = movement_coefficients[basins.index(basin)]
-    print(yearly_grids)
+    
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
@@ -195,7 +195,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
 
 if __name__ == "__main__":
-    generateTrainingData(5, 4, 0, 0, 'Data/v2')
+    #generateTrainingData(5, 4, 0, 0, 'Data/v2')
     parser = argparse.ArgumentParser(description='Generate machine learning training data from STORM')
     parser.add_argument('total_years',  type=int,
                     help='Number of years to run STORM for when generating training data')

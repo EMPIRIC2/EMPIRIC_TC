@@ -291,7 +291,7 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
 
     decade_grids = []
     decade_site_data = []
-    print(include_grids)
+    
     with Pool(number_of_cores) as pool:
         args = [(decade,
                  decade_of_storms,
@@ -308,7 +308,7 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
 
         for i, decade_result in enumerate(decade_results):
             site_data, decade_grid, decade = decade_result
-            print(decade_grid)
+            
             if include_grids:
                 decade_grids.append(decade_grid)
 
