@@ -61,8 +61,9 @@ def NegLogLikPoisson(y_true, y_pred):
 def NegLogLikNegBinomial(y_true, y_pred):
     num_sites = 542
 
-    distribution = lambda t: tfd.NegativeBinomial(total_count=t[:num_sites], probs=t[num_sites:])
-
+    distribution = lambda t: tfd.NegativeBinomial(total_count=t[..., :num_sites], logits=t[..., num_sites:])
+    
+    print(y_pred[:num_sites].shape)
     y_dist = distribution(y_pred)
 
     negloglik = lambda p_y, y: -p_y.log_prob(y)

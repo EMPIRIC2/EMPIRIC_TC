@@ -35,7 +35,7 @@ def train(data_folder):
 
     # TODO: add CPRS metric
     model.compile(
-        optimizer=optimizers.Adam(learning_rate=0.0005),
+        optimizer=optimizers.Adam(learning_rate=0.001),
         loss=NegLogLikNegBinomial
     )
 
