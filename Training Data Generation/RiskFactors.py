@@ -318,9 +318,9 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
         for i, year_result in enumerate(year_results):
             site_data, grid = year_result
 
-        for i, decade_result in enumerate(decade_results):
-            site_data, decade_grid, decade = decade_result
-            
+        for i, year_result in enumerate(year_results):
+            site_data, grid = year_result
+
             if include_grids:
                 yearly_grids.append(grid)
 
