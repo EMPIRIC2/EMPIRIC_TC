@@ -8,7 +8,7 @@ import random
 months = [1,2,3,4,11,12]
 
 def normalize_genesis_matrix(genesis_matrix):
-    return 10*genesis_matrix / np.sum(genesis_matrix)
+    return genesis_matrix / np.sum(genesis_matrix)
 
 class hdf5_generator_v2_grid:
     def __init__(self, file_paths, dataset="train", year_grouping_size=30):
