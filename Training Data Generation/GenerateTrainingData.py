@@ -41,13 +41,13 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
 
     tc_data = sampleStorm(total_years, month_map, refs)
 
-    yearly_grids, yearly_site_data = getLandfallsData(tc_data, basin, total_years, .5, sites, include_grids)
+    grid_quantiles, yearly_site_data = getLandfallsData(tc_data, basin, total_years, .5, sites, include_grids)
     basin_movement_coefficients = movement_coefficients[basins.index(basin)]
-    print(yearly_grids)
+    print(grid_quantiles.shape)
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
-    return (genesis_matrix, basin_movement_coefficients), yearly_grids, yearly_site_data, tc_data
+    return (genesis_matrix, basin_movement_coefficients), grid_quantiles, yearly_site_data, tc_data
 
 def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validation_samples, save_location, basin='SP', include_grids=False):
 
@@ -107,7 +107,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
                           for model in models]
 
     future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
-    site_files = [os.path.join(__location__, file_name) for file_name in ['SPC_health_data_hub_Kiribati.csv', 'SPC_health_data_hub_Solomon_Islands.csv', 'SPC_health_data_hub_Tonga.csv', 'SPC_health_data_hub_Vanuatu.csv']]
+
     sites = Sites(5)
     print("n sites", len(sites.sites))
 
@@ -159,7 +159,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
         print("Generating {} sample: {}".format(dataset, i - offset))
 
-        input, yearly_grids, yearly_site_data, tc_data = generateOneTrainingDataSample(
+        input, grid_quantiles, yearly_site_data, tc_data = generateOneTrainingDataSample(
             total_years,
             future_data,
             movementCoefficientsFuture,
@@ -182,9 +182,9 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
             data['{}_genesis'.format(dataset)][i - offset] = genesis_matrices
             data['{}_movement'.format(dataset)][i - offset] = movement_coefficients
-            
+
             if include_grids:
-                data['{}_grids'.format(dataset)][i - offset] = yearly_grids
+                data['{}_grids'.format(dataset)][i - offset] = grid_quantiles
 
             data['{}_sites'.format(dataset)][i - offset] = yearly_site_data
 
