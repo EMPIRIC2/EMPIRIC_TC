@@ -41,7 +41,7 @@ class hdf5_generator_v2_grid:
 
 class hdf5_generator_v2:
     # similar to v1 but adding more data sources
-    def __init__(self, file_paths, dataset="train", year_grouping_size=100):
+    def __init__(self, file_paths, dataset="train", year_grouping_size=50):
 
         self.file_paths = file_paths
         self.dataset = dataset
