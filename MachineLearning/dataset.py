@@ -11,12 +11,12 @@ months = [1,2,3,4,11,12]
 def normalize_genesis_matrix(genesis_matrix):
     return genesis_matrix / np.sum(genesis_matrix)
 
-class hdf5_generator_v2_grid:
-    def __init__(self, file_paths, dataset="train", year_grouping_size=30):
+class hdf5_generator_v3:
+    def __init__(self, file_paths, dataset="train", month=3):
 
         self.file_paths = file_paths
         self.dataset = dataset
-        self.year_grouping_size = year_grouping_size
+        self.month = month
 
     def __call__(self):
 
@@ -28,14 +28,10 @@ class hdf5_generator_v2_grid:
                 outputs = file[self.dataset + "_grids"]
 
                 for genesis, movement, output in zip(geneses, movements, outputs):
-                    if np.count_nonzero(genesis) != 0:  # data has been made
+                    if np.count_nonzero(movement) != 0:  # data has been made
                         # switch the order of genesis matrix and divide output by number of years
 
-                        for i in range(0, output.shape[0], self.year_grouping_size):
-                            month = 3
-                            yield (np.expand_dims(genesis[month], axis=-1), movement[months[month]]), np.expand_dims(np.sum(
-                                np.sum(output[i:i + self.year_grouping_size], axis=0)[:, :, month], -1),-1)
-
+                        yield (np.expand_dims(genesis[self.month], axis=-1), movement[months[self.month]]), np.expand_dims(np.sum(output[:,self.month,:4], axis=-1), -1)
 
                     else:  # this sample was never generated
                         break
@@ -156,15 +152,16 @@ def get_dataset(folder_path, batch_size=32, dataset="train", data_version=0):
                 tf.TensorSpec(shape=output_size, dtype=tf.float32)
             )
     if data_version == 3:
-        generator = hdf5_generator_v2_grid
+        generator = hdf5_generator_v3
         genesis_size = (55, 105, 1)
         movement_size = (13,)
-        output_size = (110, 210, 1)
+        output_size = (110, 210, 11)
         output_signature = ((
                                 tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
                                 tf.TensorSpec(shape=movement_size, dtype=tf.float32)),
                             tf.TensorSpec(shape=output_size, dtype=tf.float32)
         )
+
 
     dataset = tf.data.Dataset.from_generator(
             generator(file_paths, dataset=dataset),
