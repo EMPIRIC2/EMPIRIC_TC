@@ -232,8 +232,11 @@ def getQuantilesFromYearlyGrids(yearly_grids, n_years_to_sum, n_samples):
 
     sums = []
 
+    yearly_grids = np.array(yearly_grids)
+
     for year_index in year_indices:
-        sums.append(np.sum(yearly_grids[tuple(year_index)], axis=0))
+        print(year_index)
+        sums.append(np.sum(yearly_grids[list(year_index)], axis=0))
 
     sums = np.array(sums)
 
@@ -257,6 +260,7 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
              the average number of landfalls in that month in the provided TC data
     """
 
+    print("calculating landfalls")
     # TC_data is list of [year,month,storm_number,l,idx,lat (one),lon (one),pressure (one),wind (one), rmax (one),category,landfall (one),distance]
 
     storms = []
@@ -326,7 +330,9 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
 
             if site_data is not None:
                 yearly_site_data.append(site_data)
-
-        grid_quantiles = getQuantilesFromYearlyGrids(yearly_grids, 500, 5000)
-
+        if include_grids:        
+            grid_quantiles = getQuantilesFromYearlyGrids(yearly_grids, 1000, 500)
+        else: 
+            grid_quantiles = None
+    
     return grid_quantiles, yearly_site_data

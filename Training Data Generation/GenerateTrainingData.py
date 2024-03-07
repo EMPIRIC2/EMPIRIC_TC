@@ -40,11 +40,10 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
     refs.append(movement_coefficients)
 
     tc_data = sampleStorm(total_years, month_map, refs)
-
+    print("Storm Sampled!")
     grid_quantiles, yearly_site_data = getLandfallsData(tc_data, basin, total_years, .5, sites, include_grids)
     basin_movement_coefficients = movement_coefficients[basins.index(basin)]
 
-    print(grid_quantiles.shape)
 
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
@@ -130,9 +129,9 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
         data.create_dataset('validation_movement', (n_validation_samples, w, h))
 
         if include_grids:
-            data.create_dataset('train_grids', (n_train_samples, total_years, 2*lat, 2*lon, 6, 5))
-            data.create_dataset('test_grids', (n_test_samples, total_years, 2*lat, 2*lon, 6, 5))
-            data.create_dataset('validation_grids', (n_validation_samples, total_years, 2 * lat, 2 * lon, 6, 5))
+            data.create_dataset('train_grids', (n_train_samples, 11, 2*lat, 2*lon, 6, 5))
+            data.create_dataset('test_grids', (n_test_samples, 11, 2*lat, 2*lon, 6, 5))
+            data.create_dataset('validation_grids', (n_validation_samples, 11, 2 * lat, 2 * lon, 6, 5))
 
         data.create_dataset('train_sites', (n_train_samples, total_years, len(sites.sites), 6, 5))
         data.create_dataset('test_sites', (n_test_samples, total_years, len(sites.sites), 6, 5))
@@ -222,6 +221,7 @@ if __name__ == "__main__":
         args.num_training,
         args.num_test,
         args.num_validation,
-        args.save_location
+        args.save_location,
+        include_grids=False
     )
 
