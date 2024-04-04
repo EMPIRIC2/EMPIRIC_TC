@@ -7,9 +7,32 @@ from geopy import distance
 from scipy.interpolate import make_interp_spline
 from multiprocessing import Pool, cpu_count
 import sys
-from utils import *
+
 import os
 import time
+
+import random
+
+rmax_multiple = 4
+
+def _get_random_year_combination(num_years, size):
+    sample = set()
+    while len(sample) < size:
+        # Choose one random item from items
+        elem = random.randint(0, num_years - 1)
+        # Using a set elminates duplicates easily
+        sample.add(elem)
+    return tuple(sample)
+
+
+def get_random_year_combinations(num_combinations, num_years, size):
+    samples = set()
+    while len(samples) < num_combinations:
+        comb = _get_random_year_combination(num_years, size)
+        samples.add(comb)
+
+    return tuple(samples)
+
 
 month_to_index = {month: i for i, month in enumerate([1,2,3,4,11,12])}
 
@@ -108,47 +131,47 @@ def getClosestLonInGridCellToStormCenter(lonCell, storm_lon, resolution, basin):
     if storm_lon > lon1: return lon1
     return storm_lon
 
-def checkCellTouchedByStorm(storm_lat, storm_lon, latCell, lonCell, rmax, resolution, basin):
+def checkCellTouchedByStorm(storm_lat, storm_lon, latCell, lonCell, rmax, rmax_multiple, resolution, basin):
 
     closest_lat = getClosestLatInGridCellToStormCenter(latCell, storm_lat, resolution, basin)
     closest_lon = getClosestLonInGridCellToStormCenter(lonCell, storm_lon, resolution, basin)
 
-    if distance.distance((closest_lat, closest_lon), (storm_lat, storm_lon)).km <= rmax:
+    if distance.distance((closest_lat, closest_lon), (storm_lat, storm_lon)).km <= rmax_multiple * rmax:
         return True
 
     return False
 
-def checkSiteTouchedByStormRMax(site, lat, lon, rmax):
-    return distance.distance(site, (lat, lon)).km <= rmax
 
 def updateCellsAndSitesTouchedByStormRMax(touchedCells, lat, lon, rmax, resolution, basin, touched_sites, sites, include_grids=False):
-
+    #print("touched_sites 1", touched_sites)
     # make bounding box based on rmax for which grid cells to iterate through
     lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
 
-    latitudeRmax = rmax/111 # approximate conversion of kms to latitude degrees
+    latitudeRmax = rmax_multiple*rmax/111 # approximate conversion of kms to latitude degrees
 
     ## TODO, fix bounding box
-    max_lat = min((lat + latitudeRmax), lat1-resolution)
-    min_lat = max((lat - latitudeRmax), lat0)
+    max_lat = min((lat + latitudeRmax), lat1-resolution) 
+    min_lat = max((lat - latitudeRmax), lat0) 
 
     minKmPerLonDegree = distance.distance((max_lat, lon), (max_lat, lon+1)).km
 
-    longitudeRmax = rmax/minKmPerLonDegree
+    longitudeRmax = rmax_multiple*rmax/minKmPerLonDegree
 
-    max_lon = min(lon + longitudeRmax, lon1-resolution)
-    min_lon = max(lon - longitudeRmax, lon0)
+    max_lon = min(lon + longitudeRmax, lon1-resolution) 
+    min_lon = max(lon - longitudeRmax, lon0) 
 
     if include_grids:
-        i0, j0 = getGridCell(min_lat, min_lon, resolution, basin)
-        i1, j1 = getGridCell(max_lat, max_lon, resolution, basin)
+        #i0, j0 = getGridCell(min_lat, min_lon, resolution, basin)
+        #i1, j1 = getGridCell(max_lat, max_lon, resolution, basin)
+        i, j = getGridCell(-17.74, 168.32, resolution, basin)
+        #for i in range(i0, i1+1):
+            #for j in range(j0, j1+1):
+        if checkCellTouchedByStorm(lat, lon, i, j, rmax, rmax_multiple, resolution, basin):
+            touchedCells.add((i, j))
 
-        for i in range(i0, i1+1):
-            for j in range(j0, j1+1):
-                if checkCellTouchedByStorm(lat, lon, i, j, rmax, resolution, basin):
-                    touchedCells.add((i, j))
-
-    sites.update_sites_touched_by_storm(touched_sites, lat, lon, rmax, (min_lat, max_lat, min_lon, max_lon))
+    touched_sites, box_touches = sites.update_sites_touched_by_storm(touched_sites, lat, lon, rmax, rmax_multiple, ((lat - latitudeRmax) - 1, (lat + latitudeRmax + 1), lon - longitudeRmax -1 , lon + longitudeRmax + 1))
+    #print("touched_sites 2", touched_sites)
+    return ((lat - latitudeRmax - 1), (lat + latitudeRmax + 1), lon - longitudeRmax - 1, lon + longitudeRmax + 1), box_touches
 
 
 
@@ -158,7 +181,7 @@ def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites, include_g
 
     touched_cells = set()
     touched_sites = set()
-
+    storm_boxes = []
     for t in tc['t']:
         step = 1
 
@@ -182,7 +205,7 @@ def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites, include_g
         for j in [h * step + t for h in range(0, int(1 / step))]:
             lat, lon, pressure, wind, rmax = b(j)
 
-            updateCellsAndSitesTouchedByStormRMax(
+            storm_box, box_touches = updateCellsAndSitesTouchedByStormRMax(
                 touched_cells,
                 lat,
                 lon,
@@ -190,10 +213,13 @@ def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites, include_g
                 resolution,
                 basin,
                 touched_sites,
-                sites
+                sites,
+                include_grids
             )
-
-    return touched_cells, touched_sites
+            if box_touches:
+                storm_boxes.append(storm_box)
+    #print("touched_sites 3", touched_sites)
+    return touched_cells, touched_sites, storm_boxes
 
 def landfallsPerMonthForYear(storms, resolution, basin, sites, include_grids=False):
 
@@ -202,13 +228,13 @@ def landfallsPerMonthForYear(storms, resolution, basin, sites, include_grids=Fal
     if include_grids:
         grid = createMonthlyLandfallGrid(basin, resolution)
     else: grid = None
-
+    year_storm_boxes = []
     for storm in storms:
 
-        touched_cells, touched_sites = get_cells_and_sites_touched_by_storm(storm, resolution, basin, sites, include_grids=include_grids)
-
+        touched_cells, touched_sites, storm_boxes = get_cells_and_sites_touched_by_storm(storm, resolution, basin, sites, include_grids=include_grids)
+        year_storm_boxes += storm_boxes
         month = storm['month']
-        category = storm['category']
+        category = int(storm['category'])
 
         if include_grids:
             for cell in touched_cells:
@@ -218,11 +244,11 @@ def landfallsPerMonthForYear(storms, resolution, basin, sites, include_grids=Fal
         if touched_sites is not None:
             for site in touched_sites:
                 site_data[sites.site_to_index[site]][month_to_index[month]][category] += 1
-
+        #print("touchedsites", touched_sites)
         del touched_cells
         del touched_sites
-
-    return site_data, grid
+        #print("non_zero_sites", np.sum(site_data))
+    return site_data, grid, year_storm_boxes
 
 def getQuantilesFromYearlyGrids(yearly_grids, n_years_to_sum, n_samples):
     year_indices = get_random_year_combinations(n_samples, 1000, n_years_to_sum)
@@ -296,16 +322,16 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
     years_of_storms = [[] for i in range(total_years // decade_length)]
 
     year = 0
-
+    print("n storms", len(storms))
     for storm in storms:
         if storm['year'] >= (year+1) * decade_length:
             year += 1
-
+        
         years_of_storms[year].append(storm)
 
     yearly_grids = []
     yearly_site_data = []
-
+    storm_boxes = []
     with Pool(number_of_cores) as pool:
         args = [(year_of_storms,
                  resolution,
@@ -320,19 +346,13 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
         year_results = pool.starmap(landfallsPerMonthForYear, args)
 
         for i, year_result in enumerate(year_results):
-            site_data, grid = year_result
-
-        for i, year_result in enumerate(year_results):
-            site_data, grid = year_result
-
+            site_data, grid, year_storm_boxes = year_result
+            storm_boxes += year_storm_boxes
             if include_grids:
                 yearly_grids.append(grid)
 
             if site_data is not None:
                 yearly_site_data.append(site_data)
-        if include_grids:        
-            grid_quantiles = getQuantilesFromYearlyGrids(yearly_grids, 1000, 500)
-        else: 
-            grid_quantiles = None
-    
-    return grid_quantiles, yearly_site_data
+        
+        grid = np.sum(yearly_grids, axis=0)
+    return grid, yearly_site_data, storm_boxes

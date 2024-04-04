@@ -16,38 +16,47 @@ class Sites:
         self.createSiteClusters(n_clusters)
         self.set_site_to_index()
 
-    @staticmethod
-    def siteTouchedByStormRMax(site, lat, lon, rmax):
-        return distance.distance(site, (lat, lon)).km <= rmax
+    
+    def siteTouchedByStormRMax(self, site, lat, lon, rmax, rmax_multiple):
+        d = distance.distance(site, (lat, lon)).km
+      
+        return d <= rmax_multiple*rmax
 
     @staticmethod
     def boxes_intersect(box1, box2):
+        
+        '''
+        this is just a useful reference for where the corners of the box are. Important to remember that the y axis is negative, but not flipped (more down is more negative)
+        this method is based on this 
         top_right = (box1[1], box1[3])
         bottom_left_other = (box2[0], box2[2])
         bottom_left_self = (box1[0], box1[2])
         top_right_other = (box2[1], box2[3])
-
+        '''
+        
         return not (box1[3] < box2[2]
          or box1[2] > box2[3]
          or box1[1] < box2[0]
          or box1[0] > box2[1]
     )
 
-
-
-    def update_sites_touched_by_storm(self, sites_touched_by_storm, lat, lon, rmax, storm_bounding_box):
-
+    def update_sites_touched_by_storm(self, sites_touched_by_storm, lat, lon, rmax, rmax_multiple, storm_bounding_box):
+        
+        # also keep track of whether the box hits a site cluster (I use this for debugging purposes)
+        box_touches = False
+        
+        # check each cluster of sites to see if the cluster bounding box hits the storm bounding box
         for i,cluster_bounding_box in self.cluster_bounding_boxes.items():
-
             if Sites.boxes_intersect(cluster_bounding_box, storm_bounding_box):
-
+                box_touches = True
                 for site in self.clusters_to_sites[i]:
-
+                    
                     if site[0] < storm_bounding_box[0] or site[0] > storm_bounding_box[1] or site[1] < storm_bounding_box[2] or site[1] > storm_bounding_box[3]: continue
-                    if Sites.siteTouchedByStormRMax(site, lat, lon, rmax):
+                    if self.siteTouchedByStormRMax(site, lat, lon, rmax, rmax_multiple):
                         sites_touched_by_storm.add(site)
 
-        return sites_touched_by_storm
+        
+        return sites_touched_by_storm, box_touches
 
 
     def create_site_landfall_vector(self):
@@ -93,7 +102,14 @@ class Sites:
             cluster_bounding_boxes[label][2] is not None else site[1]
             cluster_bounding_boxes[label][3] = max(site[1], cluster_bounding_boxes[label][3]) if \
             cluster_bounding_boxes[label][3] is not None else site[1]
-
+        
+        # expand cluster boxes slightly... not sure this is necessary or not
+        for label in cluster_bounding_boxes.keys():
+            cluster_bounding_boxes[label][0] -= 1
+            cluster_bounding_boxes[label][1] += 1
+            cluster_bounding_boxes[label][2] -= 1
+            cluster_bounding_boxes[label][3] += 1
+            
         self.cluster_bounding_boxes = cluster_bounding_boxes
         self.clusters_to_sites = clusters_to_sites
 
