@@ -95,7 +95,7 @@ class hdf5_generator_v2:
         for file_path in file_paths: self.process_data(file_path)
     
     def create_histogram(self, output, year_indices, month=0):
-        hist = np.zeros((530, 8))
+        hist = np.zeros((542, 8))
         print("Creating histogram")
         # make a histogram of values
         for year_index in year_indices:
@@ -107,8 +107,8 @@ class hdf5_generator_v2:
                 hist[i][int(summed_counts[i])] = hist[i][int(summed_counts[i])] + 1
                 
             # remove the duplicate sites from the histogram
-            indices = [i for i in range(542) if i not in not_used_site_indices]
-            hist = hist[indices]
+        indices = [i for i in range(542) if i not in not_used_site_indices]
+        hist = hist[indices]
             
         density = hist/1000
             
@@ -124,12 +124,12 @@ class hdf5_generator_v2:
             outputs = file[self.dataset + "_sites"]
             
             try:
-                histograms = file.require_dataset(self.dataset + '_histograms', (len(geneses), 542, 8), dtype='f') #(months, sites, count)
+                histograms = file.require_dataset(self.dataset + '_histograms', (len(geneses), 530, 8), dtype='f') #(months, sites, count)
             except Exception as e:
                 print(e)
                 # it was the wrong shape
                 del file[self.dataset + '_histograms']
-                histograms = file.require_dataset(self.dataset + '_histograms', (len(geneses), 542, 8), dtype='f') #(months, sites, count)
+                histograms = file.require_dataset(self.dataset + '_histograms', (len(geneses), 530, 8), dtype='f') #(months, sites, count)
 
             geneses_pca = file.require_dataset(self.dataset + '_genesis_pca', (len(geneses), 4), dtype='f')
             movements_pca = file.require_dataset(self.dataset + '_movement_pca', (len(geneses), 4), dtype='f')
@@ -166,7 +166,7 @@ class hdf5_generator_v2:
                 
                 for genesis, movement, hist in zip(geneses_pca, movements_pca, hists):
                     if np.count_nonzero(genesis) != 0:  # data has been made
-                        
+                            
                         if self.zero_inputs:
                             yield (np.zeros(4,), np.zeros(4,)), hist
                         else:
@@ -272,7 +272,7 @@ def get_dataset(folder_path, pca_path, batch_size=32, dataset="train", data_vers
     # do not shuffle test dataset so we can get all outputs
     if dataset != "test":
         dataset = dataset.shuffle(100)
-    batched_dataset = dataset.batch(batch_size)
+    batched_dataset = dataset.take(100).batch(batch_size)
 
     return batched_dataset
 
