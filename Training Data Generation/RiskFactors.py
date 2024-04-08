@@ -355,4 +355,4 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
                 yearly_site_data.append(site_data)
         
         grid = np.sum(yearly_grids, axis=0)
-    return grid, yearly_site_data, storm_boxes
+    return grid, yearly_site_data

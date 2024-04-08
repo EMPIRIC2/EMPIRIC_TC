@@ -18,7 +18,7 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 
 
 def stormYear(year, month_map, basin, JM_pressure, Genpres, WPR_coefficients, Genwind, Penv, land_mask, mu_list, monthlist, rmax_pres, genesis_matrix, movement_coefficients):
-
+    
     storms_per_year, genesis_month, lat0, lat1, lon0, lon1 = Basins_WMO(basin, mu_list, monthlist)
 
 
@@ -45,7 +45,7 @@ def stormYear(year, month_map, basin, JM_pressure, Genpres, WPR_coefficients, Ge
             monthlist,
             land_mask
         )
-
+        
         TC_data = TC_pressure(
             rng,
             month_map,
@@ -82,7 +82,7 @@ def sampleStorm(total_years,
     :param: basin
     :return:
     """
-
+    print("Sampling Storm")
     # number of cores you have allocated for your slurm task:
     number_of_cores = int(os.environ['SLURM_CPUS_PER_TASK'])
     #number_of_cores = cpu_count() # if not on the cluster you should do this instead
