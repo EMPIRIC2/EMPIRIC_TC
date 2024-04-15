@@ -16,7 +16,7 @@ monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,
 decade_length = 1
 
 
-def generateOneTrainingDataSample(total_years, future_data, movementCoefficientsFuture, refs, sites, basin='SP', include_grids=False):
+def generateOneTrainingDataSample(total_years, future_data, movementCoefficientsFuture, refs, sites,  include_grids, include_sites, basin='SP'):
     '''
     Generate ML training data
 
@@ -32,9 +32,7 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
     monthlist = monthsall[basins.index(basin)]
 
     genesis_matrices, movement_coefficients = generateInputParameters(future_data, movementCoefficientsFuture, monthlist) # replace with generated parameters
-    print(movement_coefficients)
-    movement_coefficients = getMovementCoefficientData()
-    print(movement_coefficients)
+
     genesis_matrices = {}
     for month in monthlist:
         dir_path = '/nesi/project/uoa03669/ewin313/TropicalCycloneAI/Training Data Generation/STORM/'
@@ -53,17 +51,17 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
     tc_data = sampleStorm(total_years, month_map, refs)
     
     print("Storm Sampled!")
-    grid_quantiles, yearly_site_data = getLandfallsData(tc_data, basin, total_years, .5, sites, include_grids)
+    grid_sums, sites = getLandfallsData(tc_data, basin, total_years, .5, sites, include_grids, include_sites)
     basin_movement_coefficients = movement_coefficients[basins.index(basin)]
 
 
     ## split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
-    return (genesis_matrix, basin_movement_coefficients), grid_quantiles, yearly_site_data, tc_data
+    return (genesis_matrix, basin_movement_coefficients), grid_sums, sites, tc_data
 
-def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validation_samples, save_location, basin='SP', include_grids=False):
-
+def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validation_samples, save_location, basin='SP', include_grids=False, include_sites=False):
+    
     print('Beginning Training Data Generation \n')
     print('Running storm for {} years in each sample\n'.format(total_years))
     print('Including grid quantiles: {}'.format(include_grids))
@@ -73,16 +71,6 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
     basins = ['EP', 'NA', 'NI', 'SI', 'SP', 'WP']
 
     monthlist = monthsall[basins.index(basin)]
-
-
-    all_train_inputs = []
-    all_train_outputs = []
-
-    all_test_inputs = []
-    all_test_outputs = []
-
-    training_sample_refs = []
-    MAX_NUM_PENDING_TASKS = 20
 
     print("Loading files")
     ## load all files upfront to store in memory, otherwise parallelization is very slow
@@ -121,7 +109,8 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
                           for model in models]
 
     future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
-
+    
+   
     sites = Sites(5)
     print("n sites", len(sites.sites))
 
@@ -141,13 +130,14 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
         data.create_dataset('validation_movement', (n_validation_samples, w, h))
 
         if include_grids:
-            data.create_dataset('train_grids', (n_train_samples, 11, 2*lat, 2*lon, 6, 5))
-            data.create_dataset('test_grids', (n_test_samples, 11, 2*lat, 2*lon, 6, 5))
-            data.create_dataset('validation_grids', (n_validation_samples, 11, 2 * lat, 2 * lon, 6, 5))
-
-        data.create_dataset('train_sites', (n_train_samples, total_years,530, 6, 5))
-        data.create_dataset('test_sites', (n_test_samples, total_years, 530, 6, 5))
-        data.create_dataset('validation_sites', (n_validation_samples, total_years, 530, 6, 5))
+            data.create_dataset('train_grids', (n_train_samples, 100, 2*lat, 2*lon, 6, 6))
+            data.create_dataset('test_grids', (n_test_samples, 100, 2*lat, 2*lon, 6, 6))
+            data.create_dataset('validation_grids', (n_validation_samples, 100, 2 * lat, 2 * lon, 6, 6))
+    
+        if include_sites:
+            data.create_dataset('train_sites', (n_train_samples, total_years,530, 6, 5))
+            data.create_dataset('test_sites', (n_test_samples, total_years, 530, 6, 5))
+            data.create_dataset('validation_sites', (n_validation_samples, total_years, 530, 6, 5))
 
     rmax_pres = np.load(os.path.join(__location__, 'STORM', 'RMAX_PRESSURE.npy'),allow_pickle=True).item()
 
@@ -172,7 +162,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
         print("Generating {} sample: {}".format(dataset, i - offset))
 
-        input, grid_quantiles, yearly_site_data, tc_data = generateOneTrainingDataSample(
+        input, grid_sums, yearly_site_data, tc_data = generateOneTrainingDataSample(
             total_years,
             future_data,
             movementCoefficientsFuture,
@@ -186,8 +176,9 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
                 monthlist,
                 rmax_pres],
             sites,
-            basin,
-            include_grids=include_grids
+            include_grids,
+            include_sites,
+            basin
         )
         
         with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'r+') as data:
@@ -197,9 +188,9 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
             data['{}_movement'.format(dataset)][i - offset] = movement_coefficients
 
             if include_grids:
-                data['{}_grids'.format(dataset)][i - offset] = grid_quantiles
-
-            data['{}_sites'.format(dataset)][i - offset] = yearly_site_data
+                data['{}_grids'.format(dataset)][i - offset] = grid_sums
+            if include_sites:
+                data['{}_sites'.format(dataset)][i - offset] = yearly_site_data
         all_tc_data.append(tc_data)
 
     if save_location is not None:
@@ -209,8 +200,6 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
         np.save(os.path.join(save_location, 'tc_data_{}'.format(file_time)), np.array(all_tc_data, dtype=object), allow_pickle=True)
 
     print("Training Data Generation Complete")
-    return all_train_inputs, all_train_outputs, all_test_inputs, all_test_outputs
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate machine learning training data from STORM')
@@ -225,8 +214,12 @@ if __name__ == "__main__":
     parser.add_argument('save_location', type=str,
                     help='Directory to save data to.')
     parser.add_argument('--include_grids', action="store_true", help='If True generated gridded quantile data', default=False)
+    
+    parser.add_argument('--include_sites', action="store_true", help='If True generated site specific data', default=False)
+    
     args = parser.parse_args()
-    print(args.include_grids)
+    if not (args.include_grids or args.include_sites): 
+        raise Exception("ERROR: Must generate either grids or sites as the output data")
     
     generateTrainingData(
         args.total_years,
@@ -234,6 +227,7 @@ if __name__ == "__main__":
         args.num_test,
         args.num_validation,
         args.save_location,
-        include_grids=args.include_grids
+        include_grids=args.include_grids,
+        include_sites=args.include_sites
     )
 
