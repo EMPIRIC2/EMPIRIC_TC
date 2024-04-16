@@ -148,15 +148,15 @@ def updateCellsAndSitesTouchedByStormRMax(touchedCells, lat, lon, rmax, category
     latitudeRmax = rmax_multiple*rmax/111 # approximate conversion of kms to latitude degrees
 
     ## TODO, fix bounding box
-    max_lat = min((lat + latitudeRmax), lat1-resolution) 
-    min_lat = max((lat - latitudeRmax), lat0) 
+    max_lat = min((lat + latitudeRmax), lat1-resolution)
+    min_lat = max((lat - latitudeRmax), lat0)
 
     minKmPerLonDegree = distance.distance((max_lat, lon), (max_lat, lon+1)).km
 
     longitudeRmax = rmax_multiple*rmax/minKmPerLonDegree
 
-    max_lon = min(lon + longitudeRmax, lon1-resolution) 
-    min_lon = max(lon - longitudeRmax, lon0) 
+    max_lon = min(lon + longitudeRmax, lon1-resolution)
+    min_lon = max(lon - longitudeRmax, lon0)
 
     if include_grids:
         i0, j0 = getGridCell(min_lat, min_lon, resolution, basin)
@@ -268,8 +268,8 @@ def getQuantilesFromYearlyGrids(yearly_grids, n_years_to_sum, n_years_to_sum_cat
     sums = []
     print(yearly_grids.shape)
     for i in range(n_samples):
-        cat_0_3 = np.sum(yearly_grids[list(year_indices[i]), :, :, :, :4], axis=0)
-        cat_4_5 = np.sum(yearly_grids[list(year_indices_cat_4_5[i]), :, :, :, 4:], axis=0)
+        cat_0_3 = np.sum(yearly_grids[list(year_indices[i]), :, :, :, :4].copy(), axis=0)
+        cat_4_5 = np.sum(yearly_grids[list(year_indices_cat_4_5[i]), :, :, :, 4:].copy(), axis=0)
         
         sums.append(np.concatenate((cat_0_3, cat_4_5), axis=-1))
 
@@ -296,14 +296,15 @@ def get_grid_sum_samples(yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n
     year_indices_cat_4_5 = get_random_year_combinations(n_samples, total_years, n_years_to_sum_cat_4_5)
     
     for i in range(n_samples):
-        cat_0_3 = np.sum(yearly_grids[list(year_indices[i]), :, :, :, :4].copy(), axis=0)
-        cat_4_5 = np.sum(yearly_grids[list(year_indices_cat_4_5[i]), :, :, :, 4:].copy(), axis=0)
-        
-        sums.append(np.concatenate((cat_0_3, cat_4_5), axis=-1))
-        
         print(len(sums))
-                    
-    return np.array(sums)
+        sampled_sum = np.zeros(yearly_grids[0].shape)
+        
+        sampled_sum[:,:,:,:4] = np.sum(yearly_grids[list(year_indices[i]), :, :, :, :4].copy(), axis=0)
+        sampled_sum[:, :, :, 4:] = np.sum(yearly_grids[list(year_indices_cat_4_5[i]), :, :, :, 4:].copy(), axis=0)
+        sums.append(sampled_sum)
+    
+    sums = np.array(sums)                
+    return sums
 
 def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_grids, include_sites):
     """
@@ -384,6 +385,7 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
             if include_sites:
                 yearly_site_data.append(site_data)
         
-        summed_samples = get_grid_sum_samples(yearly_grids, 10, 10, 100, total_years)
-                    
+        summed_samples = get_grid_sum_samples(yearly_grids, 10, 100, 100, total_years)
+        del yearly_grids
+        
     return summed_samples, yearly_site_data
