@@ -19,11 +19,49 @@ def normalize_input(data):
     min_val = np.min(data)
     return 2*(data - min_val)/(max(max_val-min_val, 1e-3)) - 1
 
-def computePCADecompForGeneratorV2(file_paths, dataset, save_path, n_samples = 100, n_components=4):
+def compute_input_means(file_paths, dataset, save_path):
+    print("Computing Mean")
+    
+    genesis_total = np.zeros((6, 55, 105))
+    movement_total = np.zeros((11, 13))
+    n_samples = 0
+    for file_path in file_paths:
+         with h5py.File(file_path, 'r') as file:
+                geneses = file[dataset + "_genesis"]
+                movements = file[dataset + "_movement"]
+                for genesis, movement in zip(geneses, movements):
+                    if np.count_nonzero(movement) != 0:  # data has been made
+                        genesis_total += genesis
+                        movement_total += movement
+                        n_samples += 1
+                        
+    print(n_samples)
+    mean_genesis = genesis_total / n_samples
+    mean_movement = movement_total / n_samples
+    np.save(os.path.join(save_path, 'mean_genesis.npy'), mean_genesis)
+    np.save(os.path.join(save_path, 'mean_movement.npy'), mean_movement)
+    
+    return mean_genesis, mean_movement
+
+def compute_pca_variance(file_paths, dataset):
+    
+    movement_pcas = []
+    genesis_pcas = []
+    
+    for file_path in file_paths:
+         with h5py.File(file_path, 'r') as file:
+                movement_pcas += file[dataset + "_movement_pca"]
+                genesis_pcas += file[dataset + '_genesis_pca']
+                
+                
+    return np.var(genesis_pcas, axis=0), np.var(movement_pcas, axis=0)
+                        
+
+def computePCADecompForGeneratorV2(file_paths, dataset, save_path, mean_genesis, mean_movement, month, n_samples = 100, n_components=4):
+
     print("Computing PCA")
     pca_genesis = PCA(n_components=n_components)
     pca_movement = PCA(n_components=n_components)
-    month = 3
     def genesis_generator():
         for file_path in file_paths:
             with h5py.File(file_path, 'r') as file:
@@ -31,7 +69,7 @@ def computePCADecompForGeneratorV2(file_paths, dataset, save_path, n_samples = 1
                 movements = file[dataset + "_movement"]
                 for genesis, movement in zip(geneses, movements):
                     if np.count_nonzero(movement) != 0:  # data has been made
-                        yield genesis[month]
+                        yield genesis[month] - mean_genesis[month]
     
     def movement_generator():
         for file_path in file_paths:
@@ -40,7 +78,7 @@ def computePCADecompForGeneratorV2(file_paths, dataset, save_path, n_samples = 1
                 
                 for movement in movements:
                     if np.count_nonzero(movement) != 0:  # data has been made
-                        yield movement
+                        yield movement - mean_movement
     
     geneses = [np.array(genesis).flatten() for i,genesis in enumerate(genesis_generator()) if i < n_samples]
     pca_genesis.fit(geneses)
@@ -56,45 +94,60 @@ def computePCADecompForGeneratorV2(file_paths, dataset, save_path, n_samples = 1
 
     
 class hdf5_generator_v3:
-    def __init__(self, file_paths, dataset="train", month=3):
+    def __init__(self, file_paths, dataset="train", month=3, n_samples=100, zero_inputs=False):
 
         self.file_paths = file_paths
         self.dataset = dataset
-        self.month = month
+        #self.month = month
+        self.n_samples = n_samples
+        self.zero_inputs = zero_inputs
 
     def __call__(self):
 
         for file_path in self.file_paths:
+            print(file_path)
             with h5py.File(file_path, 'r') as file:
                 geneses = file[self.dataset + "_genesis"]
                 movements = file[self.dataset + "_movement"]
 
-                outputs = file[self.dataset + "_grids"]
-
+                outputs = file[self.dataset + "_means"]
+                
                 for genesis, movement, output in zip(geneses, movements, outputs):
                     if np.count_nonzero(movement) != 0:  # data has been made
                         # switch the order of genesis matrix and divide output by number of years
-
-                        yield (np.expand_dims(genesis[self.month], axis=-1), movement), np.expand_dims(np.sum(output[:,self.month,:4], axis=-1), -1)
+                        if self.zero_inputs:
+                            yield np.zeros(np.expand_dims(np.sum(genesis, axis=0), axis=-1).shape), np.expand_dims(output, axis=-1)
+                        else: 
+                            #yield (np.expand_dims(np.sum(genesis, axis=0), axis=-1), movement), np.flipud(np.expand_dims(np.sum(np.sum(output[i,:,:,:,:], axis=-1),axis=-1), axis=-1))
+                            yield normalize_input(np.expand_dims(np.sum(genesis, axis=0), axis=-1)), np.expand_dims(output, axis=-1)
 
                     else:  # this sample was never generated
                         break
 
 class hdf5_generator_v2:
     # similar to v1 but adding more data sources
-    def __init__(self, file_paths, pca_path, dataset="train", year_grouping_size=100, zero_inputs=False, n_samples=None):
+    def __init__(self, file_paths, pca_path, month, dataset="train", year_grouping_size=100, zero_inputs=False, n_samples=None):
 
         self.file_paths = file_paths
         self.dataset = dataset
         self.pca_genesis = pickle.load(open(pca_path + "pca_genesis.pkl", 'rb'))
         self.pca_movement = pickle.load(open(pca_path + "pca_movement.pkl", 'rb'))
+        
+        self.mean_genesis = np.load(os.path.join(pca_path, 'mean_genesis.npy'))
+        self.mean_movement = np.load(os.path.join(pca_path, 'mean_movement.npy'))
+        
         self.year_grouping_size = year_grouping_size
         self.zero_inputs = zero_inputs
         self.n_samples = n_samples
+        self.month = month
         
-        for file_path in file_paths: self.process_data(file_path)
+        for file_path in file_paths: self.process_data(file_path, month)
+        genesis_variance, movement_variance = compute_pca_variance(file_paths, dataset)
+        self.genesis_variance = genesis_variance
+        self.movement_variance = movement_variance
+        
     
-    def create_histogram(self, output, year_indices, month=0):
+    def create_histogram(self, output, year_indices, month):
         hist = np.zeros((542, 8))
         print("Creating histogram")
         # make a histogram of values
@@ -114,8 +167,7 @@ class hdf5_generator_v2:
             
         return density
     
-    def process_data(self, file_path):
-        month=0
+    def process_data(self, file_path, month):
         with h5py.File(file_path, 'r+') as file:
 
             geneses = file[self.dataset + "_genesis"]
@@ -134,24 +186,30 @@ class hdf5_generator_v2:
             geneses_pca = file.require_dataset(self.dataset + '_genesis_pca', (len(geneses), 4), dtype='f')
             movements_pca = file.require_dataset(self.dataset + '_movement_pca', (len(geneses), 4), dtype='f')
             
-            #if np.count_nonzero(histograms[0]) != 0: return # data has already been processed
-            print(histograms[0])
-            print(geneses_pca[0])
+            if np.count_nonzero(histograms[0]) != 0: return # data has already been processed
+            
+            #print(histograms[0])
+            #print(geneses_pca[0])
             #randomly select combinations of years for training
             year_indices = get_random_year_combinations(1000, 1000, self.year_grouping_size)
 
             for j, (genesis, movement, output) in enumerate(zip(geneses, movements, outputs)):
-                print(j)
+                
                 if np.count_nonzero(genesis) != 0:  # data has been made
+                    
                 # switch the order of genesis matrix and divide output by number of years
-                    #if np.count_nonzero(movements_pca) == 0: # data has not been made, convert data
-                        
+                    if np.count_nonzero(movements_pca) == 0 or np.count_nonzero(histograms[j])== 0: # data has not been made, convert data
                         histogram = self.create_histogram(output, year_indices, month=month)
                         histograms[j] = histogram
 
-                        geneses_pca[j] = self.pca_genesis.transform(np.array(genesis[month]).reshape(1, -1))[0]
-                        movements_pca[j] = self.pca_movement.transform(np.array(movement).reshape(1, -1))[0]
-
+                        # center around 0
+                        centered_genesis = np.array(genesis[month]) - self.mean_genesis[month]
+                        centered_movement = np.array(movement) - self.mean_movement
+                        
+                        geneses_pca[j] = self.pca_genesis.transform(centered_genesis.reshape(1, -1))[0]
+                        movements_pca[j] = self.pca_movement.transform(centered_movement.reshape(1, -1))[0]
+    
+        
     def __call__(self):
         #samples_generated = 0
         for file_path in self.file_paths:
@@ -166,11 +224,13 @@ class hdf5_generator_v2:
                 
                 for genesis, movement, hist in zip(geneses_pca, movements_pca, hists):
                     if np.count_nonzero(genesis) != 0:  # data has been made
-                            
+                        hist = hist[:1]
+                        hist[:,3] += hist[:,4] + hist[:,5] + hist[:, 6] + hist[:, 7]
+                        hist = hist[:,:4]
                         if self.zero_inputs:
                             yield (np.zeros(4,), np.zeros(4,)), hist
                         else:
-                            yield (genesis, movement), hist
+                            yield (genesis / self.genesis_variance, movement / self.movement_variance), hist
                             
                     else:  # this sample was never generated
                         break
@@ -215,7 +275,7 @@ class hdf5_generator_v0:
                     else: # this sample was never generated
                         break
 
-def get_dataset(folder_path, pca_path, batch_size=32, dataset="train", data_version=0, n_samples=1, generate_pcas=False, zero_inputs=False):
+def get_dataset(folder_path, pca_path=None, batch_size=32, dataset="train", month=3, data_version=0, n_samples=1, generate_pcas=False, zero_inputs=False):
     file_paths = glob.glob(os.path.join(folder_path, "*.hdf5"))
 
     generator = None
@@ -242,25 +302,26 @@ def get_dataset(folder_path, pca_path, batch_size=32, dataset="train", data_vers
     if data_version == 2:
         
         if generate_pcas:
-            computePCADecompForGeneratorV2(file_paths, dataset, pca_path)
+            mean_genesis, mean_movement = compute_input_means(file_paths, dataset, pca_path)
+            computePCADecompForGeneratorV2(file_paths, dataset, pca_path, mean_genesis, mean_movement, month)
         
-        generator = hdf5_generator_v2(file_paths, pca_path, dataset=dataset, n_samples=n_samples, zero_inputs=zero_inputs)
+        generator = hdf5_generator_v2(file_paths, pca_path, month, dataset=dataset, n_samples=n_samples, zero_inputs=zero_inputs)
         genesis_size = (4,)
         movement_size = (4,)
-        output_size = (542,8)
+        output_size = (1,4)
         output_signature = ((
                 tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
                 tf.TensorSpec(shape=movement_size, dtype=tf.float32)),
                 tf.TensorSpec(shape=output_size, dtype=tf.float32)
             )
     if data_version == 3:
-        generator = hdf5_generator_v3(file_paths, dataset=dataset)
+        generator = hdf5_generator_v3(file_paths, dataset=dataset, zero_inputs = False)
         genesis_size = (55, 105, 1)
-        movement_size = (13,11)
-        output_size = (110, 210, 11)
-        output_signature = ((
-                                tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
-                                tf.TensorSpec(shape=movement_size, dtype=tf.float32)),
+        movement_size = (11,13)
+        output_size = (110, 210, 1)
+        output_signature = (
+           # (tf.TensorSpec(shape=genesis_size, dtype=tf.float32), tf.TensorSpec(shape=movement_size, dtype=tf.float32)),
+                            tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
                             tf.TensorSpec(shape=output_size, dtype=tf.float32)
         )
     start = time.time()
@@ -272,7 +333,7 @@ def get_dataset(folder_path, pca_path, batch_size=32, dataset="train", data_vers
     # do not shuffle test dataset so we can get all outputs
     if dataset != "test":
         dataset = dataset.shuffle(100)
-    batched_dataset = dataset.take(100).batch(batch_size)
+    batched_dataset = dataset.batch(batch_size)
 
     return batched_dataset
 
