@@ -64,34 +64,47 @@ def plotLatLonGridDataMultiple(datas, resolution, basin='SP', show=True, plot_na
         plt.show()
 
 
-def plotLatLonGridData(data, resolution, basin='SP', show=True, figure_name="", points=None, point_weight=None, boxes = None):
-
-    plt.figure(figure_name)
+def plotLatLonGridData(data, resolution, basin='SP', show=True, figure_name="", points=None, point_weight=None, boxes = None, tc_tracks=None):
+    
+    plt.figure(figure_name, figsize=(15, 15))
     ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=180))
     ax.coastlines(resolution='10m')
 
     lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
 
     # convert data into format for contour plot
-    lats = [(len(data)-i) * resolution + lat0 for i in range(len(data))]
+    lats = [(i) * resolution + lat0 for i in range(len(data))]
     lons = [j * resolution + lon0 - 180 for j in range(len(data[0]))]
 
     plt.pcolormesh(lons, lats, data, transform=ccrs.PlateCarree(central_longitude=180), vmin=-2)
     plt.colorbar()
+    
+    if tc_tracks is not None:
+        x = [point[6]-180 for point in tc_tracks]
+        y = [point[5] for point in tc_tracks]
+        weights = [point[9] for point in tc_tracks]
+        
+        print(tc_tracks[0])
+        plt.scatter(x, y, s=weights)
+            
+    if boxes is not None:
+        for box in boxes:
+            rect = Rectangle((box[2] - 180, box[0]), box[3] - box[2], box[1] - box[0], linewidth=1, edgecolor='r', facecolor='none')
+            ax.add_patch(rect)
+    
+        
+        
     if points is not None:
         assert len(points) == len(point_weight)
 
         y, x= zip(*points)
         x = [x[i] - 180 for i in range(len(x))]
         plt.scatter(x, y, s=point_weight, c=point_weight)
-    if boxes is not None:
-        for box in boxes:
-            rect = Rectangle((box[2] - 180, box[0]), box[3] - box[2], box[1] - box[0], linewidth=1, edgecolor='r', facecolor='none')
-            ax.add_patch(rect)
 
     if show is True:
         plt.show()
 
+        
 def showPlots():
     plt.show()
 

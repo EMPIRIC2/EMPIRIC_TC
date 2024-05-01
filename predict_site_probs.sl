@@ -1,9 +1,9 @@
 #!/bin/bash -e
 
 #SBATCH --job-name=predict-site-prob
-#SBATCH --gpus-per-node=1
+#SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=2
-#SBATCH --time 00:05:00
+#SBATCH --time 00:15:00
 #SBATCH --mem 6G
 #SBATCH --qos=debug
 

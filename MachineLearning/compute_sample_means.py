@@ -3,7 +3,7 @@ import numpy as np
 import h5py
 import os
 
-def compute_sample_means_for_file(file_path, dataset):
+def compute_sample_means_for_file(file_path, dataset, categories=(0,1,2,3):
     
     with h5py.File(file_path, 'r+') as file:
         grids = file[dataset + "_grids"]

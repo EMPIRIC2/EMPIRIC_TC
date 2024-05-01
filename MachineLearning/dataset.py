@@ -91,19 +91,22 @@ def computePCADecompForGeneratorV2(file_paths, dataset, save_path, mean_genesis,
     pickle.dump(pca_movement, open(save_path + "pca_movement.pkl", "wb"))
     pickle.dump(pca_genesis, open(save_path + "pca_genesis.pkl", "wb"))
 
-
     
 class hdf5_generator_v3:
-    def __init__(self, file_paths, dataset="train", month=3, n_samples=100, zero_inputs=False):
+    def __init__(self, file_paths, dataset="train", month=3, n_samples=None, zero_inputs=False):
 
         self.file_paths = file_paths
         self.dataset = dataset
         #self.month = month
         self.n_samples = n_samples
         self.zero_inputs = zero_inputs
+        self.times_sampled = 0
 
     def __call__(self):
-
+        
+        if self.n_samples is not None and self.times_sampled > self.n_samples: return
+        self.times_sampled += 1
+            
         for file_path in self.file_paths:
             print(file_path)
             with h5py.File(file_path, 'r') as file:
@@ -120,7 +123,7 @@ class hdf5_generator_v3:
                         else: 
                             #yield (np.expand_dims(np.sum(genesis, axis=0), axis=-1), movement), np.flipud(np.expand_dims(np.sum(np.sum(output[i,:,:,:,:], axis=-1),axis=-1), axis=-1))
                             yield normalize_input(np.expand_dims(np.sum(genesis, axis=0), axis=-1)), np.expand_dims(output, axis=-1)
-
+                    
                     else:  # this sample was never generated
                         break
 
@@ -315,7 +318,7 @@ def get_dataset(folder_path, pca_path=None, batch_size=32, dataset="train", mont
                 tf.TensorSpec(shape=output_size, dtype=tf.float32)
             )
     if data_version == 3:
-        generator = hdf5_generator_v3(file_paths, dataset=dataset, zero_inputs = False)
+        generator = hdf5_generator_v3(file_paths, dataset=dataset, zero_inputs = False, n_samples=n_samples)
         genesis_size = (55, 105, 1)
         movement_size = (11,13)
         output_size = (110, 210, 1)
@@ -331,8 +334,8 @@ def get_dataset(folder_path, pca_path=None, batch_size=32, dataset="train", mont
     print("create dataset time: {}".format(end-start))
           
     # do not shuffle test dataset so we can get all outputs
-    if dataset != "test":
-        dataset = dataset.shuffle(100)
+    #if dataset != "test":
+        #dataset = dataset.shuffle(100)
     batched_dataset = dataset.batch(batch_size)
 
     return batched_dataset

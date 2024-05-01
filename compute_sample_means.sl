@@ -1,14 +1,12 @@
 #!/bin/bash -e
 
-#SBATCH --job-name=train-unet
-#SBATCH --gpus-per-node=2
+#SBATCH --job-name=compute_sample_means
 #SBATCH --cpus-per-task=2
-#SBATCH --time 00:15:00
+#SBATCH --time 01:00:00
 #SBATCH --mem 4G
-#SBATCH --qos=debug
 
 module purge
 source load-ml-environment.sh
 export PYTHONNOUSERSITE=1
 
-srun python train_unet.py
+srun python compute_sample_means_script.py
