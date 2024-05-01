@@ -7,7 +7,7 @@ import time
 import numpy as np
 from keras import Sequential, Model, activations, regularizers
 
-from keras.layers import Input, Dense, BatchNormalization, Dropout, Conv2D, UpSampling2D, MaxPooling2D, concatenate, LeakyReLU, ReLU, Softmax, ZeroPadding2D, Cropping2D, Flatten, Reshape
+from keras.layers import Input, Dense, BatchNormalization, Dropout, Conv2D, UpSampling2D, MaxPooling2D, concatenate, LeakyReLU, ReLU, Softmax, ZeroPadding2D, Cropping2D, Flatten, Reshape, Attention
 
 l1 = 0.00
 
@@ -29,7 +29,7 @@ def upsample_block(filters, up_sample_size, kernel_size, dropout=False):
    
     result.add(BatchNormalization())
 
-    result.add(ReLU())
+    result.add(LeakyReLU())
 
     return result
 
@@ -52,7 +52,8 @@ def downsample_block(filters, size, dropout=False):
     result.add(BatchNormalization())
  
     result.add(MaxPooling2D((2,2), padding='same'))
-
+    
+    result.add(LeakyReLU())
     return result
 
 def bottleneck():
@@ -75,6 +76,7 @@ def UNet(genesis_size, movement_size, output_channels = 1):
 
         skips.append(x)
         x = downsample_block(filters, (3,3), dropout=False)(x)
+        #x = Attention(use_scale = True)([x, x])
     
     x = Conv2D(512, (3,3), activation=LeakyReLU(), padding='same', kernel_initializer='HeNormal')(x)
     
@@ -83,7 +85,7 @@ def UNet(genesis_size, movement_size, output_channels = 1):
     for i, filters in enumerate(up_filters):
 
         x = upsample_block(filters, (2,2), (3,3), dropout=False)(x)
-
+        #x = Attention(use_scale=True)([x,x])
         if i < len(down_filters):
             skip = skips[len(down_filters) - i - 1]
             b, h, w, c = skip.shape

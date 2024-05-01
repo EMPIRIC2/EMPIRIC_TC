@@ -43,16 +43,14 @@ class TPNormalMultivariateLayer(Layer):
 
 @keras.saving.register_keras_serializable(package="ProbabilityLayers", name="NegLogLikDiscrete")
 def NegLogLikDiscrete(y_true, y_pred):
-    ## NOTE: Need to convert y_pred to one hot
 
-    y_true = tf.cast(y_true, tf.int8)
-    y_one_hot = tf.one_hot(y_true, 8) # max number of storms is set to 8 here
+    y_true = tf.clip_by_value(y_true, clip_value_min=0, clip_value_max=5)
 
-    distribution = lambda t: tfd.FiniteDiscrete(logits=t)
+    distribution = lambda t: tfd.FiniteDiscrete([i for i in range(6)], logits=t)
     y_dist = distribution(y_pred)
     negloglik = lambda p_y, y: -p_y.log_prob(y)
 
-    return negloglik(y_dist, y_one_hot)
+    return negloglik(y_dist, y_true)
 
 @keras.saving.register_keras_serializable(package="ProbabilityLayers", name="NegLogLikPoisson")
 def NegLogLikPoisson(y_true, y_pred):
@@ -84,12 +82,14 @@ def NegLogLikNegBinomial(y_true, y_pred):
     return negloglik(y_dist, y_true)
 
 
-def conv_prob_predictor(genesis_shape, movement_shape, num_outputs, max_storms = 8):
-    genesis_matrix = Input(genesis_shape)
+def conv_prob_predictor(genesis_shape, movement_shape, num_outputs, output_bias, max_storms = 4):
+    '''genesis_matrix = Input(genesis_shape)
     movement_coefficients = Input(movement_shape)
     conv = Sequential()
-
-    n_filters = [64, 128, 256]
+    if output_bias is not None:
+        output_bias = tf.constant(output_bias, dtype=tf.float32)
+ 
+    n_filters = [2]
     for filters in n_filters:
         conv.add(Conv2D(filters, (3, 3), padding='same', activation=LeakyReLU()))
         conv.add(BatchNormalization())
@@ -98,18 +98,38 @@ def conv_prob_predictor(genesis_shape, movement_shape, num_outputs, max_storms =
         conv.add(BatchNormalization())
 
         conv.add(MaxPooling2D((2, 2), padding='same'))
-
+    conv.add(Conv2D(1, (1, 1), padding='same', activation=LeakyReLU()))
     conv.add(Flatten())
 
     x = conv(genesis_matrix)
     x = concatenate([x, movement_coefficients])
+    x = Dense(1000, activation=ReLU())(x)
+    #x = BatchNormalization()(x)
+    #x = Dropout(.5)(x)
+    output = Dense(max_storms, activation=activations.softmax)(x) #+ output_bias
 
-    x = Dense(1000, activation=LeakyReLU(), kernel_regularizer='l2')(x)
-    x = Dropout(0.5)(x)
-    x = Dense(num_outputs * max_storms, activation=LeakyReLU(), kernel_regularizer='l2')(x)
-
-    output = Reshape((num_outputs, max_storms))(x)
+    #output = #Reshape((num_outputs, max_storms))(x) 
 
     model = Model(inputs=[genesis_matrix, movement_coefficients], outputs=output)
+
+    return model'''
+    genesis_pca = Input(genesis_shape)
+    movement_pca = Input(movement_shape)
+
+    x = concatenate([genesis_pca, movement_pca])
+    x = Dense(1000, activation=LeakyReLU())(x)
+    x = Dense(2000, activation=LeakyReLU())(x)
+    x = Dense(2000, activation=LeakyReLU())(x)
+    x = Dense(1000, activation=LeakyReLU())(x)
+    x = Dense(num_outputs * max_storms, activation=LeakyReLU())(x)
+    
+    x = Reshape((num_outputs, max_storms))(x)
+    
+    #x = BatchNormalization()(x)
+    #x = Dropout(.5)(x)
+    output = Dense(max_storms, bias_initializer=output_bias)(x)
+
+
+    model = Model(inputs=[genesis_pca, movement_pca], outputs=output)
 
     return model
