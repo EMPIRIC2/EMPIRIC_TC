@@ -66,7 +66,7 @@ def train_unet(model_name, data_folder, data_version, model_config):
     )
 
     ## save the train file and unet file so that we can load the model later
-    wandb.run.log_code(".", include_fn=lambda p, r: p.ends_with("train.py") or p.ends_with("unet.py"))
+    wandb.run.log_code(".", include_fn=lambda p, r: p.endswith("train.py") or p.endswith("unet.py"))
 
     train_data = get_dataset(data_folder, data_version=data_version, batch_size=config.batch_size)
     test_data = get_dataset(data_folder, dataset="test", data_version=data_version)
@@ -90,7 +90,7 @@ def train_unet(model_name, data_folder, data_version, model_config):
         epochs=config.epoch,
         verbose=2,
         validation_data=validation_data,
-        callbacks=[checkpoint, WandbMetricsLogger, early_stopping]
+        callbacks=[checkpoint, WandbMetricsLogger(), early_stopping]
     )
 
     model.evaluate(
