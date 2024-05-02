@@ -12,8 +12,12 @@ genesis_size_default = (55, 105, 1)
 movement_size_default = (11, 13)
 output_size_default = (110, 210, 1)
 
-def train_unet(data_folder, epochs=10, genesis_size=genesis_size_default, movement_size=movement_size_default, output_size=1):
-    
+def train_unet(model_name, data_folder, data_version, model_config):
+
+    model = UNet(**model_config)
+
+    local_save_path = 'models/{}_{}.keras'.format(model_name, str(time.time()))
+
     # Start a run, tracking hyperparameters
     wandb.init(
         # set the wandb project where this run will be logged
@@ -21,8 +25,7 @@ def train_unet(data_folder, epochs=10, genesis_size=genesis_size_default, moveme
 
         # track hyperparameters and run metadata with wandb.config
         config={
-            "name": "one-batch",
-            "batch_normalization": True,
+            "Name": "one-batch",
             "optimizer": "adam",
             "loss": "mean_squared_error",
             "metric": "mean_absolute_error",
@@ -32,20 +35,48 @@ def train_unet(data_folder, epochs=10, genesis_size=genesis_size_default, moveme
         }
     )
 
+    ## track the model with an artifact
+    model_artifact = wandb.Artifact(
+        "UNet-custom",
+        type="model",
+        metadata={
+            "save_path": local_save_path,
+            "model_config": model_config,
+            "param_count": model.count_params()
+        }
+    )
+
+    wandb.run.log_artifact(model_artifact)
+
     # [optional] use wandb.config as your config
     config = wandb.config
 
-    train_data = get_dataset(data_folder, data_version=3, batch_size=config.batch_size)
-    test_data = get_dataset(data_folder, dataset="test", data_version=3)
+    ## track the dataset used with an artifact
+    data_artifact = wandb.Artifact(
+        "processed_data",
+        type="dataset",
+        metadata={
+            "source": "local dataset",
+            "data_folder": data_folder,
+            "data_version": data_version,
+            "batch_size": config.batch_size,
+            "input_description": "[-1, 1] normalized 'genesis_grids'",
+            "output_description": "mean of 100 TC count grids, 'grid_means'"
+        }
+    )
+
+    ## save the train file and unet file so that we can load the model later
+    wandb.run.log_code(".", include_fn=lambda p, r: p.ends_with("train.py") or p.ends_with("unet.py"))
+
+    train_data = get_dataset(data_folder, data_version=data_version, batch_size=config.batch_size)
+    test_data = get_dataset(data_folder, dataset="test", data_version=data_version)
     
-    validation_data = get_dataset(data_folder, dataset="validation", data_version=3)
-    
-    model = UNet(genesis_size, movement_size, output_size)
-    
-    print("Number of parameters: {}".format(model.count_params()))
+    validation_data = get_dataset(data_folder, dataset="validation", data_version=data_version)
 
     early_stopping = keras.callbacks.EarlyStopping(patience=5)
-    checkpoint = keras.callbacks.ModelCheckpoint('models/unet_mean_{}.keras'.format(str(time.time())), save_best_only=True, save_weights_only=True, mode='min',
+
+    # save best model locally
+    checkpoint = keras.callbacks.ModelCheckpoint(local_save_path, save_best_only=True, save_weights_only=True, mode='min',
                                                  verbose=1)
     
     model.compile(
@@ -59,7 +90,7 @@ def train_unet(data_folder, epochs=10, genesis_size=genesis_size_default, moveme
         epochs=config.epoch,
         verbose=2,
         validation_data=validation_data,
-        callbacks=[WandbModelCheckpoint("models"), WandbMetricsLogger, early_stopping]
+        callbacks=[checkpoint, WandbMetricsLogger, early_stopping]
     )
 
     model.evaluate(
