@@ -44,6 +44,11 @@ class TestSiteMetrics(unittest.TestCase):
         self.assertEquals(getGridCell(-60, 136.1, 0.5), (0, 2))
         self.assertEquals(getGridCell(-60, 136.1, 1), (0, 1))
 
+    def test_get_grid_cell_out_of_basin(self):
+
+        with self.assertRaises(Exception):
+            getGridCell(-61, 4, 0.5)
+
     def test_get_site_values(self):
 
         # test that the get_site_values function only returns non-zero values for non-zero cells
@@ -66,29 +71,31 @@ class TestSiteMetrics(unittest.TestCase):
                 self.assertEquals(site_vals[i], 1)
                 self.assertEquals(getGridCell(*sites[i], 0.5), cell)
 
+    def test_site_se(self):
+        ground_outputs, model_outputs = self.get_outputs_and_predictions()
+
+        site_se_1 = site_se(model_outputs[0], ground_outputs[0])
+
+        self.assertEquals(site_se_1[0], 169)
+        self.assertEquals(site_se_1[1], 0)
+
+    def test_site_mse(self):
+        ground_outputs, model_outputs = self.get_outputs_and_predictions()
+
+        site_mse_1 = site_mse(model_outputs[0], ground_outputs[0])
+
+        n_non_zero = np.count_nonzero(site_mse_1)
+
+        n_in_gridcell = 0
+        non_zero_cell = (100, 50)
+        for site in sites:
+            if getGridCell(*site, 0.5) == non_zero_cell:
+                n_in_gridcell += 1
+
+        self.assertEquals(site_mse_1, 169 * n_in_gridcell / 542)
 
     def test_ensemble_statistics_no_sites(self):
-
-        ## Generate test data
-
-        # outputs
-        test_grid_1 = self.get_test_grid_1()
-        test_grid_2 = self.get_test_grid_2()
-        test_grid_3 = self.get_test_grid_3()
-        test_grid_4 = self.get_test_grid_4()
-        outputs = [test_grid_1, test_grid_3, test_grid_4, test_grid_2]
-
-        # predictions
-        test_grid_5 = self.get_test_grid_5()
-        test_grid_6 = self.get_test_grid_6()
-        test_grid_7 = self.get_test_grid_7()
-        test_grid_8 = self.get_test_grid_8()
-
-        predictions= [test_grid_8, test_grid_5, test_grid_6, test_grid_7]
-
-        storm_statistics = compute_ensemble_statistics(outputs)
-        unet_statistics = compute_ensemble_statistics(predictions)
-
+        outputs, predictions, storm_statistics, unet_statistics, all_metrics = self.get_test_statistics_and_metrics()
         self.assertEquals(storm_statistics["Quantiles"].shape, (5, 110, 210))
         self.assertEquals(unet_statistics["Quantiles"].shape, (5, 110, 210))
 
@@ -122,12 +129,18 @@ class TestSiteMetrics(unittest.TestCase):
 
         return outputs, predictions, storm_statistics, unet_statistics, all_metrics
 
-    def test_ensemble_figures(self):
+    def test_ensemble_boxplot(self):
         ## Generate test data
 
         outputs, predictions, storm_statistics, unet_statistics, all_metrics = self.get_test_statistics_and_metrics()
 
-        make_figures(outputs, predictions)
+        example_site_ensemble_boxplot_figure({"STORM": get_site_values_from_grid(outputs), "UNet": get_site_values_from_grid(predictions)})
+
+    def test_example_site_error_boxplot(self):
+
+        outputs, predictions = self.get_outputs_and_predictions()
+
+        plot_example_site_boxplot(outputs, predictions, 4, "")
 
     def test_ks_statistics_map(self):
 
@@ -143,14 +156,13 @@ class TestSiteMetrics(unittest.TestCase):
         outputs, predictions = self.get_outputs_and_predictions()
         change_map = relative_change(outputs[0], outputs[1])
 
-        self.assertEquals(change_map[100, 50], .2)
+        self.assertAlmostEquals(change_map[100, 50], .2, 3)
         self.assertEquals(change_map[100, 51], 0)
 
     def test_relative_change_error_map(self):
         outputs, predictions = self.get_outputs_and_predictions()
         error_map, total_error = compute_changes_between_2_samples(outputs, predictions, 0, 1)
-        display_example_relative_change_error(error_map)
-
+        top_relative_error_maps(top_error_maps=[error_map, error_map])
 
 if __name__ == "__main__":
     unittest.main()

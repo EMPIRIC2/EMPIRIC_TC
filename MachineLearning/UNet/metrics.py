@@ -13,7 +13,7 @@ import pandas as pd
 import seaborn as sns
 import seaborn_image as isns
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-
+import os
 
 ########################################
 #### Helper Functions and utilities ####
@@ -29,16 +29,15 @@ def getGridCell(lat, lon, resolution):
     lat0, lat1, lon0, lon1 = -60, -5, 135, 240
 
     if lat < lat0 or lat >= lat1:
-        raise "lat must be within the basin"
+        raise Exception("lat must be within the basin")
 
     if lon < lon0 or lon >= lon1:
-        raise "lon must be within the basin"
+        raise Exception("lon must be within the basin")
 
     latCell = math.floor((lat - lat0) * 1 / resolution)
     lonCell = math.floor((lon - lon0) * 1 / resolution)
 
     return latCell, lonCell
-
 
 sites = Sites(1).sites
 
@@ -58,7 +57,7 @@ def site_se(pred, true):
     squared_errors = []
 
     for site in sites:
-        cell = getGridCell(*site, .5, 'SP')
+        cell = getGridCell(*site, .5)
         squared_error = (pred[cell] - true[cell]) ** 2
 
         squared_errors.append(squared_error)
@@ -68,7 +67,20 @@ def site_mse(pred, true):
     squared_errors = site_se(pred, true)
     return np.mean(squared_errors)
 
+def total_site_mse(ground_outputs, model_outputs):
+    assert len(ground_outputs) == len(model_outputs)
+
+    mses = []
+    for i in range(len(ground_outputs)):
+        mses.append(site_mse(ground_outputs[i], model_outputs[i]))
+
+    return np.mean(mses)
+
 def relative_change(a, b):
+    """
+    Returns the relative change from a to b.
+    """
+
     return (a - b) / (a + 1e-3)
 
 def _get_outputs(dataset):
@@ -116,7 +128,7 @@ def compute_all_relative_change_pairs(ground_outputs, model_outputs):
 
     pairs = itertools.combinations(range(len(ground_outputs)), 2)
 
-    print("Number of Pairs: {}".format(len(pairs)))
+    print("Number of Pairs: {}".format(len(list(pairs))))
     error_maps = []
     mean_squared_errors = []
     for pair in pairs:
@@ -125,10 +137,12 @@ def compute_all_relative_change_pairs(ground_outputs, model_outputs):
         mean_squared_errors.append(mse)
 
     total_mse = np.mean(mean_squared_errors)
-    largest_error_indices = np.argpartition(mean_squared_errors, -10)[-10:]
-    top_10_error_maps = np.array(error_maps)[largest_error_indices]
 
-    return top_10_error_maps, total_mse
+    n_examples = min(10, len(ground_outputs))
+    largest_error_indices = np.argpartition(mean_squared_errors, -n_examples)[-n_examples:]
+    top_error_maps = np.array(error_maps)[largest_error_indices]
+
+    return top_error_maps, total_mse
 
 
 ############################################################
@@ -181,14 +195,22 @@ def KS_statistics(ground_truths, predictions):
     ks_statistics = np.reshape(ks_statistics, sample_shape)
     return ks_statistics
 
-def compute_metrics(ground_truths, predictions, true_statistics, predicted_statistics, model_name):
+###############
+### Metrics ###
+###############
+def compute_metrics(ground_outputs, model_outputs, ground_statistics, model_statistics, model_name):
+
+    top_relative_change_error_maps, mse = compute_all_relative_change_pairs(ground_outputs, model_outputs)
 
     # Compute metrics from the statistics
     metrics = {
         "Model": model_name,
-        "Mean Absolute Quantile Error":  mean_absolute_error(true_statistics["Quantiles"].flatten(), predicted_statistics["Quantiles"].flatten()),
-        "Mean Squared Quantile Error":  mean_squared_error(true_statistics["Quantiles"].flatten(), predicted_statistics["Quantiles"].flatten()),
-        "Kolmogorov-Smirnov": KS_statistics(ground_truths, predictions)
+        "Mean Absolute Quantile Error":  mean_absolute_error(ground_statistics["Quantiles"].flatten(), model_statistics["Quantiles"].flatten()),
+        "Mean Squared Quantile Error":  mean_squared_error(ground_statistics["Quantiles"].flatten(), model_statistics["Quantiles"].flatten()),
+        "Kolmogorov-Smirnov": KS_statistics(ground_outputs, model_outputs),
+        "Relative Change Mean Squared Error": mse,
+        "Relative Error Examples": top_relative_change_error_maps,
+        "Site Mean Squared Error": total_site_mse(ground_outputs, model_outputs)
     }
 
     return metrics
@@ -197,7 +219,7 @@ def compute_metrics(ground_truths, predictions, true_statistics, predicted_stati
 ### Figures ###
 ###############
 
-def example_site_ensemble_boxplot_figure(all_site_outputs):
+def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
     '''
     all_site_outputs: dict of {model_name: site_outputs}
     '''
@@ -210,9 +232,13 @@ def example_site_ensemble_boxplot_figure(all_site_outputs):
 
     df = pd.DataFrame(data)
     sns.boxplot(data=df, x="Site Name", y="Count", hue="Model")
-    plt.show()
 
-def plot_quantile_maps(ground_statistics, model_statistics):
+    if save_path is not None:
+        plt.savefig(save_path)
+    else:
+        plt.show()
+
+def plot_quantile_maps(ground_statistics, model_statistics, save_path=None):
     ground_quantiles = ground_statistics["Quantiles"]
 
     model_quantiles = model_statistics["Quantiles"]
@@ -220,14 +246,23 @@ def plot_quantile_maps(ground_statistics, model_statistics):
     images = images.reshape((10, 110, 210))
 
     g = isns.ImageGrid(images, col_wrap=5, axis=0, vmin=0, vmax=16, cbar=True)
-    plt.show()
-def ks_statistic_map(metrics):
+
+    if save_path is not None:
+        plt.savefig(save_path)
+    else:
+        plt.show()
+
+def ks_statistic_map(metrics, save_path = None):
 
     ks = metrics["Kolmogorov-Smirnov"]
     plt.title("Kolmogorov-Smirnov Statistic of ensemble outputs of STORM vs {}".format(metrics["Model"]))
     plt.imshow(ks)
     plt.colorbar()
-    plt.show()
+
+    if save_path is not None:
+        plt.savefig(save_path)
+    else:
+        plt.show()
     # TODO: improve figure
 
 def metrics_df(all_model_metrics):
@@ -240,22 +275,49 @@ def metrics_df(all_model_metrics):
 
     return df
 
-def make_figures(outputs, predictions):
+def top_relative_error_maps(top_error_maps, save_path=None):
+    g = isns.ImageGrid(top_error_maps, col_wrap=5, axis=0, vmin=0, vmax=16, cbar=True)
+    if save_path is not None:
+        plt.savefig(save_path)
+    else: plt.show()
+
+def save_metrics_as_latex(all_model_metrics, save_path):
+
+    df = metrics_df(all_model_metrics)
+    with open(save_path, 'w') as tf:
+        tf.write(df.to_latex())
+
+def plot_example_site_boxplot(ground_outputs, model_outputs, n_examples, save_path=None):
+
+    box_plot_data = []
+    for i in range(n_examples):
+        site_errors = site_se(model_outputs[i], ground_outputs[i])
+        for site_error in site_errors:
+            box_plot_data.append({"Site Squared Error": site_error, "Test Example": i})
+
+    df = pd.DataFrame(box_plot_data)
+    sns.boxplot(df, x="Test Example", y="Site Squared Error")
+
+    if save_path is not None:
+        plt.savefig(save_path)
+    else: plt.show()
+
+def make_figures(ground_outputs, model_outputs, ground_statistics, model_statistics, metrics, save_folder):
     ## master function to run all the figures for model evaluation and visualization
 
-    site_outputs = get_site_values_from_grid(outputs)
-    site_predictions = get_site_values_from_grid(predictions)
+    site_outputs = get_site_values_from_grid(ground_outputs)
+    site_predictions = get_site_values_from_grid(model_outputs)
 
-    example_site_ensemble_boxplot_figure({"STORM": site_outputs, "UNet": site_predictions})
-
-def display_example_relative_change_error(error_map):
-    plt.imshow(error_map)
-    plt.show()
+    example_site_ensemble_boxplot_figure({"STORM": site_outputs, "UNet": site_predictions}, os.path.join(save_folder, "site_ensemble_boxplot.png"))
+    ks_statistic_map(metrics, os.path.join(save_folder, "ks_statistics.png"))
+    plot_quantile_maps(ground_statistics, model_statistics, os.path.join(save_folder, "quantile_maps.png"))
+    top_relative_error_maps(metrics["Relative Error Examples"], os.path.join(save_folder, "worst_relative_errors.png"))
+    plot_example_site_boxplot(ground_outputs, model_outputs, 10, os.path.join(save_folder, "example_site_boxplots.png"))
 
 #####################################################################
 #### Master Function to Compute All Metrics and Save All Figures ####
 #####################################################################
-def compute_test_statistics(data_folder, model_path, sample_size):
+def compute_test_statistics(data_folder, model_path, output_save_folder):
 
     genesis_size_default=(55, 105, 1)
     movement_size_default = (11, 13)
@@ -276,7 +338,11 @@ def compute_test_statistics(data_folder, model_path, sample_size):
         steps=1
     )
 
-    #storm_statistics = compute_ensemble_statistics(outputs)
-    #unet_statistics = compute_ensemble_statistics(predictions)
+    storm_statistics = compute_ensemble_statistics(outputs)
+    unet_statistics = compute_ensemble_statistics(predictions)
 
-    make_figures(outputs, predictions)
+    metrics = compute_metrics(outputs, predictions, storm_statistics, unet_statistics, "UNet Custom")
+
+    save_metrics_as_latex(metrics, os.path.join(output_save_folder, "metrics.tex"))
+
+    make_figures(outputs, predictions, storm_statistics, unet_statistics, metrics, output_save_folder)
