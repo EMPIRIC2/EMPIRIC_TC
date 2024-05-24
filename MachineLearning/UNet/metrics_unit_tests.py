@@ -139,6 +139,19 @@ class TestSiteMetrics(unittest.TestCase):
         outputs, predictions, storm_statistics, unet_statistics, all_metrics = self.get_test_statistics_and_metrics()
         plot_quantile_maps(storm_statistics, unet_statistics)
 
+    def test_relative_change_map(self):
+        outputs, predictions = self.get_outputs_and_predictions()
+        change_map = relative_change(outputs[0], outputs[1])
+
+        self.assertEquals(change_map[100, 50], .2)
+        self.assertEquals(change_map[100, 51], 0)
+
+    def test_relative_change_error_map(self):
+        outputs, predictions = self.get_outputs_and_predictions()
+        error_map, total_error = compute_changes_between_2_samples(outputs, predictions, 0, 1)
+        display_example_relative_change_error(error_map)
+
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 
 from MachineLearning.dataset import get_dataset
@@ -12,7 +14,11 @@ import seaborn as sns
 import seaborn_image as isns
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
-### Define metrics to evaluate the model
+
+########################################
+#### Helper Functions and utilities ####
+########################################
+
 def getGridCell(lat, lon, resolution):
     '''
     Get the grid cell for given latitude, longitude, and grid resolution
@@ -62,11 +68,72 @@ def site_mse(pred, true):
     squared_errors = site_se(pred, true)
     return np.mean(squared_errors)
 
+def relative_change(a, b):
+    return (a - b) / (a + 1e-3)
+
 def _get_outputs(dataset):
     return dataset.map(lambda x, y: y)
 
 def _get_inputs(dataset):
     return dataset.map(lambda x,y: x)
+
+###############################################################
+####### Relative Change Metrics between pairs of Inputs #######
+###############################################################
+
+def compute_changes_between_2_samples(ground_outputs, model_outputs, i, j):
+    '''
+
+    given two inputs and two models, compute the error in relative (percentage) change between two inputs, between the models
+    i.e. this provides a measure of how well the model captures changes between two different inputs compared to the ground model (STORM)
+
+    :param ground_outputs: the outputs from the ground truth model (STORM -> RISK)
+    :param model_outputs: the outputs from the model being evaluated
+    :param i: index of first example
+    :param j: index of second example
+    '''
+
+    ground_output_1 = ground_outputs[i]
+    ground_output_2 = ground_outputs[j]
+
+    ground_change = relative_change(ground_output_1, ground_output_2)
+
+    model_output_1 = model_outputs[i]
+    model_output_2 = model_outputs[j]
+
+    model_change = relative_change(model_output_1, model_output_2)
+
+    error_map = ground_change - model_change
+
+    return error_map, mean_squared_error(ground_change, model_change)
+
+def compute_all_relative_change_pairs(ground_outputs, model_outputs):
+    """
+    Compute the error in relative output changes for all pairs outputs
+
+    return: maps of the relative errors with the largest 10 mean squared errors and the total mean squared error (over all pair results)
+    """
+
+    pairs = itertools.combinations(range(len(ground_outputs)), 2)
+
+    print("Number of Pairs: {}".format(len(pairs)))
+    error_maps = []
+    mean_squared_errors = []
+    for pair in pairs:
+        error_map, mse = compute_changes_between_2_samples(ground_outputs, model_outputs, *pair)
+        error_maps.append(error_map)
+        mean_squared_errors.append(mse)
+
+    total_mse = np.mean(mean_squared_errors)
+    largest_error_indices = np.argpartition(mean_squared_errors, -10)[-10:]
+    top_10_error_maps = np.array(error_maps)[largest_error_indices]
+
+    return top_10_error_maps, total_mse
+
+
+############################################################
+##### Statistics for Collections (ensembles) of inputs #####
+############################################################
 
 def get_variance(data):
     return np.var(data, axis=0)
@@ -126,6 +193,10 @@ def compute_metrics(ground_truths, predictions, true_statistics, predicted_stati
 
     return metrics
 
+###############
+### Figures ###
+###############
+
 def example_site_ensemble_boxplot_figure(all_site_outputs):
     '''
     all_site_outputs: dict of {model_name: site_outputs}
@@ -177,6 +248,13 @@ def make_figures(outputs, predictions):
 
     example_site_ensemble_boxplot_figure({"STORM": site_outputs, "UNet": site_predictions})
 
+def display_example_relative_change_error(error_map):
+    plt.imshow(error_map)
+    plt.show()
+
+#####################################################################
+#### Master Function to Compute All Metrics and Save All Figures ####
+#####################################################################
 def compute_test_statistics(data_folder, model_path, sample_size):
 
     genesis_size_default=(55, 105, 1)
