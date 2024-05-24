@@ -9,6 +9,7 @@ import scipy
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import seaborn_image as isns
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 ### Define metrics to evaluate the model
@@ -101,7 +102,6 @@ def KS_statistics(ground_truths, predictions):
 
     # flatten all but the first axis
     sample_shape = ground_truths[0].shape
-    print(sample_shape)
     ground_truth_sample_length = sample_shape[0] * sample_shape[1]
     ground_truths = np.reshape(ground_truths, (len(ground_truths), ground_truth_sample_length))
     predictions = np.reshape(predictions, (len(ground_truths), ground_truth_sample_length))
@@ -140,6 +140,24 @@ def example_site_ensemble_boxplot_figure(all_site_outputs):
     df = pd.DataFrame(data)
     sns.boxplot(data=df, x="Site Name", y="Count", hue="Model")
     plt.show()
+
+def plot_quantile_maps(ground_statistics, model_statistics):
+    ground_quantiles = ground_statistics["Quantiles"]
+
+    model_quantiles = model_statistics["Quantiles"]
+    images = np.array([ground_quantiles, model_quantiles])
+    images = images.reshape((10, 110, 210))
+
+    g = isns.ImageGrid(images, col_wrap=5, axis=0, vmin=0, vmax=16, cbar=True)
+    plt.show()
+def ks_statistic_map(metrics):
+
+    ks = metrics["Kolmogorov-Smirnov"]
+    plt.title("Kolmogorov-Smirnov Statistic of ensemble outputs of STORM vs {}".format(metrics["Model"]))
+    plt.imshow(ks)
+    plt.colorbar()
+    plt.show()
+    # TODO: improve figure
 
 def metrics_df(all_model_metrics):
 

@@ -2,12 +2,11 @@ from metrics import *
 import numpy as np
 import unittest
 
-
 class TestSiteMetrics(unittest.TestCase):
 
     def create_test_grid(self, data):
 
-        test_grid = np.zeros((210, 110))
+        test_grid = np.zeros((110, 210))
         for point in data:
             test_grid[point[0], point[1]] = point[2]
 
@@ -90,16 +89,13 @@ class TestSiteMetrics(unittest.TestCase):
         storm_statistics = compute_ensemble_statistics(outputs)
         unet_statistics = compute_ensemble_statistics(predictions)
 
-        self.assertEquals(storm_statistics["Quantiles"].shape, (5, 210, 110))
-        self.assertEquals(unet_statistics["Quantiles"].shape, (5, 210, 110))
+        self.assertEquals(storm_statistics["Quantiles"].shape, (5, 110, 210))
+        self.assertEquals(unet_statistics["Quantiles"].shape, (5, 110, 210))
 
         self.assertEquals(storm_statistics["Quantiles"][:, 55, 45].tolist(), [5, 6.5, 8.5, 12, 18])
         self.assertEquals(unet_statistics["Quantiles"][:, 55, 45].tolist(), [10, 10, 10.5, 12.5, 17])
 
-
-    def test_ensemble_figures(self):
-        ## Generate test data
-
+    def get_outputs_and_predictions(self):
         # outputs
         test_grid_1 = self.get_test_grid_1()
         test_grid_2 = self.get_test_grid_2()
@@ -115,12 +111,33 @@ class TestSiteMetrics(unittest.TestCase):
 
         predictions = [test_grid_8, test_grid_5, test_grid_6, test_grid_7]
 
+        return outputs, predictions
+    def get_test_statistics_and_metrics(self):
+
+        outputs, predictions = self.get_outputs_and_predictions()
         storm_statistics = compute_ensemble_statistics(outputs)
         unet_statistics = compute_ensemble_statistics(predictions)
 
-        all_metrics = compute_metrics(outputs, predictions, storm_statistics, unet_statistics)
+        all_metrics = compute_metrics(outputs, predictions, storm_statistics, unet_statistics, "Custom-UNet")
+
+        return outputs, predictions, storm_statistics, unet_statistics, all_metrics
+
+    def test_ensemble_figures(self):
+        ## Generate test data
+
+        outputs, predictions, storm_statistics, unet_statistics, all_metrics = self.get_test_statistics_and_metrics()
 
         make_figures(outputs, predictions)
+
+    def test_ks_statistics_map(self):
+
+        outputs, predictions, storm_statistics, unet_statistics, all_metrics = self.get_test_statistics_and_metrics()
+
+        ks_statistic_map(all_metrics)
+
+    def test_quantile_maps(self):
+        outputs, predictions, storm_statistics, unet_statistics, all_metrics = self.get_test_statistics_and_metrics()
+        plot_quantile_maps(storm_statistics, unet_statistics)
 
 if __name__ == "__main__":
     unittest.main()
