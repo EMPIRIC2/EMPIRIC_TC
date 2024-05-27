@@ -1,5 +1,5 @@
 import numpy as np
-from utils import get_site_values
+from .evaluation_utils import get_site_values
 
 def site_se(ground, prediction):
 

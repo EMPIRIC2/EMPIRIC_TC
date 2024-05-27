@@ -1,12 +1,12 @@
-from utils import _get_inputs, _get_outputs
-from model_statistics import compute_ensemble_statistics
-from figures import make_figures
-from figures import save_metrics_as_latex
+from .evaluation_utils import _get_inputs, _get_outputs
+from .model_statistics import compute_ensemble_statistics
+from .figures import make_figures
+from .figures import save_metrics_as_latex
 import os
 from MachineLearning.dataset import get_dataset
-from metrics import compute_metrics
+from .metrics import compute_metrics
 import argparse
-from model_info import models_info
+from .model_info import models_info
 def evaluate(data_folder, output_save_folder):
 
     """

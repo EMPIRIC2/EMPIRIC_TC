@@ -1,11 +1,12 @@
-from metrics import *
+from .metrics import *
 import unittest
-from utils import *
-from site_metrics import site_mse
-from figures import *
-from relative_change_metrics import *
-from model_statistics import compute_ensemble_statistics
+from .site_metrics import site_mse
+from .figures import *
+from .relative_change_metrics import *
+from .model_statistics import compute_ensemble_statistics
+from .evaluation_utils import get_grid_cell, get_site_values, sites, get_site_values_from_grid
 
+## run by calling  pytest metrics_unit_tests.py::TestSiteMetrics in this directory
 class TestSiteMetrics(unittest.TestCase):
 
     """ Testing Utilities """
@@ -74,9 +75,9 @@ class TestSiteMetrics(unittest.TestCase):
     def test_get_grid_cell(self):
         # test that the get grid cell function works properly for two different resolutions
 
-        self.assertEquals(get_grid_cell(-60,135, 0.5), (0, 0))
-        self.assertEquals(get_grid_cell(-60, 136.1, 0.5), (0, 2))
-        self.assertEquals(get_grid_cell(-60, 136.1, 1), (0, 1))
+        self.assertEqual(get_grid_cell(-60,135, 0.5), (0, 0))
+        self.assertEqual(get_grid_cell(-60, 136.1, 0.5), (0, 2))
+        self.assertEqual(get_grid_cell(-60, 136.1, 1), (0, 1))
 
     def test_get_grid_cell_out_of_basin(self):
 
@@ -92,27 +93,27 @@ class TestSiteMetrics(unittest.TestCase):
 
         site_vals = get_site_values(test_grid)
 
-        self.assertEquals(site_vals.tolist(), [0 for i in range(len(site_vals))])
+        self.assertEqual(site_vals.tolist(), [0 for i in range(len(site_vals))])
 
         cell = get_grid_cell(-9.81386294, 160.1563795, 0.5)
         print(cell)
         test_grid[*cell] = 1
         site_vals = get_site_values(test_grid)
 
-        self.assertEquals(site_vals[0], 1)
+        self.assertEqual(site_vals[0], 1)
 
         for i in range(1, len(site_vals)):
             if site_vals[i] != 0:
-                self.assertEquals(site_vals[i], 1)
-                self.assertEquals(get_grid_cell(*sites[i], 0.5), cell)
+                self.assertEqual(site_vals[i], 1)
+                self.assertEqual(get_grid_cell(*sites.sites[i], 0.5), cell)
 
     def test_site_se(self):
         ground_outputs, model_outputs = self.get_outputs_and_predictions()
 
         site_se_1 = site_se(model_outputs[0], ground_outputs[0])
 
-        self.assertEquals(site_se_1[0], 169)
-        self.assertEquals(site_se_1[1], 0)
+        self.assertEqual(site_se_1[0], 169)
+        self.assertEqual(site_se_1[1], 0)
 
     def test_site_mse(self):
         ground_outputs, model_outputs = self.get_outputs_and_predictions()
@@ -123,29 +124,29 @@ class TestSiteMetrics(unittest.TestCase):
 
         n_in_gridcell = 0
         non_zero_cell = (100, 50)
-        for site in sites:
+        for site in sites.sites:
             if get_grid_cell(*site, 0.5) == non_zero_cell:
                 n_in_gridcell += 1
 
-        self.assertEquals(site_mse_1, 169 * n_in_gridcell / 542)
+        self.assertEqual(site_mse_1, 169 * n_in_gridcell / 542)
 
     def test_relative_change(self):
         outputs, predictions = self.get_outputs_and_predictions()
         change_map = relative_change(outputs[0], outputs[1])
 
         self.assertAlmostEquals(change_map[100, 50], .2, 3)
-        self.assertEquals(change_map[100, 51], 0)
+        self.assertEqual(change_map[100, 51], 0)
 
 
     """ Test Ensemble Statistics """
 
     def test_ensemble_statistics_no_sites(self):
         outputs, predictions, storm_statistics, unet_statistics, all_metrics = self.get_test_statistics_and_metrics()
-        self.assertEquals(storm_statistics["Quantiles"].shape, (5, 110, 210))
-        self.assertEquals(unet_statistics["Quantiles"].shape, (5, 110, 210))
+        self.assertEqual(storm_statistics["Quantiles"].shape, (5, 110, 210))
+        self.assertEqual(unet_statistics["Quantiles"].shape, (5, 110, 210))
 
-        self.assertEquals(storm_statistics["Quantiles"][:, 55, 45].tolist(), [5, 6.5, 8.5, 12, 18])
-        self.assertEquals(unet_statistics["Quantiles"][:, 55, 45].tolist(), [10, 10, 10.5, 12.5, 17])
+        self.assertEqual(storm_statistics["Quantiles"][:, 55, 45].tolist(), [5, 6.5, 8.5, 12, 18])
+        self.assertEqual(unet_statistics["Quantiles"][:, 55, 45].tolist(), [10, 10, 10.5, 12.5, 17])
 
     """ Figure Tests """
     """ These will open example figures that must be closed for tests to complete """

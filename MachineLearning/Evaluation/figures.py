@@ -5,8 +5,8 @@ import seaborn_image as isns
 import numpy as np
 import os
 
-from site_metrics import site_se
-from utils import get_site_values_from_grid, get_site_name
+from .site_metrics import site_se
+from .evaluation_utils import get_site_values_from_grid, get_site_name
 
 def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
     '''
