@@ -16,8 +16,3 @@ class UNetCustom02CatCyclones:
 
 class Models(Enum):
     UNetCustom02CatCyclones = 1
-def predict(input):
-
-    model = UNetCustom02CatCyclones.load_model()
-
-    return model(input)
