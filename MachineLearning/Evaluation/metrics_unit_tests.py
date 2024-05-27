@@ -1,6 +1,10 @@
 from metrics import *
 import numpy as np
 import unittest
+from utils import *
+from site_metrics import site_se, site_mse
+from figures import *
+from relative_change_metrics import *
 
 class TestSiteMetrics(unittest.TestCase):
 
@@ -70,14 +74,14 @@ class TestSiteMetrics(unittest.TestCase):
     def test_get_grid_cell(self):
         # test that the get grid cell function works properly for two different resolutions
 
-        self.assertEquals(getGridCell(-60,135, 0.5), (0, 0))
-        self.assertEquals(getGridCell(-60, 136.1, 0.5), (0, 2))
-        self.assertEquals(getGridCell(-60, 136.1, 1), (0, 1))
+        self.assertEquals(get_grid_cell(-60,135, 0.5), (0, 0))
+        self.assertEquals(get_grid_cell(-60, 136.1, 0.5), (0, 2))
+        self.assertEquals(get_grid_cell(-60, 136.1, 1), (0, 1))
 
     def test_get_grid_cell_out_of_basin(self):
 
         with self.assertRaises(Exception):
-            getGridCell(-61, 4, 0.5)
+            get_grid_cell(-61, 4, 0.5)
 
 
     def test_get_site_values(self):
@@ -90,7 +94,7 @@ class TestSiteMetrics(unittest.TestCase):
 
         self.assertEquals(site_vals.tolist(), [0 for i in range(len(site_vals))])
 
-        cell = getGridCell(-9.81386294, 160.1563795, 0.5)
+        cell = get_grid_cell(-9.81386294, 160.1563795, 0.5)
         print(cell)
         test_grid[*cell] = 1
         site_vals = get_site_values(test_grid)
@@ -100,7 +104,7 @@ class TestSiteMetrics(unittest.TestCase):
         for i in range(1, len(site_vals)):
             if site_vals[i] != 0:
                 self.assertEquals(site_vals[i], 1)
-                self.assertEquals(getGridCell(*sites[i], 0.5), cell)
+                self.assertEquals(get_grid_cell(*sites[i], 0.5), cell)
 
     def test_site_se(self):
         ground_outputs, model_outputs = self.get_outputs_and_predictions()
@@ -120,7 +124,7 @@ class TestSiteMetrics(unittest.TestCase):
         n_in_gridcell = 0
         non_zero_cell = (100, 50)
         for site in sites:
-            if getGridCell(*site, 0.5) == non_zero_cell:
+            if get_grid_cell(*site, 0.5) == non_zero_cell:
                 n_in_gridcell += 1
 
         self.assertEquals(site_mse_1, 169 * n_in_gridcell / 542)
