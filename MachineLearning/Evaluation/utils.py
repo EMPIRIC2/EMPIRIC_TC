@@ -27,30 +27,32 @@ def get_grid_cell(lat, lon, resolution):
     :return: indices of the lat and lon cells respectively
     '''
 
-    lat0, lat1, lon0, lon1 = -60, -5, 135, 240
+    lat_min, lat_max = -60, -5
+    lon_min, lon_max = 135, 240
 
-    if lat < lat0 or lat >= lat1:
+    if not (lat >= lat_min and lat < lat_max):
         raise Exception("lat must be within the basin")
 
-    if lon < lon0 or lon >= lon1:
+    if not (lon >= lon_min or lon < lon_max):
         raise Exception("lon must be within the basin")
 
-    latCell = math.floor((lat - lat0) * 1 / resolution)
-    lonCell = math.floor((lon - lon0) * 1 / resolution)
+    latCell = math.floor((lat - lat_min) * 1 / resolution)
+    lonCell = math.floor((lon - lon_min) * 1 / resolution)
 
     return latCell, lonCell
 
-sites = Sites(1).sites
-
+sites = Sites(1)
+def get_site_name(i):
+    return sites.names[i]
 def get_site_values(grid):
     """
     Get the vector of values for each site from a grid output of a model
 
     returns: numpy array of output values at each site
     """
-    site_values = np.zeros((len(sites),))
+    site_values = np.zeros((len(sites.sites),))
 
-    for i, site in enumerate(sites):
+    for i, site in enumerate(sites.sites):
         cell = get_grid_cell(*site, .5)
         site_values[i] = grid[cell]
 

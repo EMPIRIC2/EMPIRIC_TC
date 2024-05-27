@@ -1,0 +1,63 @@
+from utils import _get_inputs, _get_outputs
+from model_statistics import compute_ensemble_statistics
+from figures import make_figures
+from figures import save_metrics_as_latex
+import os
+from MachineLearning.dataset import get_dataset
+from metrics import compute_metrics
+import argparse
+from model_info import models_info
+def evaluate(data_folder, output_save_folder):
+
+    """
+    Master function to compute all the evaluations and then save the figures
+
+    :param: data_folder: path to the data used to evaluate the model
+    :param: model_path: path to the model weights to evaluate
+    :param: output_save_folder: folder to save metrics latex and figure pictures
+
+    :returns: None. But saves files.
+    """
+
+    test_data = get_dataset(data_folder, data_version=3, dataset='test', batch_size=32)
+
+    outputs = _get_outputs(test_data)
+    inputs = _get_inputs(test_data)
+
+    metrics = []
+    storm_statistics = compute_ensemble_statistics(outputs)
+
+    for model_info in models_info:
+        model = model_info["model"](*model_info["params"])
+
+        model.load_weights(model_info["weights"])
+
+        predictions = model.predict(
+            inputs,
+            batch_size=32,
+            verbose=2,
+            steps=1
+        )
+
+        model_statistics = compute_ensemble_statistics(predictions)
+
+        model_metrics = compute_metrics(outputs, predictions, storm_statistics, model_statistics, model_info["Name"])
+        metrics.append(model_metrics)
+
+        make_figures(outputs, predictions, storm_statistics, model_statistics, model_metrics, os.path.join(output_save_folder, model_info["Name"]))
+
+    save_metrics_as_latex(metrics, os.path.join(output_save_folder, "metrics.tex"))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        prog="Evaluate Models",
+        description="Evaluates trained models in models_info against STORM"
+    )
+
+    parser.add_argument("data_folder", type=str)
+    parser.add_argument("output_save_folder", type=str)
+
+    args = parser.parse_args()
+
+    evaluate(args.data_folder, args.output_save_folder)

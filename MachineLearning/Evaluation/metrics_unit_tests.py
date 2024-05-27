@@ -1,10 +1,10 @@
 from metrics import *
-import numpy as np
 import unittest
 from utils import *
-from site_metrics import site_se, site_mse
+from site_metrics import site_mse
 from figures import *
 from relative_change_metrics import *
+from model_statistics import compute_ensemble_statistics
 
 class TestSiteMetrics(unittest.TestCase):
 

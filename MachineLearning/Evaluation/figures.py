@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 from site_metrics import site_se
-from utils import get_site_values_from_grid
+from utils import get_site_values_from_grid, get_site_name
 
 def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
     '''
@@ -20,7 +20,7 @@ def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
     for i in range(10):
         for model, site_outputs in all_site_outputs.items():
             for j in range(len(site_outputs)):
-                data.append({"Site Name": str(i), "Count": site_outputs[j][i], "Model": model})
+                data.append({"Site Name": get_site_name(i), "Count": site_outputs[j][i], "Model": model})
 
     df = pd.DataFrame(data)
     sns.boxplot(data=df, x="Site Name", y="Count", hue="Model")
