@@ -21,11 +21,11 @@ def _get_inputs(dataset):
     return dataset.map(lambda x,y: x)
 
 def get_grid_cell(lat, lon, resolution):
-    '''
+    """
     Get the grid cell for given latitude, longitude, and grid resolution
 
     :return: indices of the lat and lon cells respectively
-    '''
+    """
 
     lat_min, lat_max = -60, -5
     lon_min, lon_max = 135, 240
