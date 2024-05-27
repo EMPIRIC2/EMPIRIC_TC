@@ -22,7 +22,7 @@ def site_mean_squared_error(output1, output2):
     Calculates the mean squared error at the health facility locations
     """
     squared_errors = site_squared_error(output1, output2)
-    return np.mean(squared_errors)
+    return np.mean(squared_errors, axis=0)
 
 def total_site_mean_squared_error(outputs1, outputs2):
     """

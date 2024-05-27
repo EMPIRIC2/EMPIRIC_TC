@@ -1,11 +1,10 @@
 from .metrics import *
 import unittest
-from .site_metrics import site_mean_squared_error
 from .figures import *
 from .relative_change_metrics import *
 from .model_statistics import compute_ensemble_statistics
 from .evaluation_utils import get_grid_cell, get_site_values, sites, get_many_site_values
-
+from .site_metrics import site_mean_squared_error
 ## run by calling  pytest metrics_unit_tests.py::TestSiteMetrics in this directory
 class TestSiteMetrics(unittest.TestCase):
 
@@ -106,7 +105,7 @@ class TestSiteMetrics(unittest.TestCase):
     def test_site_se(self):
         ground_outputs, model_outputs = self.get_outputs_and_predictions()
 
-        site_se_1 = site_mean_squared_error(model_outputs[0], ground_outputs[0])
+        site_se_1 = site_squared_error(model_outputs[0], ground_outputs[0])
 
         self.assertEqual(site_se_1[0], 169)
         self.assertEqual(site_se_1[1], 0)

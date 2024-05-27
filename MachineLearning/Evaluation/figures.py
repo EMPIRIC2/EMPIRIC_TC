@@ -5,9 +5,8 @@ import seaborn_image as isns
 import numpy as np
 import os
 
-from .site_metrics import site_se
-from .evaluation_utils import get_site_values_from_grid, get_site_name
-
+from .site_metrics import site_squared_error
+from .evaluation_utils import get_many_site_values, get_site_name
 def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
     '''
     Outputs boxplot showing the distributions of values at the first 10 sites across all the outputs
@@ -105,9 +104,10 @@ def plot_example_site_boxplot(ground_outputs, model_outputs, n_examples, save_pa
     """
     box_plot_data = []
     for i in range(n_examples):
-        site_errors = site_se(model_outputs[i], ground_outputs[i])
-        for site_error in site_errors:
-            box_plot_data.append({"Site Squared Error": site_error, "Test Example": i})
+        site_errors = site_squared_error(model_outputs[i], ground_outputs[i])
+
+        for j in range(site_errors.shape[0]):
+            box_plot_data.append({"Site Squared Error": site_errors[j], "Test Example": i})
 
     df = pd.DataFrame(box_plot_data)
     sns.boxplot(df, x="Test Example", y="Site Squared Error")
@@ -119,8 +119,8 @@ def plot_example_site_boxplot(ground_outputs, model_outputs, n_examples, save_pa
 def make_figures(ground_outputs, model_outputs, ground_statistics, model_statistics, metrics, save_folder):
     ## master function to run all the figures for model Evaluation and visualization
 
-    site_outputs = get_site_values_from_grid(ground_outputs)
-    site_predictions = get_site_values_from_grid(model_outputs)
+    site_outputs = get_many_site_values(ground_outputs)
+    site_predictions = get_many_site_values(model_outputs)
 
     example_site_ensemble_boxplot_figure({"STORM": site_outputs, "UNet": site_predictions}, os.path.join(save_folder, "site_ensemble_boxplot.png"))
     ks_statistic_map(metrics, os.path.join(save_folder, "ks_statistics.png"))
