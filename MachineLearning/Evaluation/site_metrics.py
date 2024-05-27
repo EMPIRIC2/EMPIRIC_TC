@@ -1,31 +1,44 @@
 import numpy as np
-from .evaluation_utils import get_site_values
+from .evaluation_utils import get_site_values, get_many_site_values
+from sklearn.metrics import mean_squared_error
 
-def site_se(ground, prediction):
+def site_squared_error(output1, output2):
     """
     Calculates the squared error at each health facility site
     Note that it will include sites that are in the same grid cell
+
+    :param output1: a grid (2d array) output by one of the models
+    :param output2: a grid (2d array) output by one of the models
     """
-    pred_sites = get_site_values(prediction)
-    true_sites = get_site_values(ground)
 
-    return (pred_sites - true_sites) ** 2
+    # get numpy arrays of the output values for each health facility
+    output1_sites = get_site_values(output1)
+    output2_sites = get_site_values(output2)
 
-def site_mse(ground, predictions):
+    return (output1_sites - output2_sites) ** 2
+
+def site_mean_squared_error(output1, output2):
     """
     Calculates the mean squared error at the health facility locations
     """
-    squared_errors = site_se(ground, predictions)
+    squared_errors = site_squared_error(output1, output2)
     return np.mean(squared_errors)
 
-def total_site_mse(ground_outputs, model_outputs):
+def total_site_mean_squared_error(outputs1, outputs2):
     """
     Calculates the mean of the site mean squared errors for the entire outputs dataset.
+
+    :param: outputs1: list of grids of cyclone counts output by model 1
+    :param: outputs2: list of grids of cyclone counts output by model 2
+
+    :returns: the mean squared error at the
+    health facility locations averaged over all the output examples
     """
-    assert len(ground_outputs) == len(model_outputs)
 
-    mses = []
-    for i in range(len(ground_outputs)):
-        mses.append(site_mse(ground_outputs[i], model_outputs[i]))
+    assert len(outputs1) == len(outputs2)
 
-    return np.mean(mses)
+    outputs1_sites = get_many_site_values(outputs1)
+    outputs2_sites = get_many_site_values(outputs2)
+
+    return mean_squared_error(outputs1_sites, outputs2_sites)
+

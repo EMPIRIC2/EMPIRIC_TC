@@ -10,8 +10,7 @@ def relative_change(a, b):
     return (a - b) / (a + 1e-3)
 
 def compute_changes_between_2_samples(ground_outputs, model_outputs, i, j):
-    '''
-
+    """
     given two inputs and two models, compute the error in relative (percentage) change between two inputs, between the models
     i.e. this provides a measure of how well the model captures changes between two different inputs compared to the ground model (STORM)
 
@@ -19,7 +18,7 @@ def compute_changes_between_2_samples(ground_outputs, model_outputs, i, j):
     :param model_outputs: the outputs from the model being evaluated
     :param i: index of first example
     :param j: index of second example
-    '''
+    """
 
     ground_output_1 = ground_outputs[i]
     ground_output_2 = ground_outputs[j]
@@ -35,7 +34,7 @@ def compute_changes_between_2_samples(ground_outputs, model_outputs, i, j):
 
     return error_map, mean_squared_error(ground_change, model_change)
 
-def compute_all_relative_change_pairs(ground_outputs, model_outputs):
+def compute_all_relative_change_pairs(ground_outputs, model_outputs, max_pairs = 200):
     """
     Compute the error in relative output changes for all pairs outputs
 
@@ -44,10 +43,10 @@ def compute_all_relative_change_pairs(ground_outputs, model_outputs):
 
     pairs = itertools.combinations(range(len(ground_outputs)), 2)
 
-    print("Number of Pairs: {}".format(len(list(pairs))))
     error_maps = []
     mean_squared_errors = []
-    for pair in pairs:
+    for i, pair in enumerate(pairs):
+        if i > max_pairs: break
         error_map, mse = compute_changes_between_2_samples(ground_outputs, model_outputs, *pair)
         error_maps.append(error_map)
         mean_squared_errors.append(mse)

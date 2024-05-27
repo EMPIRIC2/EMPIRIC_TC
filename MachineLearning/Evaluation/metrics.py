@@ -3,8 +3,8 @@
 
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from .relative_change_metrics import compute_all_relative_change_pairs
-from .model_statistics import KS_statistics
-from .site_metrics import total_site_mse
+from .model_statistics import kolmogorov_smirnov_statistics
+from .site_metrics import total_site_mean_squared_error
 
 def compute_metrics(ground_outputs, model_outputs, ground_statistics, model_statistics, model_name):
     """
@@ -26,10 +26,10 @@ def compute_metrics(ground_outputs, model_outputs, ground_statistics, model_stat
         "Model": model_name,
         "Mean Absolute Quantile Error":  mean_absolute_error(ground_statistics["Quantiles"].flatten(), model_statistics["Quantiles"].flatten()),
         "Mean Squared Quantile Error":  mean_squared_error(ground_statistics["Quantiles"].flatten(), model_statistics["Quantiles"].flatten()),
-        "Kolmogorov-Smirnov": KS_statistics(ground_outputs, model_outputs),
+        "Kolmogorov-Smirnov": kolmogorov_smirnov_statistics(ground_outputs, model_outputs),
         "Relative Change Mean Squared Error": mse,
         "Relative Error Examples": top_relative_change_error_maps,
-        "Site Mean Squared Error": total_site_mse(ground_outputs, model_outputs)
+        "Site Mean Squared Error": total_site_mean_squared_error(ground_outputs, model_outputs)
     }
 
     return metrics

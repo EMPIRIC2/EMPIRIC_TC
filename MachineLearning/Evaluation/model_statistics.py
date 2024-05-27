@@ -27,7 +27,7 @@ def absolute_quantile_errors(quantiles_a, quantiles_b):
 
     return np.mean(np.abs(quantiles_a - quantiles_b), axis=0)
 
-def KS_statistics(ground_truths, predictions):
+def kolmogorov_smirnov_statistics(ground_truths, predictions):
     """
     Compute the kolmogorov smirnov statistic across the ensemble of data
 

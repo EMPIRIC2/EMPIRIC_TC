@@ -2,18 +2,18 @@ import numpy as np
 import math
 from HealthFacilities.getHealthFacilityData import Sites
 
-def get_site_values_from_grid(grids):
+def get_many_site_values(grids):
     """
     Gets the vectors of site values for many output grids
     :param: grids: the model outputs
     :returns: list of vectors of outputs for each site
     """
-
     site_outputs = []
     for output in grids:
         site_outputs.append(get_site_values(output))
 
-    return site_outputs
+    return np.array(site_outputs)
+
 def _get_outputs(dataset):
     return dataset.map(lambda x, y: y)
 
