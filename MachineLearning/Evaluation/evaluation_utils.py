@@ -30,10 +30,10 @@ def get_grid_cell(lat, lon, resolution):
     lat_min, lat_max = -60, -5
     lon_min, lon_max = 135, 240
 
-    if not (lat >= lat_min and lat < lat_max):
+    if not (lat_min <= lat < lat_max):
         raise Exception("lat must be within the basin")
 
-    if not (lon >= lon_min or lon < lon_max):
+    if not (lon_min <= lon < lon_max):
         raise Exception("lon must be within the basin")
 
     latCell = math.floor((lat - lat_min) * 1 / resolution)

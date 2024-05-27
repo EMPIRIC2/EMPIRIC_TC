@@ -11,14 +11,12 @@ class TestSiteMetrics(unittest.TestCase):
 
     """ Testing Utilities """
     def create_test_grid(self, data):
-
         test_grid = np.zeros((110, 210))
         for point in data:
             test_grid[point[0], point[1]] = point[2]
 
         return test_grid
     def get_test_grid_1(self):
-
         return self.create_test_grid([(55, 45, 10), (100, 50, 15), (55, 34, 5)])
 
     def get_test_grid_2(self):
@@ -31,7 +29,6 @@ class TestSiteMetrics(unittest.TestCase):
         return self.create_test_grid([(55, 45, 18), (100, 50, 0), (55, 34, 0)])
 
     def get_test_grid_5(self):
-
         return self.create_test_grid([(55, 45, 11), (100, 50, 12), (55, 34, 6)])
 
     def get_test_grid_6(self):
