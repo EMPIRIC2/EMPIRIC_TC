@@ -16,4 +16,17 @@
 
 ## Running the Model
 
-The one model on the github is at `models/unet_mean_1713754646.2664263.keras`
+Saved models are stored in `./saved_models/` and can be loaded from `saved_models.saved_models`. 
+
+For example, 
+
+```python
+from saved_models.save_models import UNetCustom02CatCyclones
+model = UNetCustom02CatCyclones.load_model()
+
+# for a model input x, x is a (55, 105, 1) numpy array
+y = model(x)
+# get a model prediction y, y is a (110, 210, 1) numpy array
+```
+
+There is an example of this in the notebook example_code/prediction_example.ipynb
