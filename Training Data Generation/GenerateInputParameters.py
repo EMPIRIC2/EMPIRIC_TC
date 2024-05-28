@@ -47,13 +47,12 @@ def randomizedGenesisLocationMatrices(rng, future_data, monthlist, scale=1):
 
     for month in monthlist:
 
-        weights = rng.uniform(0, 1, size=(4,))
+        weights = rng.dirichlet((1,1,1,1))
 
-        normalized_weights = weights / np.sum(weights)
         future_data_for_month = [np.nan_to_num(future_data[i][month]) for i in range(len(models))]
 
         grids = np.array(future_data_for_month)
-        randomized_grid = (grids.T @ normalized_weights).T
+        randomized_grid = (grids.T @ weights).T
 
         genesis_location_matrices[month] = randomized_grid
 
