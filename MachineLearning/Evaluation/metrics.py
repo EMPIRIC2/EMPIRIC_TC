@@ -2,9 +2,9 @@
 
 
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from .relative_change_metrics import compute_all_relative_change_pairs
-from .model_statistics import kolmogorov_smirnov_statistics
-from .site_metrics import total_site_mean_squared_error
+from MachineLearning.Evaluation.relative_change_metrics import compute_all_relative_change_pairs
+from MachineLearning.Evaluation.model_statistics import kolmogorov_smirnov_statistics
+from MachineLearning.Evaluation.site_metrics import total_site_mean_squared_error
 
 def compute_metrics(ground_outputs, model_outputs, ground_statistics, model_statistics, model_name):
     """

@@ -5,8 +5,8 @@ import seaborn_image as isns
 import numpy as np
 import os
 
-from .site_metrics import site_squared_error
-from .evaluation_utils import get_many_site_values, get_site_name
+from MachineLearning.Evaluation.site_metrics import site_squared_error
+from MachineLearning.Evaluation.evaluation_utils import get_many_site_values, get_site_name
 def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
     '''
     Outputs boxplot showing the distributions of values at the first 10 sites across all the outputs

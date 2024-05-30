@@ -1,12 +1,13 @@
-from .evaluation_utils import _get_inputs, _get_outputs
-from .model_statistics import compute_ensemble_statistics
-from .figures import make_figures
-from .figures import save_metrics_as_latex
+from MachineLearning.Evaluation.evaluation_utils import get_inputs, get_outputs
+from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
+from MachineLearning.Evaluation.figures import make_figures
+from MachineLearning.Evaluation.figures import save_metrics_as_latex
 import os
 from MachineLearning.dataset import get_dataset
-from .metrics import compute_metrics
+from MachineLearning.Evaluation.metrics import compute_metrics
 import argparse
-from .model_info import models_info
+from MachineLearning.Evaluation.model_info import models_info
+
 def evaluate(data_folder, output_save_folder):
 
     """
@@ -21,8 +22,8 @@ def evaluate(data_folder, output_save_folder):
 
     test_data = get_dataset(data_folder, data_version=3, dataset='test', batch_size=32)
 
-    outputs = _get_outputs(test_data)
-    inputs = _get_inputs(test_data)
+    outputs = get_outputs(test_data)
+    inputs = get_inputs(test_data)
 
     metrics = []
     storm_statistics = compute_ensemble_statistics(outputs)

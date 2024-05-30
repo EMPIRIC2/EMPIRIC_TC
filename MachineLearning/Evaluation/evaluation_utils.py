@@ -14,10 +14,10 @@ def get_many_site_values(grids):
 
     return np.array(site_outputs)
 
-def _get_outputs(dataset):
+def get_outputs(dataset):
     return dataset.map(lambda x, y: y)
 
-def _get_inputs(dataset):
+def get_inputs(dataset):
     return dataset.map(lambda x,y: x)
 
 def get_grid_cell(lat, lon, resolution):

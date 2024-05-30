@@ -1,10 +1,10 @@
-from .metrics import *
+from MachineLearning.Evaluation.metrics import *
 import unittest
-from .figures import *
-from .relative_change_metrics import *
-from .model_statistics import compute_ensemble_statistics
-from .evaluation_utils import get_grid_cell, get_site_values, sites, get_many_site_values
-from .site_metrics import site_mean_squared_error
+from MachineLearning.Evaluation.figures import *
+from MachineLearning.Evaluation.relative_change_metrics import *
+from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
+from MachineLearning.Evaluation.evaluation_utils import get_grid_cell, get_site_values, sites, get_many_site_values
+from MachineLearning.Evaluation.site_metrics import site_mean_squared_error
 ## run by calling  pytest metrics_unit_tests.py::TestSiteMetrics in this directory
 class TestSiteMetrics(unittest.TestCase):
 

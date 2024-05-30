@@ -1,5 +1,5 @@
 import numpy as np
-from .evaluation_utils import get_site_values, get_many_site_values
+from MachineLearning.Evaluation.evaluation_utils import get_site_values, get_many_site_values
 from sklearn.metrics import mean_squared_error
 
 def site_squared_error(output1, output2):
