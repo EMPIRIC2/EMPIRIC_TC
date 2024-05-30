@@ -15,7 +15,6 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,3,4,11,12],[5,6,7,8,9,10,11]]
 decade_length = 1
 
-
 def generateOneTrainingDataSample(total_years, future_data, movementCoefficientsFuture, refs, sites,  include_grids, include_sites, basin='SP'):
     '''
     Generate ML training data
@@ -31,7 +30,7 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
 
     monthlist = monthsall[basins.index(basin)]
 
-    genesis_matrices, movement_coefficients = generateInputParameters(future_data, movementCoefficientsFuture, monthlist) # replace with generated parameters
+    genesis_matrices, genesis_weightings, movement_coefficients = generateInputParameters(future_data, movementCoefficientsFuture, monthlist) # replace with generated parameters
 
     genesis_matrices = {}
     for month in monthlist:
@@ -51,14 +50,14 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
     tc_data = sampleStorm(total_years, month_map, refs)
     
     print("Storm Sampled!")
-    grid_sums, sites = getLandfallsData(tc_data, basin, total_years, .5, sites, include_grids, include_sites)
+    grid_means, sites = getLandfallsData(tc_data, basin, total_years, .5, sites, include_grids, include_sites)
     basin_movement_coefficients = movement_coefficients[basins.index(basin)]
 
 
     ## split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
-    return (genesis_matrix, basin_movement_coefficients), grid_sums, sites, tc_data
+    return genesis_matrix, genesis_weightings, grid_means, sites, tc_data
 
 def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validation_samples, save_location, basin='SP', include_grids=False, include_sites=False):
     
@@ -120,19 +119,16 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
         lat, lon = future_data[0][1].shape
 
         data.create_dataset('train_genesis', (n_train_samples, 6, lat, lon))
+        data.create_dataset('train_genesis_weightings', (n_train_samples, 4))
         data.create_dataset('test_genesis', (n_test_samples, 6, lat, lon))
+        data.create_dataset('test_genesis_weightings', (n_test_samples, 4))
         data.create_dataset('validation_genesis', (n_validation_samples, 6, lat, lon))
-
-        w = len(movementCoefficientsFuture[0])
-        h = len(movementCoefficientsFuture[0][0])
-        data.create_dataset('train_movement', (n_train_samples, w, h))
-        data.create_dataset('test_movement', (n_test_samples, w, h))
-        data.create_dataset('validation_movement', (n_validation_samples, w, h))
+        data.create_dataset('validation_genesis_weightings', (n_train_samples, 4))
 
         if include_grids:
-            data.create_dataset('train_grids', (n_train_samples, 100, 2*lat, 2*lon, 6, 6))
-            data.create_dataset('test_grids', (n_test_samples, 100, 2*lat, 2*lon, 6, 6))
-            data.create_dataset('validation_grids', (n_validation_samples, 100, 2 * lat, 2 * lon, 6, 6))
+            data.create_dataset('train_grids', (n_train_samples,2*lat, 2*lon, 6, 6))
+            data.create_dataset('test_grids', (n_test_samples, 2*lat, 2*lon, 6, 6))
+            data.create_dataset('validation_grids', (n_validation_samples, 2 * lat, 2 * lon, 6, 6))
     
         if include_sites:
             data.create_dataset('train_sites', (n_train_samples, total_years,530, 6, 5))
@@ -162,7 +158,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
 
         print("Generating {} sample: {}".format(dataset, i - offset))
 
-        input, grid_sums, yearly_site_data, tc_data = generateOneTrainingDataSample(
+        genesis_matrices, genesis_weightings, grid_means, yearly_site_data, tc_data = generateOneTrainingDataSample(
             total_years,
             future_data,
             movementCoefficientsFuture,
@@ -182,13 +178,12 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
         )
         
         with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'r+') as data:
-            genesis_matrices, movement_coefficients = input
 
             data['{}_genesis'.format(dataset)][i - offset] = genesis_matrices
-            data['{}_movement'.format(dataset)][i - offset] = movement_coefficients
-
+            data['{}_genesis_weightings'.format(dataset)[i-offset] = genesis_weightings
+                 
             if include_grids:
-                data['{}_grids'.format(dataset)][i - offset] = grid_sums
+                data['{}_grids'.format(dataset)][i - offset] = grid_means
             if include_sites:
                 data['{}_sites'.format(dataset)][i - offset] = yearly_site_data
         all_tc_data.append(tc_data)

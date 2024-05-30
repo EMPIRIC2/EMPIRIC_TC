@@ -56,7 +56,7 @@ def randomizedGenesisLocationMatrices(rng, future_data, monthlist, scale=1):
 
         genesis_location_matrices[month] = randomized_grid
 
-    return genesis_location_matrices
+    return genesis_location_matrices, weights
 
 
 def getMovementCoefficientData():
@@ -100,5 +100,5 @@ def generateInputParameters(future_data, movementCoefficientsFuture, monthslist)
     # create a new seed to avoid generating the same inputs in every worker
 
     rng = np.random.Generator(np.random.PCG64DXSM())
-
-    return randomizedGenesisLocationMatrices(rng, future_data, monthslist), randomizedMovementCoefficients(rng, movementCoefficientsFuture)
+    genesis_matrices, genesis_weightings = randomizedGenesisLocationMatrices(rng, future_data, monthslist)
+    return genesis_matrices, genesis_weightings, getMovementCoefficientData()

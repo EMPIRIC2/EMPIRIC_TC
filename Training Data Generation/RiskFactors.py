@@ -35,7 +35,6 @@ def get_random_year_combinations(num_combinations, num_years, size):
 
 month_to_index = {month: i for i, month in enumerate([1,2,3,4,11,12])}
 
-decade_length = 1
 def BOUNDARIES_BASINS(idx):
     '''
     Copied from STORM model
@@ -220,7 +219,8 @@ def get_cells_and_sites_touched_by_storm(tc, resolution, basin, sites, include_g
     return touched_cells, touched_sites
 
 def landfallsPerMonthForYear(storms, resolution, basin, sites, include_grids, include_sites):
-
+    print("Starting year", flush = True)
+    print(len(storms), flush = True)
     if include_sites:
         site_data = sites.create_site_landfall_vector()
     else: site_data=None
@@ -229,8 +229,8 @@ def landfallsPerMonthForYear(storms, resolution, basin, sites, include_grids, in
         grid = createMonthlyLandfallGrid(basin, resolution)
     else: grid = None
 
-    for storm in storms:
-
+    for i, storm in enumerate(storms):
+        print(i, flush = True)
         touched_cells, touched_sites = get_cells_and_sites_touched_by_storm(storm, resolution, basin, sites, include_grids, include_sites)
 
         month = storm['month']
@@ -245,7 +245,7 @@ def landfallsPerMonthForYear(storms, resolution, basin, sites, include_grids, in
                 site_data[sites.site_to_index[site]][month_to_index[month]][category] += 1
         del touched_cells
         del touched_sites
-        
+    print("finish year", flush=True)
     return grid, site_data
 
 def sum_years(yearly_grids, year_index):
@@ -288,7 +288,7 @@ def getQuantilesFromYearlyGrids(yearly_grids, n_years_to_sum, n_years_to_sum_cat
     return quantiles
 
 def get_grid_sum_samples(yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years):
-    print("getting grid sums")
+    print("getting grid sums", flush=True)
     
     sums = []
     yearly_grids = np.array(yearly_grids)
@@ -306,11 +306,18 @@ def get_grid_sum_samples(yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n
     sums = np.array(sums)                
     return sums
 
+def get_grid_mean_samples(yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years):
+    
+    sums = get_grid_sum_samples(yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years)
+    
+    return np.mean(sums, axis=0)
+    
+
 def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_grids, include_sites):
     """
     Calculate average landfalls per month within lat, lon bins from synthetic TC data.
     For use as the training output of ML model.
-
+ 
     :param TC_data: list of synthetically generated TC data
     :param basin: the basin storms are being generated in
     :param total_years: number of years that synthetic data was generated over
@@ -350,12 +357,12 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
     number_of_cores = int(os.environ['SLURM_CPUS_PER_TASK'])
     #number_of_cores = cpu_count() # if not on the cluster you should do this instead
 
-    years_of_storms = [[] for i in range(total_years // decade_length)]
+    years_of_storms = [[] for i in range(total_years)]
 
     year = 0
     print("n storms", len(storms))
     for storm in storms:
-        if storm['year'] >= (year+1) * decade_length:
+        if storm['year'] >= (year+1):
             year += 1
         
         years_of_storms[year].append(storm)
@@ -375,7 +382,7 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
                 ]
 
         year_results = pool.starmap(landfallsPerMonthForYear, args)
-        print("computed yearly results")
+        print("computed yearly results", flush=True)
         for i, year_result in enumerate(year_results):
             grid, site_data = year_result
 
@@ -385,7 +392,7 @@ def getLandfallsData(TC_data, basin, total_years, resolution, sites, include_gri
             if include_sites:
                 yearly_site_data.append(site_data)
         
-        summed_samples = get_grid_sum_samples(yearly_grids, 10, 100, 100, total_years)
+        mean_samples = get_grid_mean_samples(yearly_grids, 10, 100, 100, total_years)
         del yearly_grids
         
-    return summed_samples, yearly_site_data
+    return mean_samples, yearly_site_data
