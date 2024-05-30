@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from HealthFacilities.getHealthFacilityData import Sites
+import unittest
 
 def get_many_site_values(grids):
     """
@@ -67,3 +68,41 @@ def get_site_values(grid):
         site_values[i] = grid[cell]
 
     return site_values
+
+class TestEvaluationUtils(unittest.TestCase):
+    def test_get_grid_cell(self):
+        # test that the get grid cell function works properly for two different resolutions
+
+        self.assertEqual(get_grid_cell(-60,135, 0.5), (0, 0))
+        self.assertEqual(get_grid_cell(-60, 136.1, 0.5), (0, 2))
+        self.assertEqual(get_grid_cell(-60, 136.1, 1), (0, 1))
+
+    def test_get_grid_cell_out_of_basin(self):
+
+        with self.assertRaises(Exception):
+            get_grid_cell(-61, 4, 0.5)
+
+
+    def test_get_site_values(self):
+
+        # test that the get_site_values function only returns non-zero values for non-zero cells
+        test_grid = np.zeros((210,110))
+
+        site_vals = get_site_values(test_grid)
+
+        self.assertEqual(site_vals.tolist(), [0 for i in range(len(site_vals))])
+
+        cell = get_grid_cell(-9.81386294, 160.1563795, 0.5)
+        print(cell)
+        test_grid[*cell] = 1
+        site_vals = get_site_values(test_grid)
+
+        self.assertEqual(site_vals[0], 1)
+
+        for i in range(1, len(site_vals)):
+            if site_vals[i] != 0:
+                self.assertEqual(site_vals[i], 1)
+                self.assertEqual(get_grid_cell(*sites.sites[i], 0.5), cell)
+
+if __name__ == "__main__":
+    unittest.main()
