@@ -1,13 +1,12 @@
-from MachineLearning.UNet.unet import UNet
+from saved_models.saved_models import UNetCustom02CatCyclones
 
 """
-Object keeps track of the models we want to save and evaluate.
-Weights and model imports need to be updated if the class locations or weight files change. E.g. possibly on different machines.
+Object keeps track of the models we want to evaluate.
 """
 models_info = [{
     "Name": "Custom UNet",
     "Output": "Mean 0-2 Category TCs over 10 years",
-    "weights": "...",
-    "model": UNet,
+    "weights": "/nesi/project/uoa03669/ewin313/TropicalCyclone",
+    "model": UNetCustom02CatCyclones.load_model(),
     "params": ((55, 105, 1), (11, 13), 1)
 }]

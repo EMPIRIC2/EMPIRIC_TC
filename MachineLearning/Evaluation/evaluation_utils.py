@@ -15,9 +15,19 @@ def get_many_site_values(grids):
     return np.array(site_outputs)
 
 def get_outputs(dataset):
-    return dataset.map(lambda x, y: y)
+    """
+    Takes a tensorflow dataset and returns a numpy array of the output data
+    """
+    outputs_ds =  dataset.map(lambda x, y: y)
+    return np.squeeze(np.concatenate(list(outputs_ds.as_numpy_iterator()), axis=0))
+
+def process_predictions(predictions):
+    return np.squeeze(predictions)
 
 def get_inputs(dataset):
+    """
+    Takes a tensorflow dataset and returns a tensorflow dataset with only the input data
+    """
     return dataset.map(lambda x,y: x)
 
 def get_grid_cell(lat, lon, resolution):

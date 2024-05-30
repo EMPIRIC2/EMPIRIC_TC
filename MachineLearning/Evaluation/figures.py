@@ -26,6 +26,7 @@ def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
 
     if save_path is not None:
         plt.savefig(save_path)
+        plt.clf()
     else:
         plt.show()
 
@@ -48,6 +49,7 @@ def plot_quantile_maps(ground_statistics, model_statistics, save_path=None):
 
     if save_path is not None:
         plt.savefig(save_path)
+        plt.clf()
     else:
         plt.show()
 
@@ -56,12 +58,13 @@ def ks_statistic_map(metrics, save_path = None):
     Outputs a map of the KS statistic
     """
     ks = metrics["Kolmogorov-Smirnov"]
-    plt.title("Kolmogorov-Smirnov Statistic of ensemble outputs of STORM vs {}".format(metrics["Model"]))
+    plt.title("Kolmogorov-Smirnov Statistic of STORM vs {}".format(metrics["Model"]))
     plt.imshow(ks)
     plt.colorbar()
 
     if save_path is not None:
         plt.savefig(save_path)
+        plt.clf()
     else:
         plt.show()
     # TODO: improve figure
@@ -85,9 +88,10 @@ def top_relative_error_maps(top_error_maps, save_path=None):
 
     if len(top_error_maps) > 10: top_error_maps = top_error_maps[:10]
 
-    g = isns.ImageGrid(top_error_maps, col_wrap=5, axis=0, vmin=0, vmax=16, cbar=True)
+    g = isns.ImageGrid(top_error_maps, col_wrap=5, axis=0, vmin=0, vmax=2, cbar=True)
     if save_path is not None:
         plt.savefig(save_path)
+        plt.clf()
     else: plt.show()
 
 def save_metrics_as_latex(all_model_metrics, save_path):
@@ -103,17 +107,23 @@ def plot_example_site_boxplot(ground_outputs, model_outputs, n_examples, save_pa
     Outputs a boxplot showing n_examples distributions of site errors for different outputs.
     """
     box_plot_data = []
+    print(len(ground_outputs), len(model_outputs))
+    print("output shape")
+    print(ground_outputs[0].shape)
     for i in range(n_examples):
         site_errors = site_squared_error(model_outputs[i], ground_outputs[i])
-
+        print(site_errors.shape)
         for j in range(site_errors.shape[0]):
+            print(site_errors[j].shape)
+
             box_plot_data.append({"Site Squared Error": site_errors[j], "Test Example": i})
 
     df = pd.DataFrame(box_plot_data)
-    sns.boxplot(df, x="Test Example", y="Site Squared Error")
-
+    b = sns.boxplot(df, x="Test Example", y="Site Squared Error")
+    b.set_xticklabels(b.get_xticks(), size = 5)
     if save_path is not None:
         plt.savefig(save_path)
+        plt.clf()
     else: plt.show()
 
 def make_figures(ground_outputs, model_outputs, ground_statistics, model_statistics, metrics, save_folder):
@@ -121,9 +131,13 @@ def make_figures(ground_outputs, model_outputs, ground_statistics, model_statist
 
     site_outputs = get_many_site_values(ground_outputs)
     site_predictions = get_many_site_values(model_outputs)
-
+    
     example_site_ensemble_boxplot_figure({"STORM": site_outputs, "UNet": site_predictions}, os.path.join(save_folder, "site_ensemble_boxplot.png"))
+    
     ks_statistic_map(metrics, os.path.join(save_folder, "ks_statistics.png"))
+    
     plot_quantile_maps(ground_statistics, model_statistics, os.path.join(save_folder, "quantile_maps.png"))
+    
     top_relative_error_maps(metrics["Relative Error Examples"], os.path.join(save_folder, "worst_relative_errors.png"))
+    
     plot_example_site_boxplot(ground_outputs, model_outputs, 10, os.path.join(save_folder, "example_site_boxplots.png"))

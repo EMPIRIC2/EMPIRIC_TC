@@ -31,7 +31,7 @@ def compute_changes_between_2_samples(ground_outputs, model_outputs, i, j):
     model_change = relative_change(model_output_1, model_output_2)
 
     error_map = ground_change - model_change
-
+    print(ground_change.shape)
     return error_map, mean_squared_error(ground_change, model_change)
 
 def compute_all_relative_change_pairs(ground_outputs, model_outputs, max_pairs = 200):
@@ -40,7 +40,9 @@ def compute_all_relative_change_pairs(ground_outputs, model_outputs, max_pairs =
 
     return: maps of the relative errors with the largest 10 mean squared errors and the total mean squared error (over all pair results)
     """
-
+    
+    assert len(ground_outputs) == len(model_outputs)
+    
     pairs = itertools.combinations(range(len(ground_outputs)), 2)
 
     error_maps = []

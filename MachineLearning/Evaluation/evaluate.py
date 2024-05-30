@@ -1,4 +1,4 @@
-from MachineLearning.Evaluation.evaluation_utils import get_inputs, get_outputs
+from MachineLearning.Evaluation.evaluation_utils import get_inputs, get_outputs, process_predictions
 from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
 from MachineLearning.Evaluation.figures import make_figures
 from MachineLearning.Evaluation.figures import save_metrics_as_latex
@@ -29,22 +29,24 @@ def evaluate(data_folder, output_save_folder):
     storm_statistics = compute_ensemble_statistics(outputs)
 
     for model_info in models_info:
-        model = model_info["model"](*model_info["params"])
-
-        model.load_weights(model_info["weights"])
+        model = model_info["model"]
 
         predictions = model.predict(
             inputs,
             batch_size=32,
             verbose=2,
-            steps=1
         )
-
+        
+        predictions = process_predictions(predictions)
+        print(predictions.shape)
         model_statistics = compute_ensemble_statistics(predictions)
 
         model_metrics = compute_metrics(outputs, predictions, storm_statistics, model_statistics, model_info["Name"])
         metrics.append(model_metrics)
 
+        if not os.path.exists(os.path.join(output_save_folder, model_info["Name"])):
+            os.makedirs(os.path.join(output_save_folder, model_info["Name"]))
+            
         make_figures(outputs, predictions, storm_statistics, model_statistics, model_metrics, os.path.join(output_save_folder, model_info["Name"]))
 
     save_metrics_as_latex(metrics, os.path.join(output_save_folder, "metrics.tex"))
