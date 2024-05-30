@@ -9,7 +9,6 @@ import argparse
 from MachineLearning.Evaluation.model_info import models_info
 
 def evaluate(data_folder, output_save_folder):
-
     """
     Master function to compute all the evaluations and then save the figures
 
