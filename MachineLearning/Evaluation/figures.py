@@ -2,11 +2,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import seaborn_image as isns
-import numpy as np
 import os
+import unittest
 
 from MachineLearning.Evaluation.site_metrics import site_squared_error
 from MachineLearning.Evaluation.evaluation_utils import get_many_site_values, get_site_name
+from MachineLearning.Evaluation.evaluation_testing_utils import *
+from MachineLearning.Evaluation.relative_change_metrics import compute_changes_between_2_samples
+
 def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
     '''
     Outputs boxplot showing the distributions of values at the first 10 sites across all the outputs
@@ -141,3 +144,37 @@ def make_figures(ground_outputs, model_outputs, ground_statistics, model_statist
     top_relative_error_maps(metrics["Relative Error Examples"], os.path.join(save_folder, "worst_relative_errors.png"))
     
     plot_example_site_boxplot(ground_outputs, model_outputs, 10, os.path.join(save_folder, "example_site_boxplots.png"))
+
+class TestFigures(unittest.TestCase):
+    """ Figure Tests """
+    """ These will open example figures that must be closed for tests to complete """
+    def test_ensemble_boxplot(self):
+        ## Generate test data
+
+        outputs, predictions, storm_statistics, unet_statistics, all_metrics = get_test_statistics_and_metrics()
+
+        example_site_ensemble_boxplot_figure({"STORM": get_many_site_values(outputs), "UNet": get_many_site_values(predictions)})
+
+    def test_example_site_error_boxplot(self):
+
+        outputs, predictions = get_outputs_and_predictions()
+
+        plot_example_site_boxplot(outputs, predictions, 4, "")
+
+    def test_ks_statistics_map(self):
+
+        outputs, predictions, storm_statistics, unet_statistics, all_metrics = get_test_statistics_and_metrics()
+
+        ks_statistic_map(all_metrics)
+
+    def test_quantile_maps(self):
+        outputs, predictions, storm_statistics, unet_statistics, all_metrics = get_test_statistics_and_metrics()
+        plot_quantile_maps(storm_statistics, unet_statistics)
+
+    def test_relative_change_error_map(self):
+        outputs, predictions = get_outputs_and_predictions()
+        error_map, total_error = compute_changes_between_2_samples(outputs, predictions, 0, 1)
+        top_relative_error_maps(top_error_maps=[error_map, error_map])
+
+if __name__ == "__main__":
+    unittest.main()

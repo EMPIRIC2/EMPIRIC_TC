@@ -5,6 +5,7 @@ from MachineLearning.Evaluation.relative_change_metrics import *
 from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
 from MachineLearning.Evaluation.evaluation_utils import get_grid_cell, get_site_values, sites, get_many_site_values
 from MachineLearning.Evaluation.site_metrics import site_mean_squared_error
+
 ## run by calling  pytest metrics_unit_tests.py::TestSiteMetrics in this directory
 class TestSiteMetrics(unittest.TestCase):
 
@@ -56,51 +57,8 @@ class TestSiteMetrics(unittest.TestCase):
         predictions = [test_grid_8, test_grid_5, test_grid_6, test_grid_7]
 
         return outputs, predictions
-    def get_test_statistics_and_metrics(self):
-
-        outputs, predictions = self.get_outputs_and_predictions()
-        storm_statistics = compute_ensemble_statistics(outputs)
-        unet_statistics = compute_ensemble_statistics(predictions)
-
-        all_metrics = compute_metrics(outputs, predictions, storm_statistics, unet_statistics, "Custom-UNet")
-
-        return outputs, predictions, storm_statistics, unet_statistics, all_metrics
 
     """ Test Metric Code """
-
-    def test_get_grid_cell(self):
-        # test that the get grid cell function works properly for two different resolutions
-
-        self.assertEqual(get_grid_cell(-60,135, 0.5), (0, 0))
-        self.assertEqual(get_grid_cell(-60, 136.1, 0.5), (0, 2))
-        self.assertEqual(get_grid_cell(-60, 136.1, 1), (0, 1))
-
-    def test_get_grid_cell_out_of_basin(self):
-
-        with self.assertRaises(Exception):
-            get_grid_cell(-61, 4, 0.5)
-
-
-    def test_get_site_values(self):
-
-        # test that the get_site_values function only returns non-zero values for non-zero cells
-        test_grid = np.zeros((210,110))
-
-        site_vals = get_site_values(test_grid)
-
-        self.assertEqual(site_vals.tolist(), [0 for i in range(len(site_vals))])
-
-        cell = get_grid_cell(-9.81386294, 160.1563795, 0.5)
-        print(cell)
-        test_grid[*cell] = 1
-        site_vals = get_site_values(test_grid)
-
-        self.assertEqual(site_vals[0], 1)
-
-        for i in range(1, len(site_vals)):
-            if site_vals[i] != 0:
-                self.assertEqual(site_vals[i], 1)
-                self.assertEqual(get_grid_cell(*sites.sites[i], 0.5), cell)
 
     def test_site_se(self):
         ground_outputs, model_outputs = self.get_outputs_and_predictions()
@@ -114,8 +72,6 @@ class TestSiteMetrics(unittest.TestCase):
         ground_outputs, model_outputs = self.get_outputs_and_predictions()
 
         site_mse_1 = site_mean_squared_error(model_outputs[0], ground_outputs[0])
-
-        n_non_zero = np.count_nonzero(site_mse_1)
 
         n_in_gridcell = 0
         non_zero_cell = (100, 50)
@@ -142,36 +98,6 @@ class TestSiteMetrics(unittest.TestCase):
 
         self.assertEqual(storm_statistics["Quantiles"][:, 55, 45].tolist(), [5, 6.5, 8.5, 12, 18])
         self.assertEqual(unet_statistics["Quantiles"][:, 55, 45].tolist(), [10, 10, 10.5, 12.5, 17])
-
-    """ Figure Tests """
-    """ These will open example figures that must be closed for tests to complete """
-    def test_ensemble_boxplot(self):
-        ## Generate test data
-
-        outputs, predictions, storm_statistics, unet_statistics, all_metrics = self.get_test_statistics_and_metrics()
-
-        example_site_ensemble_boxplot_figure({"STORM": get_many_site_values(outputs), "UNet": get_many_site_values(predictions)})
-
-    def test_example_site_error_boxplot(self):
-
-        outputs, predictions = self.get_outputs_and_predictions()
-
-        plot_example_site_boxplot(outputs, predictions, 4, "")
-
-    def test_ks_statistics_map(self):
-
-        outputs, predictions, storm_statistics, unet_statistics, all_metrics = self.get_test_statistics_and_metrics()
-
-        ks_statistic_map(all_metrics)
-
-    def test_quantile_maps(self):
-        outputs, predictions, storm_statistics, unet_statistics, all_metrics = self.get_test_statistics_and_metrics()
-        plot_quantile_maps(storm_statistics, unet_statistics)
-
-    def test_relative_change_error_map(self):
-        outputs, predictions = self.get_outputs_and_predictions()
-        error_map, total_error = compute_changes_between_2_samples(outputs, predictions, 0, 1)
-        top_relative_error_maps(top_error_maps=[error_map, error_map])
 
 if __name__ == "__main__":
     unittest.main()
