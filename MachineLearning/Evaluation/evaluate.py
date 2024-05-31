@@ -1,7 +1,5 @@
 from MachineLearning.Evaluation.evaluation_utils import get_inputs, get_outputs, process_predictions
 from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
-from MachineLearning.Evaluation.figures import make_figures
-from MachineLearning.Evaluation.figures import save_metrics_as_latex
 import os
 from MachineLearning.dataset import get_dataset
 from MachineLearning.Evaluation.metrics import compute_metrics
