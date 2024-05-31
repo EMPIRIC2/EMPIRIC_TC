@@ -102,3 +102,5 @@ def generateInputParameters(future_data, movementCoefficientsFuture, monthslist)
     rng = np.random.Generator(np.random.PCG64DXSM())
     genesis_matrices, genesis_weightings = randomizedGenesisLocationMatrices(rng, future_data, monthslist)
     return genesis_matrices, genesis_weightings, getMovementCoefficientData()
+
+

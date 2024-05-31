@@ -180,7 +180,7 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
         with h5py.File(os.path.join(save_location, 'AllData_{}.hdf5'.format(file_time)), 'r+') as data:
 
             data['{}_genesis'.format(dataset)][i - offset] = genesis_matrices
-            data['{}_genesis_weightings'.format(dataset)[i-offset] = genesis_weightings
+            data['{}_genesis_weightings'.format(dataset)][i-offset] = genesis_weightings
                  
             if include_grids:
                 data['{}_grids'.format(dataset)][i - offset] = grid_means
