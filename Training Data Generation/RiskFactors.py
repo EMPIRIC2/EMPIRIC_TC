@@ -12,7 +12,7 @@ import time
 
 import random
 
-rmax_multiple = 4
+rmax_multiple = 1
 
 def _get_random_year_combination(num_years, size):
     sample = set()
