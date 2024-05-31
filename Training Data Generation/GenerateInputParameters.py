@@ -10,7 +10,7 @@
 
     For now, will randomly perturb parameters from observed data
 """
-
+import unittest
 import numpy as np
 import os
 
@@ -91,7 +91,7 @@ def randomizedMovementCoefficients(rng, movementCoefficientsFuture):
     return {4: random_coefficients}
 
 
-def generateInputParameters(future_data, movementCoefficientsFuture, monthslist):
+def generateInputParameters(future_data, monthslist):
     """
     Create a genesis probability map and tc track movement distribution
 
@@ -102,3 +102,36 @@ def generateInputParameters(future_data, movementCoefficientsFuture, monthslist)
     rng = np.random.Generator(np.random.PCG64DXSM())
     genesis_matrices, genesis_weightings = randomizedGenesisLocationMatrices(rng, future_data, monthslist)
     return genesis_matrices, genesis_weightings, getMovementCoefficientData()
+
+class InputGenerationTest(unittest.TestCase):
+
+    def get_data(self):
+        basin = 'SP'
+
+        monthsall = [[6, 7, 8, 9, 10, 11], [6, 7, 8, 9, 10, 11], [4, 5, 6, 9, 10, 11], [1, 2, 3, 4, 11, 12],
+                     [1, 2, 3, 4, 11, 12], [5, 6, 7, 8, 9, 10, 11]]
+
+        monthlist = monthsall[4]
+
+        models = ['CMCC-CM2-VHR4', 'EC-Earth3P-HR', 'CNRM-CM6-1-HR', 'HadGEM3-GC31-HM']
+        future_delta_files = [
+            os.path.join(__location__, 'InputData', "GENESIS_LOCATIONS_IBTRACSDELTA_{}.npy".format(model))
+            for model in models]
+
+        future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
+        return future_data, monthlist
+    def test_generate_input_parameters_random(self):
+
+        future_data, monthlist = self.get_data()
+
+        genesis_matrices, genesis_weightings, movement_coefficients = generateInputParameters(future_data, monthlist)
+
+        genesis_matrices_2, genesis_weightings_2, movement_coefficients_2 = generateInputParameters(future_data, monthlist)
+
+        for key in genesis_matrices.keys():
+            np.testing.assert_raises(AssertionError, np.testing.assert_allclose, genesis_matrices[key], genesis_matrices_2[key])
+
+        self.assertEqual(movement_coefficients, movement_coefficients_2)
+
+if __name__ == "__main__":
+    unittest.main()
