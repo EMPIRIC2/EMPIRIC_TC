@@ -1,21 +1,19 @@
 from SampleSTORM import sampleStorm
 from RiskFactors import getLandfallsData
-from GenerateInputParameters import generateInputParameters, getMovementCoefficientData
+from GenerateInputParameters import generateInputParameters
 from HealthFacilities.getHealthFacilityData import Sites
 import os
 import numpy as np
 import argparse
 import h5py
 import time
-from PlotMapData import plotLatLonGridData
-import matplotlib.pyplot as plt
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 monthsall=[[6,7,8,9,10,11],[6,7,8,9,10,11],[4,5,6,9,10,11],[1,2,3,4,11,12],[1,2,3,4,11,12],[5,6,7,8,9,10,11]]
 decade_length = 1
 
-def generateOneTrainingDataSample(total_years, future_data, movementCoefficientsFuture, refs, sites,  include_grids, include_sites, basin='SP'):
+def generateOneTrainingDataSample(total_years, future_data, refs, sites,  include_grids, include_sites, basin='SP'):
     '''
     Generate ML training data
 
@@ -30,17 +28,10 @@ def generateOneTrainingDataSample(total_years, future_data, movementCoefficients
 
     monthlist = monthsall[basins.index(basin)]
 
-    genesis_matrices, genesis_weightings, movement_coefficients = generateInputParameters(future_data, movementCoefficientsFuture, monthlist) # replace with generated parameters
+    genesis_matrices, genesis_weightings, movement_coefficients = generateInputParameters(future_data, monthlist) # replace with generated parameters
 
     genesis_matrices = {}
-    for month in monthlist:
-        dir_path = '/nesi/project/uoa03669/ewin313/TropicalCycloneAI/Training Data Generation/STORM/'
 
-        grid_copy=np.load(os.path.join(dir_path,'GRID_GENESIS_MATRIX_'+str(4)+'_'+str(month)+'.npy'))
-    
-        grid_copy=np.round(grid_copy,1)
-        genesis_matrices[month] = grid_copy
-    
     month_map = {key: i for i, key in enumerate(genesis_matrices.keys())}
     genesis_matrix = np.array([np.round(genesis_matrices[month],1) for month in monthlist])
 
@@ -97,11 +88,6 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
     mu_list = np.loadtxt(os.path.join(__location__,'STORM', 'POISSON_GENESIS_PARAMETERS.txt'))
 
     monthlist=np.load(os.path.join(__location__,'STORM','GENESIS_MONTHS.npy'), allow_pickle=True).item()
-
-    movementCoefficientsFuture = [np.load(os.path.join(__location__, 'InputData', "JM_LONLATBINS_IBTRACSDELTA_{}.npy".format(model))
-                                          , allow_pickle=True)
-                                  .item()['SP']
-                                  for model in ['CMCC-CM2-VHR4','EC-Earth3P-HR','CNRM-CM6-1-HR','HadGEM3-GC31-HM']]
 
     models = ['CMCC-CM2-VHR4', 'EC-Earth3P-HR', 'CNRM-CM6-1-HR', 'HadGEM3-GC31-HM']
     future_delta_files = [os.path.join(__location__, 'InputData', "GENESIS_LOCATIONS_IBTRACSDELTA_{}.npy".format(model))
@@ -161,7 +147,6 @@ def generateTrainingData(total_years, n_train_samples, n_test_samples, n_validat
         genesis_matrices, genesis_weightings, grid_means, yearly_site_data, tc_data = generateOneTrainingDataSample(
             total_years,
             future_data,
-            movementCoefficientsFuture,
             [JM_pressure_for_basin,
                 Genpres_for_basin,
                 WPR_coefficients_for_basin,
