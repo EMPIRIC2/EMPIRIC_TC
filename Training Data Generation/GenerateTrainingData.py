@@ -30,8 +30,6 @@ def generateOneTrainingDataSample(total_years, future_data, refs, sites,  includ
 
     genesis_matrices, genesis_weightings, movement_coefficients = generateInputParameters(future_data, monthlist) # replace with generated parameters
 
-    genesis_matrices = {}
-
     month_map = {key: i for i, key in enumerate(genesis_matrices.keys())}
     genesis_matrix = np.array([np.round(genesis_matrices[month],1) for month in monthlist])
 
