@@ -1,7 +1,5 @@
 from MachineLearning.Evaluation.evaluation_utils import get_inputs, get_outputs, process_predictions
 from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
-from MachineLearning.Evaluation.figures import make_figures
-from MachineLearning.Evaluation.figures import save_metrics_as_latex
 import os
 from MachineLearning.dataset import get_dataset
 from MachineLearning.Evaluation.metrics import compute_metrics
@@ -37,6 +35,7 @@ def evaluate(data_folder, output_save_folder):
         )
         
         predictions = process_predictions(predictions)
+
         model_statistics = compute_ensemble_statistics(predictions)
 
         model_metrics = compute_metrics(outputs, predictions, storm_statistics, model_statistics, model_info["Name"])
@@ -44,10 +43,6 @@ def evaluate(data_folder, output_save_folder):
 
         if not os.path.exists(os.path.join(output_save_folder, model_info["Name"])):
             os.makedirs(os.path.join(output_save_folder, model_info["Name"]))
-            
-        make_figures(outputs, predictions, storm_statistics, model_statistics, model_metrics, os.path.join(output_save_folder, model_info["Name"]))
-
-    save_metrics_as_latex(metrics, os.path.join(output_save_folder, "metrics.tex"))
 
 
 if __name__ == "__main__":

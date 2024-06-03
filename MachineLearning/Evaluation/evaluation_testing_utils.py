@@ -1,5 +1,6 @@
 """ Testing Utilities """
 import numpy as np
+
 import MachineLearning.Evaluation.model_statistics as ms
 import MachineLearning.Evaluation.metrics as metrics
 
@@ -63,6 +64,7 @@ def get_outputs_and_predictions():
 def get_test_statistics_and_metrics():
 
     outputs, predictions = get_outputs_and_predictions()
+
     storm_statistics = ms.compute_ensemble_statistics(outputs)
     unet_statistics = ms.compute_ensemble_statistics(predictions)
 
