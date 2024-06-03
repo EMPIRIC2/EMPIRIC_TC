@@ -79,6 +79,7 @@ def metrics_df(all_model_metrics):
     for model_metrics in all_model_metrics:
         # remove this entry because it can't go into the DF
         model_metrics.pop("Kolmogorov-Smirnov")
+        model_metrics.pop("Relative Error Examples")
 
     df = pd.DataFrame(all_model_metrics)
 
