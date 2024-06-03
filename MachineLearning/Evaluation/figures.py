@@ -22,11 +22,11 @@ def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
     for i in range(10):
         for model, site_outputs in all_site_outputs.items():
             for j in range(len(site_outputs)):
-                data.append({"Site Name": get_site_name(i), "Count": site_outputs[j][i], "Model": model})
+                data.append({"Site Name": get_site_name(i), "Mean Cat 0-2 Landfalls/10 Years": site_outputs[j][i], "Model": model})
 
     df = pd.DataFrame(data)
-    sns.boxplot(data=df, x="Site Name", y="Count", hue="Model")
-
+    sns.boxplot(data=df, x="Site Name", y="Mean Cat 0-2 Landfalls/10 Years", hue="Model")
+    plt.xticks(rotation=90)
     if save_path is not None:
         plt.savefig(save_path)
         plt.clf()
@@ -49,7 +49,7 @@ def plot_quantile_maps(ground_statistics, model_statistics, save_path=None):
     images = images.reshape((10, 110, 210))
 
     g = isns.ImageGrid(images, col_wrap=5, axis=0, vmin=0, vmax=16, cbar=True)
-
+    print(g.axes)
     if save_path is not None:
         plt.savefig(save_path)
         plt.clf()
