@@ -1,5 +1,7 @@
 """ Testing Utilities """
 import numpy as np
+import model_statistics
+import metrics
 
 def create_test_grid(data):
     test_grid = np.zeros((110, 210))
@@ -57,3 +59,13 @@ def get_outputs_and_predictions():
     predictions = [test_grid_8, test_grid_5, test_grid_6, test_grid_7]
 
     return outputs, predictions
+
+def get_test_statistics_and_metrics():
+
+    outputs, predictions = get_outputs_and_predictions()
+    storm_statistics = model_statistics.compute_ensemble_statistics(outputs)
+    unet_statistics = model_statistics.compute_ensemble_statistics(predictions)
+
+    all_metrics = metrics.compute_metrics(outputs, predictions, storm_statistics, unet_statistics, "Custom-UNet")
+
+    return outputs, predictions, storm_statistics, unet_statistics, all_metrics
