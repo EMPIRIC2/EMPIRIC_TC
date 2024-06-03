@@ -18,15 +18,15 @@ def get_outputs(dataset):
     """
     Takes a tensorflow dataset and returns a numpy array of the output data
     """
-    outputs_ds =  dataset.map(lambda x, y: y)
+    outputs_ds = dataset.map(lambda x, y: y)
     return np.squeeze(np.concatenate(list(outputs_ds.as_numpy_iterator()), axis=0))
 
 def process_predictions(predictions):
     return np.squeeze(predictions)
 
-def get_grid_cell(lat, lon, resolution):
+def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     """
-    Get the grid cell for given latitude, longitude, and grid resolution
+    Returns the grid cell that given latitude, longitude falls into for the specified resolution.
 
     :return: indices of the lat and lon cells respectively
     """
