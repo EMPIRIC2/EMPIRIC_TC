@@ -24,12 +24,6 @@ def get_outputs(dataset):
 def process_predictions(predictions):
     return np.squeeze(predictions)
 
-def get_inputs(dataset):
-    """
-    Takes a tensorflow dataset and returns a tensorflow dataset with only the input data
-    """
-    return dataset.map(lambda x,y: x)
-
 def get_grid_cell(lat, lon, resolution):
     """
     Get the grid cell for given latitude, longitude, and grid resolution
