@@ -37,7 +37,6 @@ def evaluate(data_folder, output_save_folder):
         )
         
         predictions = process_predictions(predictions)
-        print(predictions.shape)
         model_statistics = compute_ensemble_statistics(predictions)
 
         model_metrics = compute_metrics(outputs, predictions, storm_statistics, model_statistics, model_info["Name"])
