@@ -52,8 +52,10 @@ def get_grid_cell(lat, lon, resolution):
     return latCell, lonCell
 
 sites = Sites(1)
+
 def get_site_name(i):
     return sites.names[i]
+
 def get_site_values(grid):
     """
     Get the vector of values for each site from a grid output of a model
