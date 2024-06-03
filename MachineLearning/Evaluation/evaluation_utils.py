@@ -32,7 +32,7 @@ def get_inputs(dataset):
 
 def get_grid_cell(lat: float, lon: float, resolution: float) -> Tuple[int, int]:
     """
-    Get the grid cell for given latitude, longitude, and grid resolution
+    Returns the grid cell that given latitude, longitude falls into for the specified resolution.
 
     :return: indices of the lat and lon cells respectively
     """
