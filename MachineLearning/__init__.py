@@ -1,3 +1,3 @@
-__package__ = 'MachineLearning'
+__package__ = "MachineLearning"
 
-__all__ = ['dataset', 'Evaluation']
+__all__ = ["dataset", "Evaluation"]
