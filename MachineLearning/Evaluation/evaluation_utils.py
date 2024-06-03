@@ -30,7 +30,7 @@ def get_inputs(dataset):
     """
     return dataset.map(lambda x,y: x)
 
-def get_grid_cell(lat, lon, resolution):
+def get_grid_cell(lat: float, lon: float, resolution: float) -> Tuple[int, int]:
     """
     Get the grid cell for given latitude, longitude, and grid resolution
 
