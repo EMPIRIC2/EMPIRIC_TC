@@ -1,12 +1,13 @@
 import unittest
-from MachineLearning.Evaluation.relative_change_metrics import *
-from MachineLearning.Evaluation.evaluation_utils import get_grid_cell, get_site_values, sites
+import numpy as np
+from MachineLearning.Evaluation.relative_change_metrics import relative_change
+from MachineLearning.Evaluation.evaluation_utils import get_grid_cell, sites
 from MachineLearning.Evaluation.site_metrics import site_mean_squared_error, site_squared_error
-from evaluation_testing_utils import get_outputs_and_predictions, get_test_statistics_and_metrics
+from MachineLearning.Evaluation.evaluation_testing_utils import get_outputs_and_predictions, get_test_statistics_and_metrics
 
 ## run by calling  pytest metrics_unit_tests.py::TestSiteMetrics in this directory
-class TestSiteMetrics(unittest.TestCase):
 
+class TestSiteMetrics(unittest.TestCase):
     """ Test Metric Code """
     def test_site_se(self):
         ground_outputs, model_outputs = get_outputs_and_predictions()
