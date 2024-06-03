@@ -43,10 +43,6 @@ def evaluate(data_folder, output_save_folder):
 
         if not os.path.exists(os.path.join(output_save_folder, model_info["Name"])):
             os.makedirs(os.path.join(output_save_folder, model_info["Name"]))
-            
-        make_figures(outputs, predictions, storm_statistics, model_statistics, model_metrics, os.path.join(output_save_folder, model_info["Name"]))
-
-    save_metrics_as_latex(metrics, os.path.join(output_save_folder, "metrics.tex"))
 
 
 if __name__ == "__main__":
