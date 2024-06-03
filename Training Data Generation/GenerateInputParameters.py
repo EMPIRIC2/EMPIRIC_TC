@@ -122,6 +122,8 @@ class InputGenerationTest(unittest.TestCase):
         return future_data, monthlist
     def test_generate_input_parameters_random(self):
 
+        # This test makes sure that two randomly generated genesis matrices are actually different
+
         future_data, monthlist = self.get_data()
 
         genesis_matrices, genesis_weightings, movement_coefficients = generateInputParameters(future_data, monthlist)
