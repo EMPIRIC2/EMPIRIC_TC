@@ -18,21 +18,15 @@ def get_outputs(dataset):
     """
     Takes a tensorflow dataset and returns a numpy array of the output data
     """
-    outputs_ds =  dataset.map(lambda x, y: y)
+    outputs_ds = dataset.map(lambda x, y: y)
     return np.squeeze(np.concatenate(list(outputs_ds.as_numpy_iterator()), axis=0))
 
 def process_predictions(predictions):
     return np.squeeze(predictions)
 
-def get_inputs(dataset):
+def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     """
-    Takes a tensorflow dataset and returns a tensorflow dataset with only the input data
-    """
-    return dataset.map(lambda x,y: x)
-
-def get_grid_cell(lat, lon, resolution):
-    """
-    Get the grid cell for given latitude, longitude, and grid resolution
+    Returns the grid cell that given latitude, longitude falls into for the specified resolution.
 
     :return: indices of the lat and lon cells respectively
     """
@@ -52,11 +46,16 @@ def get_grid_cell(lat, lon, resolution):
     return latCell, lonCell
 
 sites = Sites(1)
+
 def get_site_name(i):
     return sites.names[i]
+
 def get_site_values(grid):
     """
-    Get the vector of values for each site from a grid output of a model
+    :param: grid: an array of values that is the model output on a latitude longitude grid.
+
+    Returns a vector of values for each site
+    values for each site are taken from the grid cell the site is located in
 
     returns: numpy array of output values at each site
     """

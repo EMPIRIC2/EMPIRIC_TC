@@ -1,20 +1,21 @@
 import unittest
 from MachineLearning.Evaluation.evaluation_utils import get_grid_cell, get_site_values, sites
 import numpy as np
+from parameterized import parameterized
 
 class TestEvaluationUtils(unittest.TestCase):
-    def test_get_grid_cell(self):
-        # test that the get grid cell function works properly for two different resolutions
 
-        self.assertEqual(get_grid_cell(-60,135, 0.5), (0, 0))
-        self.assertEqual(get_grid_cell(-60, 136.1, 0.5), (0, 2))
-        self.assertEqual(get_grid_cell(-60, 136.1, 1), (0, 1))
+    @parameterized.expand([
+        (-60, 135, 0.5, (0,0)), (-60, 136.1, 0.5, (0, 2)), (-60, 136.1, 1, (0, 1))
+    ])
+    def test_get_grid_cell(self, latitude, longitude, resolution, cell):
+        # test that the get grid cell function works properly for two different resolutions
+        self.assertEqual(get_grid_cell(latitude,longitude, resolution), cell)
 
     def test_get_grid_cell_out_of_basin(self):
 
         with self.assertRaises(Exception):
             get_grid_cell(-61, 4, 0.5)
-
 
     def test_get_site_values_zero(self):
         """
