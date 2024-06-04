@@ -52,7 +52,10 @@ def get_site_name(i):
 
 def get_site_values(grid):
     """
-    Get the vector of values for each site from a grid output of a model
+    :param: grid: an array of values that is the model output on a latitude longitude grid.
+
+    Returns a vector of values for each site
+    values for each site are taken from the grid cell the site is located in
 
     returns: numpy array of output values at each site
     """
