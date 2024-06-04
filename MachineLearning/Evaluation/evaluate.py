@@ -8,7 +8,7 @@ from MachineLearning.Evaluation.model_info import models_info
 
 def evaluate(data_folder, output_save_folder):
     """
-    Master function to compute all the evaluations and then save the figures
+    Compute all evaluation metrics and then save the resulting figures to disk.
 
     :param: data_folder: path to the data used to evaluate the model
     :param: model_path: path to the model weights to evaluate
