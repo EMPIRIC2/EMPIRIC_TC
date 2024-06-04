@@ -22,7 +22,7 @@ def evaluate(data_dir, output_dir):
     inputs = test_data.map(lambda x,y: x)
 
     metrics = []
-    storm_statistics = compute_ensemble_statistics(outputs)
+    storm_statistics = compute_ensemble_statistics("STORM", outputs)
 
     for model_info in models_info:
         model = model_info["model"]
@@ -35,7 +35,7 @@ def evaluate(data_dir, output_dir):
         
         predictions = process_predictions(predictions)
 
-        model_statistics = compute_ensemble_statistics(predictions)
+        model_statistics = compute_ensemble_statistics(model_info["Name"], predictions)
 
         model_metrics = compute_metrics(outputs, predictions, storm_statistics, model_statistics, model_info["Name"])
         metrics.append(model_metrics)

@@ -8,9 +8,10 @@ def get_quantiles(data):
     return np.quantile(data, [0, 0.25,.5,.75,1], axis=0)
 
 
-def compute_ensemble_statistics(outputs):
+def compute_ensemble_statistics(model, outputs):
 
     statistics = {
+        "Model": model,
         "Quantiles": get_quantiles(outputs),
         "Mean": np.mean(outputs, axis=0)
     }

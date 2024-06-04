@@ -2,6 +2,10 @@ import numpy as np
 import math
 from HealthFacilities.getHealthFacilityData import Sites
 
+LAT_MIN, LAT_MAX = -60, -5
+LON_MIN, LON_MAX = 135, 240
+
+
 def get_many_site_values(grids):
     """
     Gets the vectors of site values for many output grids
@@ -31,19 +35,25 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     :return: indices of the lat and lon cells respectively
     """
 
-    lat_min, lat_max = -60, -5
-    lon_min, lon_max = 135, 240
-
-    if not (lat_min <= lat < lat_max):
+    if not (LAT_MIN <= lat < LAT_MAX):
         raise Exception("lat must be within the basin")
 
-    if not (lon_min <= lon < lon_max):
+    if not (LON_MIN <= lon < LON_MAX):
         raise Exception("lon must be within the basin")
 
-    latCell = math.floor((lat - lat_min) * 1 / resolution)
-    lonCell = math.floor((lon - lon_min) * 1 / resolution)
+    latCell = math.floor((lat - LAT_MIN) * 1 / resolution)
+    lonCell = math.floor((lon - LON_MIN) * 1 / resolution)
 
     return latCell, lonCell
+
+def get_lat_lon_data_for_mesh(grid, resolution):
+
+    # convert data into format for contour plot
+    lats = [(grid.shape[0] - i) * resolution + LAT_MIN for i in range(grid.shape[0])]
+    lons = [j * resolution + LON_MIN - 180 for j in range(grid.shape[1])]
+
+    return lats, lons
+
 
 sites = Sites(1)
 

@@ -3,12 +3,10 @@ import pandas as pd
 import seaborn as sns
 import seaborn_image as isns
 import os
-import unittest
-
+import numpy as np
 from MachineLearning.Evaluation.site_metrics import site_squared_error
-from MachineLearning.Evaluation.evaluation_utils import get_many_site_values, get_site_name
-from MachineLearning.Evaluation.evaluation_testing_utils import *
-from MachineLearning.Evaluation.relative_change_metrics import compute_changes_between_2_samples
+from MachineLearning.Evaluation.evaluation_utils import get_many_site_values, get_site_name, get_lat_lon_data_for_mesh
+import cartopy.crs as ccrs
 
 def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
     '''
@@ -48,8 +46,30 @@ def plot_quantile_maps(ground_statistics, model_statistics, save_path=None):
     images = np.array([ground_quantiles, model_quantiles])
     images = images.reshape((10, 110, 210))
 
-    g = isns.ImageGrid(images, col_wrap=5, axis=0, vmin=0, vmax=16, cbar=True)
-    print(g.axes)
+    cols = ['Quantile: {}'.format(col) for col in [0,0.25,0.5,0.75,1]]
+    rows = ['Model: {}'.format(row) for row in [ground_statistics["Model"], model_statistics["Model"]]]
+    fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(18, 12), subplot_kw={'projection': ccrs.PlateCarree(central_longitude=180)})
+
+    for ax, col in zip(axes[0], cols):
+        ax.set_title(col)
+
+    for ax, row in zip(axes[:, 0], rows):
+        ax.set_ylabel(row, rotation=0, size='xx-large')
+
+    axes = axes.flatten()
+    for i in range(len(images)):
+        ax = axes[i]
+        lats, lons = get_lat_lon_data_for_mesh(images[i], resolution=0.5)
+
+        ax.coastlines('10m')
+        ax.label_outer()
+
+        cm = ax.pcolormesh(lons, lats, images[i], transform=ccrs.PlateCarree(central_longitude=180), cmap='summer', vmin=0, vmax=10)
+
+    plt.subplots_adjust(wspace=.05, hspace=-0.8)
+
+    fig.colorbar(cm, ax=axes, fraction=0.011, pad=.01)
+
     if save_path is not None:
         plt.savefig(save_path)
         plt.clf()
@@ -61,16 +81,21 @@ def ks_statistic_map(metrics, save_path = None):
     Outputs a map of the KS statistic
     """
     ks = metrics["Kolmogorov-Smirnov"]
-    plt.title("Kolmogorov-Smirnov Statistic of STORM vs {}".format(metrics["Model"]))
-    plt.imshow(ks)
-    plt.colorbar()
+    fig = plt.figure("Kolmogorov-Smirnov Statistic of STORM vs {}".format(metrics["Model"]))
+    fig.suptitle("Kolmogorov-Smirnov Statistic of STORM vs {}".format(metrics["Model"]))
+    lats, lons = get_lat_lon_data_for_mesh(ks, resolution=0.5)
+
+    ax = plt.axes(projection=ccrs.PlateCarree(central_longitude=180))
+    ax.coastlines()
+
+    im = plt.pcolormesh(lons, lats, ks, transform=ccrs.PlateCarree(central_longitude=180), vmin=0, vmax=1, cmap='summer')
+    plt.colorbar(im,fraction=0.025, pad=0.04)
 
     if save_path is not None:
         plt.savefig(save_path)
         plt.clf()
     else:
         plt.show()
-    # TODO: improve figure
 
 def metrics_df(all_model_metrics):
     """
@@ -91,8 +116,9 @@ def top_relative_error_maps(top_error_maps, save_path=None):
     """
 
     if len(top_error_maps) > 10: top_error_maps = top_error_maps[:10]
-
     g = isns.ImageGrid(top_error_maps, col_wrap=5, axis=0, vmin=0, vmax=2, cbar=True)
+    plt.title("Relative Error Maps with the largest Mean Squared Errors")
+
     if save_path is not None:
         plt.savefig(save_path)
         plt.clf()
@@ -111,20 +137,18 @@ def plot_example_site_boxplot(ground_outputs, model_outputs, n_examples, save_pa
     Outputs a boxplot showing n_examples distributions of site errors for different outputs.
     """
     box_plot_data = []
-    print(len(ground_outputs), len(model_outputs))
-    print("output shape")
-    print(ground_outputs[0].shape)
+
     for i in range(n_examples):
         site_errors = site_squared_error(model_outputs[i], ground_outputs[i])
-        print(site_errors.shape)
+
         for j in range(site_errors.shape[0]):
-            print(site_errors[j].shape)
 
             box_plot_data.append({"Site Squared Error": site_errors[j], "Test Example": i})
 
     df = pd.DataFrame(box_plot_data)
     b = sns.boxplot(df, x="Test Example", y="Site Squared Error")
-    b.set_xticklabels(b.get_xticks(), size = 5)
+    b.set_xticklabels(b.get_xticks(), size = 4)
+
     if save_path is not None:
         plt.savefig(save_path)
         plt.clf()
@@ -145,37 +169,3 @@ def make_figures(ground_outputs, model_outputs, ground_statistics, model_statist
     top_relative_error_maps(metrics["Relative Error Examples"], os.path.join(save_folder, "worst_relative_errors.png"))
     
     plot_example_site_boxplot(ground_outputs, model_outputs, 10, os.path.join(save_folder, "example_site_boxplots.png"))
-
-class TestFigures(unittest.TestCase):
-    """ Figure Tests """
-    """ These will open example figures that must be closed for tests to complete """
-    def test_ensemble_boxplot(self):
-        ## Generate test data
-
-        outputs, predictions, storm_statistics, unet_statistics, all_metrics = get_test_statistics_and_metrics()
-
-        example_site_ensemble_boxplot_figure({"STORM": get_many_site_values(outputs), "UNet": get_many_site_values(predictions)})
-
-    def test_example_site_error_boxplot(self):
-
-        outputs, predictions = get_outputs_and_predictions()
-
-        plot_example_site_boxplot(outputs, predictions, 4, "")
-
-    def test_ks_statistics_map(self):
-
-        outputs, predictions, storm_statistics, unet_statistics, all_metrics = get_test_statistics_and_metrics()
-
-        ks_statistic_map(all_metrics)
-
-    def test_quantile_maps(self):
-        outputs, predictions, storm_statistics, unet_statistics, all_metrics = get_test_statistics_and_metrics()
-        plot_quantile_maps(storm_statistics, unet_statistics)
-
-    def test_relative_change_error_map(self):
-        outputs, predictions = get_outputs_and_predictions()
-        error_map, total_error = compute_changes_between_2_samples(outputs, predictions, 0, 1)
-        top_relative_error_maps(top_error_maps=[error_map, error_map])
-
-if __name__ == "__main__":
-    unittest.main()
