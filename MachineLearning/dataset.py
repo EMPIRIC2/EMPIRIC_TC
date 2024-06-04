@@ -133,8 +133,8 @@ class hdf5_generator_v4:
         return normalized_genesis
 
     def preprocess_output(self, output):
-
-        padded_output = np.pad(output, ((1,1),(7,7)))
+        mean_0_2_cat = np.flipud(np.sum(np.sum(output, axis=-1)[:, :, :3], axis=-1))
+        padded_output = np.pad(mean_0_2_cat, ((1,1),(7,7)))
         output_w_channels = np.expand_dims(padded_output, axis=-1)
 
         return output_w_channels
@@ -145,7 +145,7 @@ class hdf5_generator_v4:
             with h5py.File(file_path, "r") as file:
                 geneses = file[self.dataset + "_genesis"]
 
-                outputs = file[self.dataset + "_means"]
+                outputs = file[self.dataset + "_grids"]
 
                 for genesis, movement, output in zip(geneses, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
