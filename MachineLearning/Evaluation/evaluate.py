@@ -6,7 +6,7 @@ from MachineLearning.Evaluation.metrics import compute_metrics
 import argparse
 from MachineLearning.Evaluation.model_info import models_info
 
-def evaluate(data_folder, output_save_folder):
+def evaluate(data_dir, output_dir):
     """
     Compute all evaluation metrics and then save the resulting figures to disk.
 
