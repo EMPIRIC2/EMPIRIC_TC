@@ -119,17 +119,25 @@ class hdf5_generator_v4:
         self.zero_inputs = zero_inputs
 
     def preprocess_input(self, genesis):
-        # pad
-        padded_genesis = np.pad(genesis, ((1, 0), (4, 3)))
 
         # this is a simple way to do a nearest neighbor upsample
-        upsampled_genesis = np.kron(padded_genesis, np.ones((2, 2)))
+        upsampled_genesis = np.kron(genesis, np.ones((2, 2)))
+
+        # pad. by upsampling first, the padding can be symmetric
+        padded_genesis = np.pad(upsampled_genesis, ((1, 1), (7, 7)))
 
         # normalize and add channel dimension
-        genesis = normalize_input(
-            np.expand_dims(upsampled_genesis, axis=-1)
+        normalized_genesis = normalize_input(
+            np.expand_dims(padded_genesis, axis=-1)
         )
-        return genesis
+        return normalized_genesis
+
+    def preprocess_output(self, output):
+
+        padded_output = np.pad(output, ((1,1),(7,7)))
+        output_w_channels = np.expand_dims(padded_output, axis=-1)
+
+        return output_w_channels
 
     def __call__(self):
         for file_path in self.file_paths:
@@ -144,9 +152,9 @@ class hdf5_generator_v4:
                         # switch the order of genesis matrix
                         # and divide output by number of years
                         if self.zero_inputs:
-                            yield np.zeros((112, 224, 1)), np.expand_dims(output, axis=-1)
+                            yield np.zeros((112, 224, 1)), self.preprocess_output(output)
                         else:
-                            yield self.preprocess_input(genesis)
+                            yield self.preprocess_input(genesis), self.preprocess_output(output)
 
                     else:  # this sample was never generated
                         break
@@ -262,6 +270,7 @@ class hdf5_generator_v2:
             geneses_pca = file.require_dataset(
                 self.dataset + "_genesis_pca", (len(geneses), 4), dtype="f"
             )
+
             movements_pca = file.require_dataset(
                 self.dataset + "_movement_pca", (len(geneses), 4), dtype="f"
             )
@@ -456,6 +465,15 @@ def get_dataset(
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
+    if data_version == 4:
+        generator = hdf5_generator_v4(file_paths, dataset=dataset, zero_inputs=False)
+        genesis_size = (112, 224, 1)
+        output_size = (112, 224, 1)
+        output_signature = (
+            tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
+            tf.TensorSpec(shape=output_size, dtype=tf.float32),
+        )
+
     start = time.time()
     dataset = tf.data.Dataset.from_generator(
         generator, output_signature=output_signature
