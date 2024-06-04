@@ -13,8 +13,6 @@ def evaluate(data_folder, output_save_folder):
     :param: data_folder: path to the data used to evaluate the model
     :param: model_path: path to the model weights to evaluate
     :param: output_save_folder: folder to save metrics latex and figure pictures
-
-    :returns: None. But saves files.
     """
 
     test_data = get_dataset(data_folder, data_version=3, dataset='test', batch_size=32)

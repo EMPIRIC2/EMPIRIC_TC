@@ -6,7 +6,6 @@ from MachineLearning.Evaluation.evaluation_testing_utils import TEST_GRIDS_1, TE
 
 outputs, predictions, storm_statistics, unet_statistics, all_metrics = TEST_GRIDS_1, TEST_GRIDS_2, STATISTICS_1, STATISTICS_2, ALL_METRICS
 
-
 class TestSMetrics(unittest.TestCase):
     """ Test Metric Code """
     def test_site_se(self):
