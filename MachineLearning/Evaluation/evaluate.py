@@ -1,4 +1,4 @@
-from MachineLearning.Evaluation.evaluation_utils import get_inputs, get_outputs, process_predictions
+from MachineLearning.Evaluation.evaluation_utils import get_outputs, process_predictions
 from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
 import os
 from MachineLearning.dataset import get_dataset
@@ -7,21 +7,19 @@ import argparse
 from MachineLearning.Evaluation.model_info import models_info
 from MachineLearning.Evaluation.figures import make_figures, save_metrics_as_latex
 
-def evaluate(data_folder, output_save_folder):
+def evaluate(data_dir, output_dir):
     """
-    Master function to compute all the evaluations and then save the figures
+    Compute all evaluation metrics and then save the resulting figures to disk.
 
     :param: data_folder: path to the data used to evaluate the model
     :param: model_path: path to the model weights to evaluate
     :param: output_save_folder: folder to save metrics latex and figure pictures
-
-    :returns: None. But saves files.
     """
 
-    test_data = get_dataset(data_folder, data_version=3, dataset='test', batch_size=32)
+    test_data = get_dataset(data_dir, data_version=3, dataset='test', batch_size=32)
 
     outputs = get_outputs(test_data)
-    inputs = get_inputs(test_data)
+    inputs = test_data.map(lambda x,y: x)
 
     metrics = []
     storm_statistics = compute_ensemble_statistics(outputs)
@@ -42,13 +40,13 @@ def evaluate(data_folder, output_save_folder):
         model_metrics = compute_metrics(outputs, predictions, storm_statistics, model_statistics, model_info["Name"])
         metrics.append(model_metrics)
 
-        if not os.path.exists(os.path.join(output_save_folder, model_info["Name"])):
-            os.makedirs(os.path.join(output_save_folder, model_info["Name"]))
+        if not os.path.exists(os.path.join(output_dir, model_info["Name"])):
+            os.makedirs(os.path.join(output_dir, model_info["Name"]))
 
         make_figures(outputs, predictions, storm_statistics, model_statistics, model_metrics,
-                     os.path.join(output_save_folder, model_info["Name"]))
+                     os.path.join(output_dir, model_info["Name"]))
 
-    save_metrics_as_latex(metrics, os.path.join(output_save_folder, "metrics.tex"))
+    save_metrics_as_latex(metrics, os.path.join(output_dir, "metrics.tex"))
 
 
 if __name__ == "__main__":
