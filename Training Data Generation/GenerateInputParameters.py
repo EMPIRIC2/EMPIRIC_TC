@@ -3,12 +3,9 @@
     used to create a training dataset for machine learning.
 
     For Now we only care about TC genesis and movement, so we need to generate inputs for
-    # storms per year (should be fairly constant)
-    genesis month (also assume constant)
     Genesis location (randomize weighted based on prob. per 1 degree x 1 degree boc)
-    TC track (movement "characteristics for every 5 degree lat. bin and epsilon distribution)
 
-    For now, will randomly perturb parameters from observed data
+
 """
 import unittest
 import numpy as np
@@ -121,6 +118,8 @@ class InputGenerationTest(unittest.TestCase):
         future_data = [np.load(file_path, allow_pickle=True).item()[basin] for file_path in future_delta_files]
         return future_data, monthlist
     def test_generate_input_parameters_random(self):
+
+        # This test makes sure that two randomly generated genesis matrices are actually different
 
         future_data, monthlist = self.get_data()
 
