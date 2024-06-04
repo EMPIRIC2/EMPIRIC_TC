@@ -7,7 +7,6 @@ import h5py
 import numpy as np
 import tensorflow as tf
 from sklearn.decomposition import PCA
-
 from utils import get_random_year_combinations
 
 print("loaded packages")
@@ -109,6 +108,48 @@ def computePCADecompForGeneratorV2(
 
     pickle.dump(pca_movement, open(save_path + "pca_movement.pkl", "wb"))
     pickle.dump(pca_genesis, open(save_path + "pca_genesis.pkl", "wb"))
+
+class hdf5_generator_v4:
+    def __init__(
+        self, file_paths, dataset="train", n_samples=100, zero_inputs=False
+    ):
+        self.file_paths = file_paths
+        self.dataset = dataset
+        self.n_samples = n_samples
+        self.zero_inputs = zero_inputs
+
+    def preprocess_input(self, genesis):
+        # pad
+        padded_genesis = np.pad(genesis, ((1, 0), (4, 3)))
+
+        # this is a simple way to do a nearest neighbor upsample
+        upsampled_genesis = np.kron(padded_genesis, np.ones((2, 2)))
+
+        # normalize and add channel dimension
+        genesis = normalize_input(
+            np.expand_dims(upsampled_genesis, axis=-1)
+        )
+        return genesis
+
+    def __call__(self):
+        for file_path in self.file_paths:
+            print(file_path)
+            with h5py.File(file_path, "r") as file:
+                geneses = file[self.dataset + "_genesis"]
+
+                outputs = file[self.dataset + "_means"]
+
+                for genesis, movement, output in zip(geneses, outputs):
+                    if np.count_nonzero(genesis) != 0:  # data has been made
+                        # switch the order of genesis matrix
+                        # and divide output by number of years
+                        if self.zero_inputs:
+                            yield np.zeros((112, 224, 1)), np.expand_dims(output, axis=-1)
+                        else:
+                            yield self.preprocess_input(genesis)
+
+                    else:  # this sample was never generated
+                        break
 
 
 class hdf5_generator_v3:
