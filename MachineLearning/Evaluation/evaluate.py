@@ -1,4 +1,4 @@
-from MachineLearning.Evaluation.evaluation_utils import get_inputs, get_outputs, process_predictions
+from MachineLearning.Evaluation.evaluation_utils import get_outputs, process_predictions
 from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
 import os
 from MachineLearning.dataset import get_dataset
@@ -20,7 +20,7 @@ def evaluate(data_folder, output_save_folder):
     test_data = get_dataset(data_folder, data_version=3, dataset='test', batch_size=32)
 
     outputs = get_outputs(test_data)
-    inputs = get_inputs(test_data)
+    inputs = test_data.map(lambda x,y: x)
 
     metrics = []
     storm_statistics = compute_ensemble_statistics(outputs)
