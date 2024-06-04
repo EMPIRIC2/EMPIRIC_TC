@@ -15,7 +15,7 @@ def evaluate(data_dir, output_dir):
     :param: output_save_folder: folder to save metrics latex and figure pictures
     """
 
-    test_data = get_dataset(data_folder, data_version=3, dataset='test', batch_size=32)
+    test_data = get_dataset(data_dir, data_version=3, dataset='test', batch_size=32)
 
     outputs = get_outputs(test_data)
     inputs = test_data.map(lambda x,y: x)
@@ -39,8 +39,8 @@ def evaluate(data_dir, output_dir):
         model_metrics = compute_metrics(outputs, predictions, storm_statistics, model_statistics, model_info["Name"])
         metrics.append(model_metrics)
 
-        if not os.path.exists(os.path.join(output_save_folder, model_info["Name"])):
-            os.makedirs(os.path.join(output_save_folder, model_info["Name"]))
+        if not os.path.exists(os.path.join(output_dir, model_info["Name"])):
+            os.makedirs(os.path.join(output_dir, model_info["Name"]))
 
 
 if __name__ == "__main__":
