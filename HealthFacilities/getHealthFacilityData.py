@@ -1,3 +1,4 @@
+## This is just a copy of TropicalCycloneAI/HealthFacilities/getHealthFacilityData.py so that it is possible to load into a jupyter notebook in this directory (poor solution)
 
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -6,11 +7,14 @@ from geopy import distance
 import os
 
 class Sites:
+    
+    indices_not_used = [338, 409, 411, 418, 412, 419, 423, 426, 429, 500, 531, 511]
+    
     def __init__(self, n_clusters=10):
         self.sites = None
         self.cluster_bounding_boxes = None
         self.clusters_to_sites = None
-        self.site_to_index = None
+        self.site_to_index = {}
         self.names = None
 
         self.getHealthFacilityData()
@@ -19,34 +23,28 @@ class Sites:
 
     
     def siteTouchedByStormRMax(self, site, lat, lon, rmax, rmax_multiple):
+        #print(site, (lat, lon))
         d = distance.distance(site, (lat, lon)).km
       
         return d <= rmax_multiple*rmax
 
     @staticmethod
     def boxes_intersect(box1, box2):
-        
-        '''
-        this is just a useful reference for where the corners of the box are. Important to remember that the y axis is negative, but not flipped (more down is more negative)
-        this method is based on this 
         top_right = (box1[1], box1[3])
         bottom_left_other = (box2[0], box2[2])
         bottom_left_self = (box1[0], box1[2])
         top_right_other = (box2[1], box2[3])
-        '''
-        
+
         return not (box1[3] < box2[2]
          or box1[2] > box2[3]
          or box1[1] < box2[0]
          or box1[0] > box2[1]
     )
 
+
+
     def update_sites_touched_by_storm(self, sites_touched_by_storm, lat, lon, rmax, rmax_multiple, storm_bounding_box):
-        
-        # also keep track of whether the box hits a site cluster (I use this for debugging purposes)
         box_touches = False
-        
-        # check each cluster of sites to see if the cluster bounding box hits the storm bounding box
         for i,cluster_bounding_box in self.cluster_bounding_boxes.items():
             if Sites.boxes_intersect(cluster_bounding_box, storm_bounding_box):
                 box_touches = True
@@ -54,8 +52,10 @@ class Sites:
                     
                     if site[0] < storm_bounding_box[0] or site[0] > storm_bounding_box[1] or site[1] < storm_bounding_box[2] or site[1] > storm_bounding_box[3]: continue
                     if self.siteTouchedByStormRMax(site, lat, lon, rmax, rmax_multiple):
+                        #if site == self.sites[411]: print("vila central touched!")
                         sites_touched_by_storm.add(site)
-
+                        #print(site)
+                        #
         
         return sites_touched_by_storm, box_touches
 
@@ -65,7 +65,7 @@ class Sites:
         if self.sites is None: return None
 
         site_data = np.zeros((
-                len(self.sites),
+                len(self.sites) - len(Sites.indices_not_used),
                 6, # storm producing months
                 5 # storm categories
         ))
@@ -74,7 +74,14 @@ class Sites:
 
     def set_site_to_index(self):
         if self.sites is None: return
-        self.site_to_index = {site: i for i, site in enumerate(self.sites)}
+
+        offset = 0
+        for i in range(len(self.sites)):
+            if i in Sites.indices_not_used:
+                offset += 1
+                continue
+            self.site_to_index[self.sites[i]] = i - offset
+            
 
     def createSiteClusters(self, n_clusters=10):
         if self.sites is None:
@@ -103,8 +110,7 @@ class Sites:
             cluster_bounding_boxes[label][2] is not None else site[1]
             cluster_bounding_boxes[label][3] = max(site[1], cluster_bounding_boxes[label][3]) if \
             cluster_bounding_boxes[label][3] is not None else site[1]
-        
-        # expand cluster boxes slightly... not sure this is necessary or not
+
         for label in cluster_bounding_boxes.keys():
             cluster_bounding_boxes[label][0] -= 1
             cluster_bounding_boxes[label][1] += 1

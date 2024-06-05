@@ -13,10 +13,10 @@ def make_site_predictions(data_folder, weight_path, prediction_save_folder, inde
 
     genesis_shape = (4,)
     movement_shape = (4,)
-    num_outputs = 2
+    num_outputs = 1
     initial_biases = np.load('MachineLearning/ConvProbPredictor/initial_biases_new.npy')
 
-    model = conv_prob_predictor(genesis_shape, movement_shape, num_outputs, initial_biases)
+    model = conv_prob_predictor(genesis_shape, movement_shape, num_outputs, None)
 
     model.load_weights(weight_path)
 
