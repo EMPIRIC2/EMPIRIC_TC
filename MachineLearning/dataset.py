@@ -109,6 +109,7 @@ def computePCADecompForGeneratorV2(
     pickle.dump(pca_movement, open(save_path + "pca_movement.pkl", "wb"))
     pickle.dump(pca_genesis, open(save_path + "pca_genesis.pkl", "wb"))
 
+
 class hdf5_generator_v4:
     def __init__(
         self, file_paths, dataset="train", n_samples=100, zero_inputs=False
@@ -160,17 +161,23 @@ class hdf5_generator_v4:
                         break
 
 
+
 class hdf5_generator_v3:
     def __init__(
-        self, file_paths, dataset="train", month=3, n_samples=100, zero_inputs=False
+      self, file_paths, dataset="train", month=3, n_samples=None, zero_inputs=False
     ):
+
         self.file_paths = file_paths
         self.dataset = dataset
         # self.month = month
         self.n_samples = n_samples
         self.zero_inputs = zero_inputs
+        self.times_sampled = 0
 
     def __call__(self):
+        if self.n_samples is not None and self.times_sampled > self.n_samples: return
+        self.times_sampled += 1
+            
         for file_path in self.file_paths:
             print(file_path)
             with h5py.File(file_path, "r") as file:
@@ -184,6 +191,7 @@ class hdf5_generator_v3:
                         # switch the order of genesis matrix
                         # and divide output by number of years
                         if self.zero_inputs:
+
                             yield np.zeros(
                                 np.expand_dims(np.sum(genesis, axis=0), axis=-1).shape
                             ), np.expand_dims(output, axis=-1)
@@ -191,6 +199,7 @@ class hdf5_generator_v3:
                             yield normalize_input(
                                 np.expand_dims(np.sum(genesis, axis=0), axis=-1)
                             ), np.expand_dims(output, axis=-1)
+
 
                     else:  # this sample was never generated
                         break
@@ -458,7 +467,9 @@ def get_dataset(
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
     if data_version == 3:
-        generator = hdf5_generator_v3(file_paths, dataset=dataset, zero_inputs=False)
+
+        generator = hdf5_generator_v3(file_paths, dataset=dataset, zero_inputs = False, n_samples=n_samples)
+
         genesis_size = (55, 105, 1)
         output_size = (110, 210, 1)
         output_signature = (
