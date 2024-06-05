@@ -2,36 +2,40 @@
 """
 @author: Nadia Bloemendaal, nadia.bloemendaal@vu.nl
 
-For more information, please see 
-Bloemendaal, N., Haigh, I.D., de Moel, H. et al. 
-Generation of a global synthetic tropical cyclone hazard dataset using STORM. 
+For more information, please see
+Bloemendaal, N., Haigh, I.D., de Moel, H. et al.
+Generation of a global synthetic tropical cyclone hazard dataset using STORM.
 Sci Data 7, 40 (2020). https://doi.org/10.1038/s41597-020-0381-2
 
 This is the STORM module for simulation of the TC genesis location
 
 Copyright (C) 2020 Nadia Bloemendaal. All versions released under the GNU General Public License v3.0
 """
-#==============================================================================
+# ==============================================================================
 # Variables used in this code:
-    #grid_copy: copy of grid, the 1x1 deg matrix with genesis counts
-    #no_storms: number of storms per year
-    #lon_genesis_list,lat_genesis_list: lists of lon and lat points of genesis
-    #value: value in copy_grid
-    #weighted_list_index: list of indices (weighted) corresponding to the value in grid_copy. Example: if the value is 5, the correspondng index is listed 5 times.
-    #idx: randomly chosen index of weighted_list_index
-    #row,col: row and column of grid_copy corresponding to the chosen index
-    #lat_pert,lon_pert: random value between 0 and 1, indicating the genesis location. This is NOT the actual longitude latitude, but indexed based on the coordinates of 'grid'
-#==============================================================================
+# grid_copy: copy of grid, the 1x1 deg matrix with genesis counts
+# no_storms: number of storms per year
+# lon_genesis_list,lat_genesis_list: lists of lon and lat points of genesis
+# value: value in copy_grid
+# weighted_list_index: list of indices (weighted) corresponding to the value in grid_copy. Example: if the value is 5, the correspondng index is listed 5 times.
+# idx: randomly chosen index of weighted_list_index
+# row,col: row and column of grid_copy corresponding to the chosen index
+# lat_pert,lon_pert: random value between 0 and 1, indicating the genesis location. This is NOT the actual longitude latitude, but indexed based on the coordinates of 'grid'
+# ==============================================================================
+
+import os
+import random
+import sys
 
 import numpy as np
-import random
-import os
-import sys
-dir_path=os.path.dirname(os.path.realpath(sys.argv[0]))
+
+dir_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 from .SELECT_BASIN import Basins_WMO
-def Check_EP_formation(lat,lon): 
+
+
+def Check_EP_formation(lat, lon):
     """
     Check if formation is in Eastern Pacific (this should be inhibited if basin==NA)
     Parameters
@@ -43,23 +47,23 @@ def Check_EP_formation(lat,lon):
     -------
     l : 1=yes (formation in EP),0=no (no formation in EP).
 
-    """    
-    if lat<=60. and lon<260.:
-        l=1
-    elif lat<=17.5 and lon<270.:
-        l=1
-    elif lat<=15. and lon<275.:
-        l=1
-    elif lat<=10. and lon<276.:
-        l=1
-    elif lat<=9. and lon<290.:
-        l=1
+    """
+    if lat <= 60.0 and lon < 260.0:
+        l = 1
+    elif lat <= 17.5 and lon < 270.0:
+        l = 1
+    elif lat <= 15.0 and lon < 275.0:
+        l = 1
+    elif lat <= 10.0 and lon < 276.0:
+        l = 1
+    elif lat <= 9.0 and lon < 290.0:
+        l = 1
     else:
-        l=0
+        l = 0
     return l
-    
-    
-def Check_NA_formation(lat,lon): 
+
+
+def Check_NA_formation(lat, lon):
     """
     Check if formation is in North Atlantic (this should be inhibited if basin==EP)
     Parameters
@@ -72,19 +76,20 @@ def Check_NA_formation(lat,lon):
     l : 1=yes (formation in NA) 0=no (no formation in NA).
 
     """
-    if lat<=60. and lat>17.5 and lon>260.:
-        l=1
-    elif lat<=17.5 and lat>15. and lon>270.:
-        l=1
-    elif lat<=15. and lat>10 and lon>275.:
-        l=1
-    elif lat<=10. and lon>276.:
-        l=1
+    if lat <= 60.0 and lat > 17.5 and lon > 260.0:
+        l = 1
+    elif lat <= 17.5 and lat > 15.0 and lon > 270.0:
+        l = 1
+    elif lat <= 15.0 and lat > 10 and lon > 275.0:
+        l = 1
+    elif lat <= 10.0 and lon > 276.0:
+        l = 1
     else:
-        l=0
+        l = 0
     return l
 
-def Check_if_landfall(lat,lon,basin,land_mask, mu_list, monthlist):
+
+def Check_if_landfall(lat, lon, basin, land_mask, mu_list, monthlist):
     """
     Parameters
     ----------
@@ -99,17 +104,30 @@ def Check_if_landfall(lat,lon,basin,land_mask, mu_list, monthlist):
     l : 0=no landfall, 1=landfall
 
     """
-    s,monthdummy,lat0_WMO,lat1_WMO,lon0_WMO,lon1_WMO=Basins_WMO(basin, mu_list, monthlist)
-    
-    x=int(10*(lon-lon0_WMO))
-    y=int(10*(lat1_WMO-lat))
-    l=land_mask[y,x]   
+    s, monthdummy, lat0_WMO, lat1_WMO, lon0_WMO, lon1_WMO = Basins_WMO(
+        basin, mu_list, monthlist
+    )
+
+    x = int(10 * (lon - lon0_WMO))
+    y = int(10 * (lat1_WMO - lat))
+    l = land_mask[y, x]
     return l
+
 
 def getGenesisMatrix(grid_genesis_matrices, month):
     return grid_genesis_matrices[month]
 
-def Startingpoint(no_storms,genesis_months,basin, grid_genesis_matrix, month_map, land_mask, mu_list, monthlist):
+
+def Startingpoint(
+    no_storms,
+    genesis_months,
+    basin,
+    grid_genesis_matrix,
+    month_map,
+    land_mask,
+    mu_list,
+    monthlist,
+):
     """
     This function samples the genesis locations of every TC in a given year
 
@@ -126,63 +144,63 @@ def Startingpoint(no_storms,genesis_months,basin, grid_genesis_matrix, month_map
 
     """
 
-    lon_coordinates=[]
-    lat_coordinates=[]
-    weighted_list_index=[]
-    weighted_list=[]
+    lon_coordinates = []
+    lat_coordinates = []
+    weighted_list_index = []
+    weighted_list = []
 
-
-    s,monthdummy,lat0,lat1,lon0,lon1=Basins_WMO(basin, mu_list, monthlist)
-
+    s, monthdummy, lat0, lat1, lon0, lon1 = Basins_WMO(basin, mu_list, monthlist)
 
     for month in genesis_months:
-
         grid_copy = grid_genesis_matrix[month_map[month]]
 
-        #==============================================================================
+        # ==============================================================================
         # Make a list with weighted averages. The corresponding grid-index is calculated as len(col)*row_index+col_index
-        #==============================================================================
+        # ==============================================================================
 
-        for i in range(0,len(grid_copy[:,0])):
-            for j in range(0,len(grid_copy[0,:])):
-                if grid_copy[i,j]>-1:
-                    value=int(10*grid_copy[i,j])
+        for i in range(0, len(grid_copy[:, 0])):
+            for j in range(0, len(grid_copy[0, :])):
+                if grid_copy[i, j] > -1:
+                    value = int(10 * grid_copy[i, j])
                 else:
-                    value=0
-                if value>0.:
-                    for k in range(0,value):
+                    value = 0
+                if value > 0.0:
+                    for k in range(0, value):
                         weighted_list.append(value)
-                        weighted_list_index.append(i*(len(grid_copy[0,:])-1)+j)
+                        weighted_list_index.append(i * (len(grid_copy[0, :]) - 1) + j)
 
-        #==============================================================================
-        # The starting longitude and latitude coordinates 
-        #==============================================================================
-        var=0
-        while var==0:
-            idx0=random.choice(weighted_list_index)
+        # ==============================================================================
+        # The starting longitude and latitude coordinates
+        # ==============================================================================
+        var = 0
+        while var == 0:
+            idx0 = random.choice(weighted_list_index)
 
-            row=int(np.floor(idx0/(len(grid_copy[0,:])-1)))
-            col=int(idx0%(len(grid_copy[0,:])-1))
-            lat_pert=random.uniform(0,0.94) #take 0.94 to make sure the randomly selected point is still inside the grid box after rounding off. 
-            lon_pert=random.uniform(0,0.94)
-            lon=lon0+round(col+lon_pert,1)
-            lat=lat1-round(row+lat_pert,1)
-            
-            
-            if lon<lon1 and lat<lat1:
-                check=Check_if_landfall(lat,lon,basin,land_mask, mu_list, monthlist) #make sure the coordinate isn't on land
-                
-                if basin=='EP':
-                    check=Check_NA_formation(lat,lon)
-                if basin=='NA':
-                    check=Check_EP_formation(lat,lon)
-                    
-                if check==0:            
+            row = int(np.floor(idx0 / (len(grid_copy[0, :]) - 1)))
+            col = int(idx0 % (len(grid_copy[0, :]) - 1))
+            lat_pert = random.uniform(
+                0, 0.94
+            )  # take 0.94 to make sure the randomly selected point is still inside the grid box after rounding off.
+            lon_pert = random.uniform(0, 0.94)
+            lon = lon0 + round(col + lon_pert, 1)
+            lat = lat1 - round(row + lat_pert, 1)
+
+            if lon < lon1 and lat < lat1:
+                check = Check_if_landfall(
+                    lat, lon, basin, land_mask, mu_list, monthlist
+                )  # make sure the coordinate isn't on land
+
+                if basin == "EP":
+                    check = Check_NA_formation(lat, lon)
+                if basin == "NA":
+                    check = Check_EP_formation(lat, lon)
+
+                if check == 0:
                     lon_coordinates.append(lon)
                     lat_coordinates.append(lat)
-                    var=1  
+                    var = 1
                 else:
-                    var=0
-    
-        if len(lon_coordinates)==no_storms:       
-            return lon_coordinates,lat_coordinates
+                    var = 0
+
+        if len(lon_coordinates) == no_storms:
+            return lon_coordinates, lat_coordinates

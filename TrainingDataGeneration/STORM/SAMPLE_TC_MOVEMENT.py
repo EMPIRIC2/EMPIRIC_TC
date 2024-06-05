@@ -2,23 +2,27 @@
 """
 @author: Nadia Bloemendaal, nadia.bloemendaal@vu.nl
 
-For more information, please see 
-Bloemendaal, N., Haigh, I.D., de Moel, H. et al. 
-Generation of a global synthetic tropical cyclone hazard dataset using STORM. 
+For more information, please see
+Bloemendaal, N., Haigh, I.D., de Moel, H. et al.
+Generation of a global synthetic tropical cyclone hazard dataset using STORM.
 Sci Data 7, 40 (2020). https://doi.org/10.1038/s41597-020-0381-2
 
 This is the STORM module for simulation of the TC track
 
 Copyright (C) 2020 Nadia Bloemendaal. All versions released under the GNU General Public License v3.0
 """
-import numpy as np
-from .SELECT_BASIN import Basins_WMO
 import os
 import sys
-dir_path=os.path.dirname(os.path.realpath(sys.argv[0]))
+
+import numpy as np
+
+from .SELECT_BASIN import Basins_WMO
+
+dir_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
-def find_lat_index_bins(basin,lat, mu_list, monthlist):
+
+def find_lat_index_bins(basin, lat, mu_list, monthlist):
     """
     find index of latitude bin in coefficients list
 
@@ -32,12 +36,13 @@ def find_lat_index_bins(basin,lat, mu_list, monthlist):
     latindex : index of bin.
 
     """
-    s,monthdummy,lat0,lat1,lon0,lon1=Basins_WMO(basin, mu_list, monthlist)
-    base=5
-    latindex=np.floor(float(lat-lat0)/base)
+    s, monthdummy, lat0, lat1, lon0, lon1 = Basins_WMO(basin, mu_list, monthlist)
+    base = 5
+    latindex = np.floor(float(lat - lat0) / base)
     return latindex
 
-def LAT_JAMES_MASON(dlat,lat,a,b,c):
+
+def LAT_JAMES_MASON(dlat, lat, a, b, c):
     """
     Parameters
     ----------
@@ -50,10 +55,11 @@ def LAT_JAMES_MASON(dlat,lat,a,b,c):
     y : forward change in latitude (dlat1, lat[i+1]-lat[i]).
 
     """
-    y=a+b*dlat+c/lat
+    y = a + b * dlat + c / lat
     return y
 
-def LON_JAMES_MASON(dlon,a,b):
+
+def LON_JAMES_MASON(dlon, a, b):
     """
     Parameters
     ----------
@@ -65,10 +71,11 @@ def LON_JAMES_MASON(dlon,a,b):
     y : forward change in longitude (dlon1, lon[i+1]-lon[i])
 
     """
-    y=a+b*dlon
+    y = a + b * dlon
     return y
 
-def Check_if_landfall(lat,lon,lat1,lon0,land_mask):
+
+def Check_if_landfall(lat, lon, lat1, lon0, land_mask):
     """
     Parameters
     ----------
@@ -83,20 +90,30 @@ def Check_if_landfall(lat,lon,lat1,lon0,land_mask):
     l : 0=no landfall, 1=landfall
 
     """
-    x_coord=int(10*(lon-lon0))
-    y_coord=int(10*(lat1-lat))
-    l=land_mask[y_coord,x_coord]  
+    x_coord = int(10 * (lon - lon0))
+    y_coord = int(10 * (lat1 - lat))
+    l = land_mask[y_coord, x_coord]
 
     return l
-  
-def TC_movement(rng, lon_genesis_list,lat_genesis_list,basin, constants_all, mu_list, monthlist, land_mask):
+
+
+def TC_movement(
+    rng,
+    lon_genesis_list,
+    lat_genesis_list,
+    basin,
+    constants_all,
+    mu_list,
+    monthlist,
+    land_mask,
+):
     """
     Parameters
     ----------
     lon_genesis_list : list of longitudinal positions of genesis in a year
     lat_genesis_list : list of latitudinal positions of genesis in a year
     basin : basin
-    
+
     Returns
     ---------
     latall : all latitude positions of the eye of TC for every TC in a year
@@ -104,81 +121,99 @@ def TC_movement(rng, lon_genesis_list,lat_genesis_list,basin, constants_all, mu_
     landfallall : landfall (0=no 1=yes) along the track for every TC in a year
     """
 
-    basins=['EP','NA','NI','SI','SP','WP']
-    basin_name = dict(zip(basins,[0,1,2,3,4,5]))
-    idx=basin_name[basin]
+    basins = ["EP", "NA", "NI", "SI", "SP", "WP"]
+    basin_name = dict(zip(basins, [0, 1, 2, 3, 4, 5]))
+    idx = basin_name[basin]
 
-    constants=constants_all[idx]
-    
-    s,monthdummy,lat0,lat1,lon0,lon1=Basins_WMO(basin, mu_list, monthlist)
-    latall=[]
-    lonall=[]
-    landfallall=[]
-   
-    for lat_genesis,lon_genesis in zip(lat_genesis_list,lon_genesis_list):                 
-        #load data for longitude/latitude
-        latlijst=[]
-        lonlijst=[]
-        landfalllijst=[]
-        lat=lat_genesis
-        lon=lon_genesis
+    constants = constants_all[idx]
+
+    s, monthdummy, lat0, lat1, lon0, lon1 = Basins_WMO(basin, mu_list, monthlist)
+    latall = []
+    lonall = []
+    landfallall = []
+
+    for lat_genesis, lon_genesis in zip(lat_genesis_list, lon_genesis_list):
+        # load data for longitude/latitude
+        latlijst = []
+        lonlijst = []
+        landfalllijst = []
+        lat = lat_genesis
+        lon = lon_genesis
         latlijst.append(lat)
         lonlijst.append(lon)
-        landfall=Check_if_landfall(lat,lon,lat1,lon0,land_mask) #1=landfall 0=no landfall  
+        landfall = Check_if_landfall(
+            lat, lon, lat1, lon0, land_mask
+        )  # 1=landfall 0=no landfall
         landfalllijst.append(landfall)
-        
-        var=0 #var is the 'stop-parameter'. The track generation ends when the storm moves over land or out of the basin
-        while var==0:
-            ind=int(find_lat_index_bins(basin,lat, mu_list, monthlist))
-            #constants values for latitude/longitude
-            [a0,a1,b0,b1,b2,Elatmu,Elatstd,Elonmu,Elonstd,Dlat0mu,Dlat0std,Dlon0mu,Dlon0std]=constants[ind]    
-            
-            if len(latlijst)==1: #if this is the first time step after genesis, we need to sample the first change in lon/lat/pressure
-                dlat0=rng.normal(Dlat0mu,Dlat0std,1)
-                dlon0=rng.normal(Dlon0mu,Dlon0std,1)
-            
-            dlat1=LAT_JAMES_MASON(dlat0,lat,b0,b1,b2)
-            if basin=='SP' or basin=='SI':
-                if lat>-10.:                    
-                    dlat1=float(dlat1-np.abs(rng.normal(Elatmu,Elatstd)))
-                else:
-                    dlat1=float(dlat1+rng.normal(Elatmu,Elatstd))
-                    
-            else:
-                if lat<10.:
-                    dlat1=float(dlat1+np.abs(rng.normal(Elatmu,Elatstd)))
-                else:
-                    dlat1=float(dlat1+rng.normal(Elatmu,Elatstd))
-                    
 
-            dlon1=LON_JAMES_MASON(dlon0,a0,a1)
-            epsilon=rng.normal(Elonmu,Elonstd)
-            dlon1=float(dlon1+epsilon)
-            if np.abs(lat)>=45:
-              if dlon1<0.:
-                dlon1=0
-                            
-            lat=round(dlat1+lat,1)
-            lon=round(dlon1+lon,1)
-            
-            
-            dlat0=dlat1 
-            dlon0=dlon1
-            
-                    
-                                      
-            if lat<=lat1-0.1 and lat>lat0 and lon<=lon1-0.1 and lon>lon0: #if storm is still inside the domain. The 0.1's are added to make sure we don't end up at the upper/rightmost edge
+        var = 0  # var is the 'stop-parameter'. The track generation ends when the storm moves over land or out of the basin
+        while var == 0:
+            ind = int(find_lat_index_bins(basin, lat, mu_list, monthlist))
+            # constants values for latitude/longitude
+            [
+                a0,
+                a1,
+                b0,
+                b1,
+                b2,
+                Elatmu,
+                Elatstd,
+                Elonmu,
+                Elonstd,
+                Dlat0mu,
+                Dlat0std,
+                Dlon0mu,
+                Dlon0std,
+            ] = constants[ind]
+
+            if (
+                len(latlijst) == 1
+            ):  # if this is the first time step after genesis, we need to sample the first change in lon/lat/pressure
+                dlat0 = rng.normal(Dlat0mu, Dlat0std, 1)
+                dlon0 = rng.normal(Dlon0mu, Dlon0std, 1)
+
+            dlat1 = LAT_JAMES_MASON(dlat0, lat, b0, b1, b2)
+            if basin == "SP" or basin == "SI":
+                if lat > -10.0:
+                    dlat1 = float(dlat1 - np.abs(rng.normal(Elatmu, Elatstd)))
+                else:
+                    dlat1 = float(dlat1 + rng.normal(Elatmu, Elatstd))
+
+            else:
+                if lat < 10.0:
+                    dlat1 = float(dlat1 + np.abs(rng.normal(Elatmu, Elatstd)))
+                else:
+                    dlat1 = float(dlat1 + rng.normal(Elatmu, Elatstd))
+
+            dlon1 = LON_JAMES_MASON(dlon0, a0, a1)
+            epsilon = rng.normal(Elonmu, Elonstd)
+            dlon1 = float(dlon1 + epsilon)
+            if np.abs(lat) >= 45:
+                if dlon1 < 0.0:
+                    dlon1 = 0
+
+            lat = round(dlat1 + lat, 1)
+            lon = round(dlon1 + lon, 1)
+
+            dlat0 = dlat1
+            dlon0 = dlon1
+
+            if (
+                lat <= lat1 - 0.1 and lat > lat0 and lon <= lon1 - 0.1 and lon > lon0
+            ):  # if storm is still inside the domain. The 0.1's are added to make sure we don't end up at the upper/rightmost edge
                 latlijst.append(lat)
-                lonlijst.append(lon) 
-                landfall=Check_if_landfall(lat,lon,lat1,lon0,land_mask) #1=landfall 0=no landfall  
+                lonlijst.append(lon)
+                landfall = Check_if_landfall(
+                    lat, lon, lat1, lon0, land_mask
+                )  # 1=landfall 0=no landfall
                 landfalllijst.append(landfall)
-                    
-            else: #the storm has moved out of the domain. Stop the algorithm
-                var=1             
-                latall.append(latlijst) #all locations of all storms (seperate entries) are contained in these two lists
+
+            else:  # the storm has moved out of the domain. Stop the algorithm
+                var = 1
+                latall.append(
+                    latlijst
+                )  # all locations of all storms (seperate entries) are contained in these two lists
                 lonall.append(lonlijst)
                 landfallall.append(landfalllijst)
-            
 
-    return(latall,lonall,landfallall)
-
+    return (latall, lonall, landfallall)
