@@ -40,7 +40,7 @@ def compute_all_relative_change_pairs(ground_outputs, model_outputs, max_pairs =
 
     return: maps of the relative errors with the largest 10 mean squared errors and the total mean squared error (over all pair results)
     """
-    
+    print(len(ground_outputs), len(model_outputs))
     assert len(ground_outputs) == len(model_outputs)
     
     pairs = itertools.combinations(range(len(ground_outputs)), 2)
