@@ -282,8 +282,6 @@ def get_cells_and_sites_touched_by_storm(
 def landfallsPerMonthForYear(
     storms, resolution, basin, sites, include_grids, include_sites
 ):
-    print("Starting year", flush=True)
-    print(len(storms), flush=True)
     if include_sites:
         site_data = sites.create_site_landfall_vector()
     else:
@@ -295,7 +293,6 @@ def landfallsPerMonthForYear(
         grid = None
 
     for i, storm in enumerate(storms):
-        print(i, flush=True)
         touched_cells, touched_sites = get_cells_and_sites_touched_by_storm(
             storm, resolution, basin, sites, include_grids, include_sites
         )
@@ -379,7 +376,6 @@ def get_grid_sum_samples(
     )
 
     for i in range(n_samples):
-        print(len(sums))
         sampled_sum = np.zeros(yearly_grids[0].shape)
 
         sampled_sum[:, :, :, :4] = np.sum(
@@ -495,5 +491,5 @@ def getLandfallsData(
 
         mean_samples = get_grid_mean_samples(yearly_grids, 10, 100, 100, total_years)
         del yearly_grids
-
+    
     return mean_samples, yearly_site_data
