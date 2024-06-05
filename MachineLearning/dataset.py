@@ -147,7 +147,7 @@ class hdf5_generator_v4:
 
                 outputs = file[self.dataset + "_grids"]
 
-                for genesis, movement, output in zip(geneses, outputs):
+                for genesis, output in zip(geneses, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
                         # switch the order of genesis matrix
                         # and divide output by number of years
