@@ -15,6 +15,7 @@ class Sites:
         self.cluster_bounding_boxes = None
         self.clusters_to_sites = None
         self.site_to_index = {}
+        self.names = None
 
         self.getHealthFacilityData()
         self.createSiteClusters(n_clusters)
@@ -130,13 +131,13 @@ class Sites:
         files = ['SPC_health_data_hub_Kiribati.csv', 'SPC_health_data_hub_Solomon_Islands.csv', 'SPC_health_data_hub_Tonga.csv', 'SPC_health_data_hub_Vanuatu.csv']
         file_paths = [os.path.join(__location__, file) for file in files]
         locations = []
-
+        filtered_names = []
         for file_path in file_paths:
             df = pd.read_csv(file_path)
 
             latitudes = df.loc[:, "LATITUDE: Latitude"]
             longitudes = df.loc[:, "LONGITUDE: Longitude"]
-
+            names = df.loc[:, "FACNAME: Facility name"]
 
             ## adjust because our longitudes go from 0 to 360 not -180 to 180
             for i in range(len(longitudes)):
@@ -146,5 +147,7 @@ class Sites:
                     df.loc[i, "LONGITUDE: Longitude"] += 360
 
                 locations.append((latitudes.loc[i], longitudes.loc[i]))
+                filtered_names.append(names.loc[i])
 
         self.sites = locations
+        self.names = filtered_names
