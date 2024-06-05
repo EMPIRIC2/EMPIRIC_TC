@@ -1,9 +1,7 @@
-import tensorflow as tf
-from tensorflow import keras
+import keras
 from MachineLearning.dataset import get_dataset
 from MachineLearning.UNet.unet import UNet
 import time
-import numpy as np
 
 genesis_size_default = (55, 105, 1)
 movement_size_default = (11, 13)
