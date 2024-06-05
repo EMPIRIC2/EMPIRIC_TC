@@ -6,11 +6,11 @@ from parameterized import parameterized
 class TestEvaluationUtils(unittest.TestCase):
 
     @parameterized.expand([
-        (-60, 135, 0.5, (0,0)), (-60, 136.1, 0.5, (0, 2)), (-60, 136.1, 1, (0, 1))
+        (-5.1, 135, 0.5, (0,0)), (-5.1, 136.1, 0.5, (0, 2)), (-5.1, 136.1, 1, (0, 1))
     ])
     def test_get_grid_cell(self, latitude, longitude, resolution, expected_cell):
         # test that the get grid cell function works properly for two different resolutions
-        self.assertEqual(get_grid_cell(latitude,longitude, resolution), cell)
+        self.assertEqual(get_grid_cell(latitude,longitude, resolution), expected_cell)
 
     def test_get_grid_cell_out_of_basin(self):
 
