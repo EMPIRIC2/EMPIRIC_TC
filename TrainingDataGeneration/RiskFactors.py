@@ -311,7 +311,7 @@ def landfallsPerMonthForYear(
                 ] += 1
         del touched_cells
         del touched_sites
-    print("finish year", flush=True)
+    print("Finished one year.", flush=True)
     return grid, site_data
 
 
