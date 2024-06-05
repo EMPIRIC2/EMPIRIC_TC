@@ -27,6 +27,8 @@ def process_predictions(predictions):
 def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     """
     Returns the grid cell that given latitude, longitude falls into for the specified resolution.
+    The 0,0 cell is in the upper left corner, eg. latitude -5, longitude 135
+    latCell index increases as latitude goes down and lonCell index increases as longitude goes up
 
     :return: indices of the lat and lon cells respectively
     """
@@ -40,7 +42,11 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     if not (lon_min <= lon < lon_max):
         raise Exception("lon must be within the basin")
 
-    latCell = math.floor((lat - lat_min) * 1 / resolution)
+    n_lat_cells = math.floor((lat_max - lat_min) * 1 / resolution)
+
+    # flip the lat cell upside down
+    latCell = n_lat_cells - math.floor((lat - lat_min) * 1 / resolution) - 1
+
     lonCell = math.floor((lon - lon_min) * 1 / resolution)
 
     return latCell, lonCell
