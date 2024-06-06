@@ -7,7 +7,6 @@ import numpy as np
 
 def compute_sample_means_for_file(file_path, dataset):
     with h5py.File(file_path, "r+") as file:
-
         grids = file[dataset + "_grids"]
 
         try:

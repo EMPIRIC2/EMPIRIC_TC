@@ -7,6 +7,7 @@ import h5py
 import numpy as np
 import tensorflow as tf
 from sklearn.decomposition import PCA
+
 from utils import get_random_year_combinations
 
 print("loaded packages")
@@ -111,16 +112,13 @@ def computePCADecompForGeneratorV2(
 
 
 class hdf5_generator_v4:
-    def __init__(
-        self, file_paths, dataset="train", n_samples=100, zero_inputs=False
-    ):
+    def __init__(self, file_paths, dataset="train", n_samples=100, zero_inputs=False):
         self.file_paths = file_paths
         self.dataset = dataset
         self.n_samples = n_samples
         self.zero_inputs = zero_inputs
 
     def preprocess_input(self, genesis):
-
         # month sum
         genesis = np.sum(genesis, axis=0)
 
@@ -131,9 +129,7 @@ class hdf5_generator_v4:
         padded_genesis = np.pad(upsampled_genesis, ((1, 1), (7, 7)))
 
         # normalize and add channel dimension
-        normalized_genesis = normalize_input(
-            np.expand_dims(padded_genesis, axis=-1)
-        )
+        normalized_genesis = normalize_input(np.expand_dims(padded_genesis, axis=-1))
         return normalized_genesis
 
     def preprocess_output(self, output):
@@ -155,20 +151,22 @@ class hdf5_generator_v4:
                         # switch the order of genesis matrix
                         # and divide output by number of years
                         if self.zero_inputs:
-                            yield np.zeros((112, 224, 1)), self.preprocess_output(output)
+                            yield np.zeros((112, 224, 1)), self.preprocess_output(
+                                output
+                            )
                         else:
-                            yield self.preprocess_input(genesis), self.preprocess_output(output)
+                            yield self.preprocess_input(
+                                genesis
+                            ), self.preprocess_output(output)
 
                     else:  # this sample was never generated
                         break
 
 
-
 class hdf5_generator_v3:
     def __init__(
-      self, file_paths, dataset="train", month=3, n_samples=None, zero_inputs=False
+        self, file_paths, dataset="train", month=3, n_samples=None, zero_inputs=False
     ):
-
         self.file_paths = file_paths
         self.dataset = dataset
         # self.month = month
@@ -177,9 +175,10 @@ class hdf5_generator_v3:
         self.times_sampled = 0
 
     def __call__(self):
-        if self.n_samples is not None and self.times_sampled > self.n_samples: return
+        if self.n_samples is not None and self.times_sampled > self.n_samples:
+            return
         self.times_sampled += 1
-            
+
         for file_path in self.file_paths:
             print(file_path)
             with h5py.File(file_path, "r") as file:
@@ -193,7 +192,6 @@ class hdf5_generator_v3:
                         # switch the order of genesis matrix
                         # and divide output by number of years
                         if self.zero_inputs:
-
                             yield np.zeros(
                                 np.expand_dims(np.sum(genesis, axis=0), axis=-1).shape
                             ), np.expand_dims(output, axis=-1)
@@ -201,7 +199,6 @@ class hdf5_generator_v3:
                             yield normalize_input(
                                 np.expand_dims(np.sum(genesis, axis=0), axis=-1)
                             ), np.expand_dims(output, axis=-1)
-
 
                     else:  # this sample was never generated
                         break
@@ -469,8 +466,9 @@ def get_dataset(
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
     if data_version == 3:
-
-        generator = hdf5_generator_v3(file_paths, dataset=dataset, zero_inputs = False, n_samples=n_samples)
+        generator = hdf5_generator_v3(
+            file_paths, dataset=dataset, zero_inputs=False, n_samples=n_samples
+        )
 
         genesis_size = (55, 105, 1)
         output_size = (110, 210, 1)
