@@ -1,18 +1,16 @@
-import tensorflow as tf
 from tensorflow import keras
 from MachineLearning.dataset import get_dataset
 from MachineLearning.UNet.unet import UNet
-from keras.utils.layer_utils import count_params
+from MachineLearning.PredictionCallback import PredictionCallback
 import time
-import numpy as np
 import wandb
-from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
+from wandb.integration.keras import WandbMetricsLogger
 
 genesis_size_default = (55, 105, 1)
 movement_size_default = (11, 13)
 output_size_default = (110, 210, 1)
 
-def train_unet(model_name, data_folder, data_version, model_config):
+def train_unet(model_name, data_folder, data_version, model_config, training_config):
 
     model = UNet(**model_config)
 
@@ -24,15 +22,7 @@ def train_unet(model_name, data_folder, data_version, model_config):
         project="EMPIRIC2-AI-emulator",
 
         # track hyperparameters and run metadata with wandb.config
-        config={
-            "Name": "one-batch",
-            "optimizer": "adam",
-            "loss": "mean_squared_error",
-            "metric": "mean_absolute_error",
-            "learning_rate": 0.00003,
-            "epoch": 40,
-            "batch_size": 32
-        }
+        config=training_config
     )
 
     ## track the model with an artifact
@@ -61,7 +51,7 @@ def train_unet(model_name, data_folder, data_version, model_config):
             "data_version": data_version,
             "batch_size": config.batch_size,
             "input_description": "[-1, 1] normalized 'genesis_grids'",
-            "output_description": "mean of 100 TC count grids, 'grid_means'"
+            "output_description": "Mean Tropical Cyclone counts over 10 years"
         }
     )
 
@@ -72,6 +62,8 @@ def train_unet(model_name, data_folder, data_version, model_config):
     test_data = get_dataset(data_folder, dataset="test", data_version=data_version)
     
     validation_data = get_dataset(data_folder, dataset="validation", data_version=data_version)
+
+    validation_example_in, validation_example_out = next(iter(validation_data))
 
     early_stopping = keras.callbacks.EarlyStopping(patience=5)
 
