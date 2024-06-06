@@ -5,6 +5,7 @@ from MachineLearning.Evaluation.metrics import compute_metrics
 import argparse
 from MachineLearning.Evaluation.model_info import models_info
 import numpy as np
+from MachineLearning.dataset import get_dataset
 
 def evaluate(dataset, output_dir, predict_params):
     """
@@ -14,7 +15,6 @@ def evaluate(dataset, output_dir, predict_params):
     :param: model_path: path to the model weights to evaluate
     :param: output_save_folder: folder to save metrics latex and figure pictures
     """
-
 
     outputs_ds = dataset.map(lambda x, y: y)
     outputs = np.squeeze(np.concatenate(list(outputs_ds.as_numpy_iterator()), axis=0))
@@ -44,6 +44,7 @@ def evaluate(dataset, output_dir, predict_params):
 
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(
         prog="Evaluate Models",
         description="Evaluates trained models in models_info against STORM"
@@ -54,4 +55,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    evaluate(args.data_folder, args.output_save_folder)
+    test_data = get_dataset(args.data_folder, data_version=3, dataset='test', batch_size=32)
+
+    predict_params = {
+        "batch_size": 32,
+        "verbose": 2
+    }
+
+    evaluate(test_data, args.output_save_folder, predict_params)
