@@ -110,11 +110,63 @@ def computePCADecompForGeneratorV2(
     pickle.dump(pca_movement, open(save_path + "pca_movement.pkl", "wb"))
     pickle.dump(pca_genesis, open(save_path + "pca_genesis.pkl", "wb"))
 
+
+class hdf5_generator_v4:
+    def __init__(self, file_paths, dataset="train", n_samples=100, zero_inputs=False):
+        self.file_paths = file_paths
+        self.dataset = dataset
+        self.n_samples = n_samples
+        self.zero_inputs = zero_inputs
+
+    def preprocess_input(self, genesis):
+        # month sum
+        genesis = np.sum(genesis, axis=0)
+
+        # this is a simple way to do a nearest neighbor upsample
+        upsampled_genesis = np.kron(genesis, np.ones((2, 2)))
+
+        # pad. by upsampling first, the padding can be symmetric
+        padded_genesis = np.pad(upsampled_genesis, ((1, 1), (7, 7)))
+
+        # normalize and add channel dimension
+        normalized_genesis = normalize_input(np.expand_dims(padded_genesis, axis=-1))
+        return normalized_genesis
+
+    def preprocess_output(self, output):
+        mean_0_2_cat = np.flipud(np.sum(np.sum(output, axis=-1)[:, :, :3], axis=-1))
+        output_w_channels = np.expand_dims(mean_0_2_cat, axis=-1)
+
+        return output_w_channels
+
+    def __call__(self):
+        for file_path in self.file_paths:
+            print(file_path)
+            with h5py.File(file_path, "r") as file:
+                geneses = file[self.dataset + "_genesis"]
+
+                outputs = file[self.dataset + "_grids"]
+
+                for genesis, output in zip(geneses, outputs):
+                    if np.count_nonzero(genesis) != 0:  # data has been made
+                        # switch the order of genesis matrix
+                        # and divide output by number of years
+                        if self.zero_inputs:
+                            yield np.zeros((112, 224, 1)), self.preprocess_output(
+                                output
+                            )
+                        else:
+                            yield self.preprocess_input(
+                                genesis
+                            ), self.preprocess_output(output)
+
+                    else:  # this sample was never generated
+                        break
+
+
 class hdf5_generator_v3:
     def __init__(
-      self, file_paths, dataset="train", month=3, n_samples=None, zero_inputs=False
+        self, file_paths, dataset="train", month=3, n_samples=None, zero_inputs=False
     ):
-
         self.file_paths = file_paths
         self.dataset = dataset
         # self.month = month
@@ -123,9 +175,10 @@ class hdf5_generator_v3:
         self.times_sampled = 0
 
     def __call__(self):
-        if self.n_samples is not None and self.times_sampled > self.n_samples: return
+        if self.n_samples is not None and self.times_sampled > self.n_samples:
+            return
         self.times_sampled += 1
-            
+
         for file_path in self.file_paths:
             print(file_path)
             with h5py.File(file_path, "r") as file:
@@ -139,7 +192,6 @@ class hdf5_generator_v3:
                         # switch the order of genesis matrix
                         # and divide output by number of years
                         if self.zero_inputs:
-
                             yield np.zeros(
                                 np.expand_dims(np.sum(genesis, axis=0), axis=-1).shape
                             ), np.expand_dims(output, axis=-1)
@@ -147,7 +199,6 @@ class hdf5_generator_v3:
                             yield normalize_input(
                                 np.expand_dims(np.sum(genesis, axis=0), axis=-1)
                             ), np.expand_dims(output, axis=-1)
-
 
                     else:  # this sample was never generated
                         break
@@ -227,6 +278,7 @@ class hdf5_generator_v2:
             geneses_pca = file.require_dataset(
                 self.dataset + "_genesis_pca", (len(geneses), 4), dtype="f"
             )
+
             movements_pca = file.require_dataset(
                 self.dataset + "_movement_pca", (len(geneses), 4), dtype="f"
             )
@@ -414,8 +466,9 @@ def get_dataset(
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
     if data_version == 3:
-
-        generator = hdf5_generator_v3(file_paths, dataset=dataset, zero_inputs = False, n_samples=n_samples)
+        generator = hdf5_generator_v3(
+            file_paths, dataset=dataset, zero_inputs=False, n_samples=n_samples
+        )
 
         genesis_size = (55, 105, 1)
         output_size = (110, 210, 1)
@@ -423,6 +476,15 @@ def get_dataset(
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
+    if data_version == 4:
+        generator = hdf5_generator_v4(file_paths, dataset=dataset, zero_inputs=False)
+        genesis_size = (112, 224, 1)
+        output_size = (110, 210, 1)
+        output_signature = (
+            tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
+            tf.TensorSpec(shape=output_size, dtype=tf.float32),
+        )
+
     start = time.time()
     dataset = tf.data.Dataset.from_generator(
         generator, output_signature=output_signature
@@ -432,8 +494,8 @@ def get_dataset(
     print("create dataset time: {}".format(end - start))
 
     # do not shuffle test dataset so we can get all outputs
-    #if dataset != "test":
-        #dataset = dataset.shuffle(100)
+    if dataset != "test":
+        dataset = dataset.shuffle(100)
     batched_dataset = dataset.batch(batch_size)
 
     return batched_dataset
