@@ -13,3 +13,9 @@ class PredictionCallback(keras.callbacks.Callback):
 
     plt.imshow(y_pred[0])
     plt.show()
+
+    plt.imshow(self.y[0])
+    plt.show()
+
+    plt.imshow(self.y[0] - y_pred[0])
+    plt.show()
