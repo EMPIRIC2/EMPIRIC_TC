@@ -121,6 +121,9 @@ class hdf5_generator_v4:
 
     def preprocess_input(self, genesis):
 
+        # month sum
+        genesis = np.sum(genesis, axis=0)
+
         # this is a simple way to do a nearest neighbor upsample
         upsampled_genesis = np.kron(genesis, np.ones((2, 2)))
 
@@ -478,7 +481,7 @@ def get_dataset(
     if data_version == 4:
         generator = hdf5_generator_v4(file_paths, dataset=dataset, zero_inputs=False)
         genesis_size = (112, 224, 1)
-        output_size = (110, 220, 1)
+        output_size = (110, 210, 1)
         output_signature = (
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
