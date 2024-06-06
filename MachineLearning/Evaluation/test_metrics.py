@@ -7,7 +7,7 @@ from MachineLearning.Evaluation.evaluation_testing_utils import TEST_GRIDS_1, TE
 outputs, predictions, storm_statistics, unet_statistics, all_metrics = TEST_GRIDS_1, TEST_GRIDS_2, STATISTICS_1, STATISTICS_2, ALL_METRICS
 
 class TestMetrics(unittest.TestCase):
-    """ Test Metric Code """
+
     def test_site_se(self):
         ground_outputs, model_outputs = TEST_GRIDS_1, TEST_GRIDS_2
 
@@ -35,9 +35,7 @@ class TestMetrics(unittest.TestCase):
         self.assertAlmostEqual(change_map[9, 50], .2, 3)
         self.assertEqual(change_map[9, 51], 0)
 
-
-    """ Test Ensemble Statistics """
-    def test_ensemble_statistics_no_sites(self):
+    def test_ensemble_statistics(self):
         self.assertEqual(
             storm_statistics["Quantiles"].shape,
             (5, 110, 210)

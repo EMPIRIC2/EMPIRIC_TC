@@ -36,7 +36,7 @@ class TestEvaluationUtils(unittest.TestCase):
         test_grid = np.zeros((210, 110))
         # these are the lat,lons for the first site
         cell = get_grid_cell(-9.81386294, 160.1563795, 0.5)
-        print(cell)
+        print("First site cell location: ", cell)
         test_grid[*cell] = 1
         site_vals = get_site_values(test_grid)
 

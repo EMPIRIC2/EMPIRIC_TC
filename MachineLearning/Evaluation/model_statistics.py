@@ -1,31 +1,16 @@
 import numpy as np
 import scipy
 
-def get_variance(data):
-    return np.var(data, axis=0)
-
 def get_quantiles(data):
     return np.quantile(data, [0, 0.25,.5,.75,1], axis=0)
 
-
 def compute_ensemble_statistics(outputs):
-
     statistics = {
         "Quantiles": get_quantiles(outputs),
         "Mean": np.mean(outputs, axis=0)
     }
 
     return statistics
-
-def absolute_quantile_errors(quantiles_a, quantiles_b):
-    """
-    Computes the mean absolute error between two arrays of quantile values along the zeroth axis.
-
-    quantiles have shape (n_quantiles, data_shape...)
-    we don't reduce the data_shape here (e.g. if data was a array, we output an array of the abs quantile error for each array entry
-    """
-
-    return np.mean(np.abs(quantiles_a - quantiles_b), axis=0)
 
 def kolmogorov_smirnov_statistics(ground_truths, predictions):
     """
