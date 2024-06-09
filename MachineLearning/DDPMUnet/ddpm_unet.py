@@ -1,9 +1,10 @@
+# fmt: off
+# flake8: noqa
+
 """
-Code: https://github.com/keras-team/keras-io/blob/3463ea5cbc650eeabdec92ce754cf1aa1f5acc66/examples/generative/ddpm.py
+Original code: https://github.com/keras-team/keras-io/blob/3463ea5cbc650eeabdec92ce754cf1aa1f5acc66/examples/generative/ddpm.py
 
 @license Apache License 2.0 https://github.com/keras-team/keras-io/blob/3463ea5cbc650eeabdec92ce754cf1aa1f5acc66/LICENSE
-
-
 """
 
 import keras
