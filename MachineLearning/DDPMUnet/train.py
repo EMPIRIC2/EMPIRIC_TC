@@ -8,8 +8,8 @@ from wandb.integration.keras import WandbMetricsLogger
 
 def train_ddpm_unet(model_name, data_folder, data_version, model_config, training_config):
     model = build_model(**model_config)
-
-    local_save_path = 'models/{}_{}.keras'.format(model_name, str(time.time()))
+    unique_model_name = '{}_{}'.format(model_name, str(time.time()))
+    local_save_path = 'models/{}.keras'.format(unique_model_name)
 
     # Start a run, tracking hyperparameters
     wandb.init(
@@ -22,7 +22,7 @@ def train_ddpm_unet(model_name, data_folder, data_version, model_config, trainin
 
     ## track the model with an artifact
     model_artifact = wandb.Artifact(
-        "DDPM-Unet",
+        unique_model_name,
         type="model",
         metadata={
             "save_path": local_save_path,
