@@ -42,6 +42,8 @@ class NearestNeighborPredictor:
     def predict(self, x):
         if self.nearest_neighbors is None: raise "No nearest neighbors' fit"
 
-        indices = self.nearest_neighbors.kneighbors([x], return_distance=False)[0]
+        assert x.shape==(55, 110)
+
+        indices = self.nearest_neighbors.kneighbors([x.flatten()], return_distance=False)[0]
 
         return np.mean(self.output_data[indices], axis=0)
