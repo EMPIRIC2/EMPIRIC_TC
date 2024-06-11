@@ -37,7 +37,7 @@ class NearestNeighborPredictor:
         return nearest_neighbors
 
     def __call__(self, x):
-        self.predict(x)
+        return self.predict(x)
 
     def predict(self, x):
         if self.nearest_neighbors is None: raise "No nearest neighbors' fit"
