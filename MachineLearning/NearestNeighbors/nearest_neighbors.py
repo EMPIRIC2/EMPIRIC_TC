@@ -2,7 +2,6 @@ from sklearn.neighbors import NearestNeighbors
 from MachineLearning.dataset import get_dataset
 import numpy as np
 import pickle
-import matplotlib.pyplot as plt
 
 class NearestNeighborPredictor:
 
@@ -40,7 +39,7 @@ class NearestNeighborPredictor:
         return self.predict(x)
 
     def predict(self, x):
-        if self.nearest_neighbors is None: raise "No nearest neighbors' fit"
+        if self.nearest_neighbors is None: raise "Nearest neighbors' not fitted"
 
         assert x.shape==(55, 110)
 
