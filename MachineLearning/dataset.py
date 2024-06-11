@@ -111,6 +111,46 @@ def computePCADecompForGeneratorV2(
     pickle.dump(pca_genesis, open(save_path + "pca_genesis.pkl", "wb"))
 
 
+class hdf5_generator_v5:
+    def __init__(self, file_paths, dataset="train", n_samples=100, zero_inputs=False):
+        self.file_paths = file_paths
+        self.dataset = dataset
+        self.n_samples = n_samples
+        self.zero_inputs = zero_inputs
+
+    def preprocess_input(self, genesis):
+        # month sum
+        genesis = np.sum(genesis, axis=0)
+
+        return genesis
+
+    def preprocess_output(self, output):
+        mean_0_2_cat = np.flipud(np.sum(np.sum(output, axis=-1)[:, :, :3], axis=-1))
+
+        return mean_0_2_cat
+
+    def __call__(self):
+        for file_path in self.file_paths:
+            with h5py.File(file_path, "r") as file:
+                geneses = file[self.dataset + "_genesis"]
+
+                outputs = file[self.dataset + "_grids"]
+
+                for genesis, output in zip(geneses, outputs):
+                    if np.count_nonzero(genesis) != 0:  # data has been made
+                        # switch the order of genesis matrix
+                        # and divide output by number of years
+                        if self.zero_inputs:
+                            yield np.zeros((55, 105)), self.preprocess_output(output)
+                        else:
+                            yield self.preprocess_input(
+                                genesis
+                            ), self.preprocess_output(output)
+
+                    else:  # this sample was never generated
+                        break
+
+
 class hdf5_generator_v4:
     def __init__(self, file_paths, dataset="train", n_samples=100, zero_inputs=False):
         self.file_paths = file_paths
@@ -484,7 +524,14 @@ def get_dataset(
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
-
+    if data_version == 5:
+        generator = hdf5_generator_v5(file_paths, dataset=dataset)
+        genesis_size = (55, 105)
+        output_size = (110, 210)
+        output_signature = (
+            tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
+            tf.TensorSpec(shape=output_size, dtype=tf.float32),
+        )
     start = time.time()
     dataset = tf.data.Dataset.from_generator(
         generator, output_signature=output_signature
