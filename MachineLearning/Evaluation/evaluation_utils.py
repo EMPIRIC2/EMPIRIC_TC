@@ -18,19 +18,14 @@ def get_many_site_values(grids):
 
     return np.array(site_outputs)
 
-def get_outputs(dataset):
-    """
-    Takes a tensorflow dataset and returns a numpy array of the output data
-    """
-    outputs_ds = dataset.map(lambda x, y: y)
-    return np.squeeze(np.concatenate(list(outputs_ds.as_numpy_iterator()), axis=0))
-
 def process_predictions(predictions):
     return np.squeeze(predictions)
 
 def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     """
     Returns the grid cell that given latitude, longitude falls into for the specified resolution.
+    The 0,0 cell is in the upper left corner, eg. latitude -5, longitude 135
+    latCell index increases as latitude goes down and lonCell index increases as longitude goes up
 
     :return: indices of the lat and lon cells respectively
     """
@@ -41,8 +36,12 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     if not (LON_MIN <= lon < LON_MAX):
         raise Exception("lon must be within the basin")
 
-    latCell = math.floor((lat - LAT_MIN) * 1 / resolution)
-    lonCell = math.floor((lon - LON_MIN) * 1 / resolution)
+    n_lat_cells = math.floor((lat_max - lat_min) * 1 / resolution)
+
+    # flip the lat cell upside down
+    latCell = n_lat_cells - math.floor((lat - lat_min) * 1 / resolution) - 1
+
+    lonCell = math.floor((lon - lon_min) * 1 / resolution)
 
     return latCell, lonCell
 

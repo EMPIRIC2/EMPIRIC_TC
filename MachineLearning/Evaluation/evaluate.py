@@ -1,13 +1,14 @@
-from MachineLearning.Evaluation.evaluation_utils import get_outputs, process_predictions
-from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
-import os
-from MachineLearning.dataset import get_dataset
-from MachineLearning.Evaluation.metrics import compute_metrics
 import argparse
+from MachineLearning.Evaluation.evaluation_utils import process_predictions
+from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
+from MachineLearning.Evaluation.metrics import compute_metrics
 from MachineLearning.Evaluation.model_info import models_info
 from MachineLearning.Evaluation.figures import make_figures, save_metrics_as_latex
+from MachineLearning.dataset import get_dataset
+import numpy as np
+import os
 
-def evaluate(data_dir, output_dir):
+def evaluate(dataset, output_dir, predict_params):
     """
     Compute all evaluation metrics and then save the resulting figures to disk.
 
@@ -16,10 +17,10 @@ def evaluate(data_dir, output_dir):
     :param: output_save_folder: folder to save metrics latex and figure pictures
     """
 
-    test_data = get_dataset(data_dir, data_version=3, dataset='test', batch_size=32)
+    outputs_ds = dataset.map(lambda x, y: y)
+    outputs = np.squeeze(np.concatenate(list(outputs_ds.as_numpy_iterator()), axis=0))
 
-    outputs = get_outputs(test_data)
-    inputs = test_data.map(lambda x,y: x)
+    inputs = dataset.map(lambda x,y: x)
 
     metrics = []
     storm_statistics = compute_ensemble_statistics("STORM", outputs)
@@ -29,8 +30,7 @@ def evaluate(data_dir, output_dir):
 
         predictions = model.predict(
             inputs,
-            batch_size=32,
-            verbose=2,
+            **predict_params
         )
         
         predictions = process_predictions(predictions)
@@ -50,6 +50,7 @@ def evaluate(data_dir, output_dir):
 
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(
         prog="Evaluate Models",
         description="Evaluates trained models in models_info against STORM"
@@ -60,4 +61,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    evaluate(args.data_folder, args.output_save_folder)
+    test_data = get_dataset(args.data_folder, data_version=4, dataset='test', batch_size=32)
+
+    predict_params = {
+        "batch_size": 32,
+        "verbose": 2
+    }
+
+    evaluate(test_data, args.output_save_folder, predict_params)

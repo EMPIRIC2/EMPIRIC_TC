@@ -6,11 +6,11 @@ from parameterized import parameterized
 class TestEvaluationUtils(unittest.TestCase):
 
     @parameterized.expand([
-        (-60, 135, 0.5, (0,0)), (-60, 136.1, 0.5, (0, 2)), (-60, 136.1, 1, (0, 1))
+        (-5.1, 135, 0.5, (0,0)), (-5.1, 136.1, 0.5, (0, 2)), (-5.1, 136.1, 1, (0, 1))
     ])
-    def test_get_grid_cell(self, latitude, longitude, resolution, cell):
+    def test_get_grid_cell(self, latitude, longitude, resolution, expected_cell):
         # test that the get grid cell function works properly for two different resolutions
-        self.assertEqual(get_grid_cell(latitude,longitude, resolution), cell)
+        self.assertEqual(get_grid_cell(latitude,longitude, resolution), expected_cell)
 
     def test_get_grid_cell_out_of_basin(self):
 
@@ -36,7 +36,7 @@ class TestEvaluationUtils(unittest.TestCase):
         test_grid = np.zeros((210, 110))
         # these are the lat,lons for the first site
         cell = get_grid_cell(-9.81386294, 160.1563795, 0.5)
-
+        print("First site cell location: ", cell)
         test_grid[*cell] = 1
         site_vals = get_site_values(test_grid)
 
