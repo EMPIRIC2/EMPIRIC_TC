@@ -36,12 +36,12 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     if not (LON_MIN <= lon < LON_MAX):
         raise Exception("lon must be within the basin")
 
-    n_lat_cells = math.floor((lat_max - lat_min) * 1 / resolution)
+    n_lat_cells = math.floor((LAT_MAX - LAT_MIN) * 1 / resolution)
 
     # flip the lat cell upside down
-    latCell = n_lat_cells - math.floor((lat - lat_min) * 1 / resolution) - 1
+    latCell = n_lat_cells - math.floor((lat - LAT_MIN) * 1 / resolution) - 1
 
-    lonCell = math.floor((lon - lon_min) * 1 / resolution)
+    lonCell = math.floor((lon - LON_MIN) * 1 / resolution)
 
     return latCell, lonCell
 
