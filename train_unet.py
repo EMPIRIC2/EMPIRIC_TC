@@ -23,7 +23,7 @@ MODEL_CONFIG = {
 if __name__ == "__main__":
     train_unet(
         'UNet-Custom',
-        './Data/',
+        '/nesi/project/uoa03669/ewin313/storm_data/v5/',
         4,
         MODEL_CONFIG,
         TRAINING_CONFIG
