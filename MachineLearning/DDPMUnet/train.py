@@ -58,7 +58,7 @@ def train_ddpm_unet(model_name, data_folder, data_version, model_config, trainin
 
     validation_data = get_dataset(data_folder, dataset="validation", data_version=data_version)
 
-    validation_example_in, validation_example_out = next(iter(validation_data))
+    #validation_example_in, validation_example_out = next(iter(validation_data))
 
     early_stopping = keras.callbacks.EarlyStopping(patience=5)
 

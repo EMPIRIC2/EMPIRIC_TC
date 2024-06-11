@@ -5,7 +5,6 @@
 #SBATCH --cpus-per-task=2
 #SBATCH --time 00:15:00
 #SBATCH --mem 4G
-#SBATCH --qos=debug
 
 module purge
 source load-ml-environment.sh
