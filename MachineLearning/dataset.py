@@ -112,16 +112,13 @@ def computePCADecompForGeneratorV2(
 
 
 class hdf5_generator_v5:
-    def __init__(self, file_paths, dataset="train", n_samples=100, zero_inputs=False):
+    def __init__(self, file_paths, dataset="train", n_samples=100):
         self.file_paths = file_paths
         self.dataset = dataset
-        self.n_samples = n_samples
-        self.zero_inputs = zero_inputs
 
     def preprocess_input(self, genesis):
         # month sum
         genesis = np.sum(genesis, axis=0)
-
         return genesis
 
     def preprocess_output(self, output):
@@ -138,14 +135,9 @@ class hdf5_generator_v5:
 
                 for genesis, output in zip(geneses, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
-                        # switch the order of genesis matrix
-                        # and divide output by number of years
-                        if self.zero_inputs:
-                            yield np.zeros((55, 105)), self.preprocess_output(output)
-                        else:
-                            yield self.preprocess_input(
-                                genesis
-                            ), self.preprocess_output(output)
+                        yield self.preprocess_input(
+                            genesis
+                        ), self.preprocess_output(output)
 
                     else:  # this sample was never generated
                         break
