@@ -111,15 +111,22 @@ def computePCADecompForGeneratorV2(
     pickle.dump(pca_genesis, open(save_path + "pca_genesis.pkl", "wb"))
 
 
-class hdf5_generator_v5:
+class hdf5_generator_nearest_neighbors:
     def __init__(self, file_paths, dataset="train", n_samples=100):
         self.file_paths = file_paths
         self.dataset = dataset
 
-    def preprocess_input(self, genesis):
+    def preprocess_input(self, genesis: np.ndarray):
+        '''
+
+        @param genesis: (months = 6, lat = 55, lon = 105) np.ndarray
+        @return: (5775,) np.ndarray
+        '''
+
         # month sum
-        genesis = np.sum(genesis, axis=0)
-        return genesis
+        genesis_month_sum = np.sum(genesis, axis=0)
+        flat_genesis = genesis_month_sum.flatten()
+        return flat_genesis
 
     def preprocess_output(self, output):
         mean_0_2_cat = np.flipud(np.sum(np.sum(output, axis=-1)[:, :, :3], axis=-1))
@@ -517,8 +524,8 @@ def get_dataset(
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
     if data_version == 5:
-        generator = hdf5_generator_v5(file_paths, dataset=dataset)
-        genesis_size = (55, 105)
+        generator = hdf5_generator_nearest_neighbors(file_paths, dataset=dataset)
+        genesis_size = (5775,)
         output_size = (110, 210)
         output_signature = (
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
