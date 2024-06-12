@@ -65,8 +65,7 @@ def Storms(idx, mu_list):
     
     mu=mu_list[idx]
 
-    poisson=np.random.poisson(mu,10000)
-    s=random.choice(poisson)
+    s=np.random.poisson(mu,1)[0]
     return s
 
 def Basins_WMO(basin, mu_list, monthlist):
