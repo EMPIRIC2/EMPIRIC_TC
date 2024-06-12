@@ -1,6 +1,9 @@
 import numpy as np
-from MachineLearning.Evaluation.evaluation_utils import get_site_values, get_many_site_values
 from sklearn.metrics import mean_squared_error
+
+from MachineLearning.Evaluation.evaluation_utils import (get_many_site_values,
+                                                         get_site_values)
+
 
 def site_squared_error(output1, output2):
     """
@@ -17,12 +20,14 @@ def site_squared_error(output1, output2):
 
     return (output1_sites - output2_sites) ** 2
 
+
 def site_mean_squared_error(output1, output2):
     """
     Calculates the mean squared error at the health facility locations
     """
     squared_errors = site_squared_error(output1, output2)
     return np.mean(squared_errors, axis=0)
+
 
 def total_site_mean_squared_error(outputs1, outputs2):
     """
@@ -41,4 +46,3 @@ def total_site_mean_squared_error(outputs1, outputs2):
     outputs2_sites = get_many_site_values(outputs2)
 
     return mean_squared_error(outputs1_sites, outputs2_sites)
-
