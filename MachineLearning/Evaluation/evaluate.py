@@ -2,7 +2,7 @@ import argparse
 from MachineLearning.Evaluation.evaluation_utils import process_predictions
 from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
 from MachineLearning.Evaluation.metrics import compute_metrics
-from MachineLearning.Evaluation.figures import make_figures, save_metrics_as_latex
+from MachineLearning.Evaluation.figures import make_single_model_figures, make_collective_model_figures, save_metrics_as_latex
 from MachineLearning.dataset import get_dataset
 from MachineLearning.NearestNeighbors.nearest_neighbors import NearestNeighborsRegressor
 import numpy as np
@@ -27,6 +27,9 @@ def evaluate(outputs_ds, output_dir):
     outputs = np.squeeze(unbatched_outputs)
     storm_statistics = compute_ensemble_statistics("STORM", outputs)
 
+    all_outputs = {"STORM": outputs}
+    all_statistics = [storm_statistics]
+
     for model_info in models_info:
 
         model = model_info["model"]
@@ -46,9 +49,13 @@ def evaluate(outputs_ds, output_dir):
         if not os.path.exists(os.path.join(output_dir, model_info["Name"])):
             os.makedirs(os.path.join(output_dir, model_info["Name"]))
 
-        make_figures(outputs, predictions, storm_statistics, model_statistics, model_metrics,
+        make_single_model_figures(outputs, predictions, storm_statistics, model_statistics, model_metrics,
                      os.path.join(output_dir, model_info["Name"]))
 
+        all_outputs[model_info["Name"]] = predictions
+        all_statistics.append(model_statistics)
+
+    make_collective_model_figures(all_outputs, all_statistics, output_dir)
     save_metrics_as_latex(metrics, os.path.join(output_dir, "metrics.tex"))
 
 if __name__ == "__main__":
