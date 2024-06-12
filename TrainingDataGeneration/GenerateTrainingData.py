@@ -90,6 +90,8 @@ def generateTrainingData(
     basin="SP",
     include_grids=False,
     include_sites=False,
+    include_historical_genesis=False,
+    constant_historical_inputs=False
 ):
     print("Beginning TrainingDataGeneration \n")
     print("Running storm for {} years in each sample\n".format(total_years))
@@ -179,12 +181,20 @@ def generateTrainingData(
     ) as data:
         lat, lon = future_data[0][1].shape
 
+
+        if include_historical_genesis:
+            n_weights = 5
+        else:
+            n_weights = 4
+
+        if not constant_historical_inputs:
+            data.create_dataset("train_genesis_weightings", (n_train_samples, n_weights))
+            data.create_dataset("test_genesis_weightings", (n_test_samples, n_weights))
+            data.create_dataset("validation_genesis_weightings", (n_train_samples, n_weights))
+
         data.create_dataset("train_genesis", (n_train_samples, 6, lat, lon))
-        data.create_dataset("train_genesis_weightings", (n_train_samples, 4))
         data.create_dataset("test_genesis", (n_test_samples, 6, lat, lon))
-        data.create_dataset("test_genesis_weightings", (n_test_samples, 4))
         data.create_dataset("validation_genesis", (n_validation_samples, 6, lat, lon))
-        data.create_dataset("validation_genesis_weightings", (n_train_samples, 4))
 
         if include_grids:
             data.create_dataset(
@@ -237,6 +247,7 @@ def generateTrainingData(
         ) = generateOneTrainingDataSample(
             total_years,
             future_data,
+            refs=
             [
                 JM_pressure_for_basin,
                 Genpres_for_basin,
@@ -248,19 +259,23 @@ def generateTrainingData(
                 monthlist,
                 rmax_pres,
             ],
-            sites,
-            include_grids,
-            include_sites,
-            basin,
+            sites=sites,
+            include_grids=include_grids,
+            include_sites=include_sites,
+            basin=basin,
+            constant_historical_inputs=constant_historical_inputs,
+            include_historical_genesis=include_historical_genesis
         )
 
         with h5py.File(
             os.path.join(save_location, "AllData_{}.hdf5".format(file_time)), "r+"
         ) as data:
             data["{}_genesis".format(dataset)][i - offset] = genesis_matrices
-            data["{}_genesis_weightings".format(dataset)][
-                i - offset
-            ] = genesis_weightings
+
+            if not constant_historical_inputs:
+                data["{}_genesis_weightings".format(dataset)][
+                    i - offset
+                ] = genesis_weightings
 
             if include_grids:
                 data["{}_grids".format(dataset)][i - offset] = grid_means
@@ -296,20 +311,39 @@ if __name__ == "__main__":
     parser.add_argument(
         "--include_grids",
         action="store_true",
-        help="If True generated gridded quantile data",
+        help="If True generate gridded quantile data",
         default=False,
     )
 
     parser.add_argument(
         "--include_sites",
         action="store_true",
-        help="If True generated site specific data",
+        help="If True generate site specific data",
         default=False,
+    )
+
+    parser.add_argument(
+        "--include_historical_genesis",
+        action="store_true",
+        help="If True include the historical genesis " 
+             "data when sampling random input maps",
+        default=False
+    )
+
+    parser.add_argument(
+        "--constant_historical_inputs",
+        action="store_true",
+        help="If True do not sample random input maps and only use the historical",
+        default=False
     )
 
     args = parser.parse_args()
     if not (args.include_grids or args.include_sites):
         raise Exception("ERROR: Must generate either grids or sites as the output data")
+
+    if (args.include_historical_genesis and args.constant_historical_inputs):
+        raise Exception("ERROR: --include_historical_genesis and "
+                        "--constant_historical_inputs cannot both be set")
 
     generateTrainingData(
         args.total_years,
@@ -319,4 +353,5 @@ if __name__ == "__main__":
         args.save_location,
         include_grids=args.include_grids,
         include_sites=args.include_sites,
+        include_historical_genesis=args.include_historical_genesis
     )
