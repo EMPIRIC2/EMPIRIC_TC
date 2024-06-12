@@ -44,11 +44,8 @@ def plot_quantile_maps(models_statistics, save_path=None):
     images = np.empty((0,110,210))
 
     for model_statistic in models_statistics:
-        print(model_statistic["Quantiles"])
         images = np.concatenate([images, model_statistic["Quantiles"]])
-    print(images.shape)
-    #images = np.array(images)
-    #images = images.reshape((5 + 5 * len(models_statistics), 110, 210))
+
 
     cols = ['Quantile: {}'.format(col) for col in [0,0.25,0.5,0.75,1]]
 
