@@ -1,5 +1,7 @@
-import numpy as np
 import math
+
+import numpy as np
+
 from HealthFacilities.getHealthFacilityData import Sites
 
 LAT_MIN, LAT_MAX = -60, -5
@@ -18,14 +20,18 @@ def get_many_site_values(grids):
 
     return np.array(site_outputs)
 
+
 def process_predictions(predictions):
     return np.squeeze(predictions)
 
+
 def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     """
-    Returns the grid cell that given latitude, longitude falls into for the specified resolution.
+    Returns the grid cell that given latitude,
+    longitude falls into for the specified resolution.
     The 0,0 cell is in the upper left corner, eg. latitude -5, longitude 135
-    latCell index increases as latitude goes down and lonCell index increases as longitude goes up
+    latCell index increases as latitude goes
+    down and lonCell index increases as longitude goes up
 
     :return: indices of the lat and lon cells respectively
     """
@@ -45,8 +51,8 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
 
     return latCell, lonCell
 
-def get_lat_lon_data_for_mesh(grid, resolution):
 
+def get_lat_lon_data_for_mesh(grid, resolution):
     # convert data into format for contour plot
     lats = [(grid.shape[0] - i) * resolution + LAT_MIN for i in range(grid.shape[0])]
     lons = [j * resolution + LON_MIN - 180 for j in range(grid.shape[1])]
@@ -56,12 +62,15 @@ def get_lat_lon_data_for_mesh(grid, resolution):
 
 sites = Sites(1)
 
+
 def get_site_name(i):
     return sites.names[i]
 
+
 def get_site_values(grid):
     """
-    :param: grid: an array of values that is the model output on a latitude longitude grid.
+    :param: grid: an array of values that is the model output on a
+    latitude longitude grid.
 
     Returns a vector of values for each site
     values for each site are taken from the grid cell the site is located in
@@ -71,7 +80,7 @@ def get_site_values(grid):
     site_values = np.zeros((len(sites.sites),))
 
     for i, site in enumerate(sites.sites):
-        cell = get_grid_cell(*site, .5)
+        cell = get_grid_cell(*site, 0.5)
         site_values[i] = grid[cell]
 
     return site_values
