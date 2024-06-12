@@ -20,7 +20,7 @@ class NearestNeighborPredictor:
 
         data_array = np.empty(shape=(0,5775))
         for data in train_data.as_numpy_iterator():
-            data_array = np.concatenate([data_array, np.reshape(data, newshape=(data.shape[0], -1))])
+            data_array = np.concatenate([data_array, data])
 
         nearest_neighbors = NearestNeighbors()
         nearest_neighbors.fit(data_array)
@@ -38,11 +38,20 @@ class NearestNeighborPredictor:
     def __call__(self, x):
         return self.predict(x)
 
-    def predict(self, x):
+    def predict(self, x: np.ndarray):
+        '''
+
+        @param x: a 1d or 2d ndarray, either a single (5775,) input to predict or a batch (None, 5775) of inputs to predict on.
+        @return: a
+        '''
         if self.nearest_neighbors is None: raise "Nearest neighbors' not fitted"
 
-        assert x.shape==(55, 110)
+        if len(x.shape) == 1:
+            assert x.shape == (5775,)
+            x = [x]
+        elif len(x.shape) == 2:
+            assert x.shape[1] == 5775
 
-        indices = self.nearest_neighbors.kneighbors([x.flatten()], return_distance=False)[0]
+        indices = self.nearest_neighbors.kneighbors(x, return_distance=False)[0]
 
         return np.mean(self.output_data[indices], axis=0)
