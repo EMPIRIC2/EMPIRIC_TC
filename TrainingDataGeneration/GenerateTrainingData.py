@@ -4,7 +4,7 @@ import time
 
 import h5py
 import numpy as np
-from GenerateInputParameters import generateInputParameters
+from GenerateInputParameters import generateInputParameters, getObservedGenesisLocations
 from RiskFactors import getLandfallsData
 from SampleSTORM import sampleStorm
 
@@ -24,7 +24,15 @@ decade_length = 1
 
 
 def generateOneTrainingDataSample(
-    total_years, future_data, refs, sites, include_grids, include_sites, basin="SP"
+        total_years,
+        future_data,
+        refs,
+        sites,
+        include_grids,
+        include_sites,
+        basin="SP",
+        include_historical_genesis=False,
+        constant_historical_inputs=False
 ):
     """
     Generate ML training data
@@ -45,7 +53,11 @@ def generateOneTrainingDataSample(
         genesis_weightings,
         movement_coefficients,
     ) = generateInputParameters(
-        future_data, monthlist
+        future_data,
+        monthlist,
+        basin=basin,
+        constant_historical_inputs=constant_historical_inputs,
+        include_historical_genesis=include_historical_genesis
     )  # replace with generated parameters
 
     month_map = {key: i for i, key in enumerate(genesis_matrices.keys())}

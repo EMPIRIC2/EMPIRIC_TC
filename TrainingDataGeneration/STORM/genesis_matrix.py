@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 import preprocessing
 from mpl_toolkits.basemap import maskoceans
+from scipy.ndimage import gaussian_filter
 from scipy.interpolate import griddata
 
 dir_path = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -100,6 +101,9 @@ def Makegrid(idx, month):
         j = lonspace.tolist().index(lon)
         count_matrix[i, j] = count
 
+    # blur the count matrix
+    blurred_counts = gaussian_filter(count_matrix, 1)
+
     # ==============================================================================
     # Create land-sea mask, to check whether a grid box has over 50% of land
     # ==============================================================================
@@ -131,6 +135,7 @@ def Makegrid(idx, month):
                 if mdata[i, j] > -0.1:
                     ocean_mask[j, i] = mdata[i, j]
 
+
     # ==============================================================================
     # Interpolate genesis locations matrix to a 1x1 degree grid
     # ==============================================================================
@@ -142,7 +147,7 @@ def Makegrid(idx, month):
         for j in range(len(latspace)):
             points.append((lonspace[i], latspace[j]))
 
-    values = np.reshape(count_matrix.T, int(len(lonspace)) * int(len(latspace)))
+    values = np.reshape(blurred_counts.T, int(len(lonspace)) * int(len(latspace)))
     grid = griddata(points, values, (xgrid, ygrid), method="cubic")
     grid = grid.transpose()
     grid = np.flipud(grid)

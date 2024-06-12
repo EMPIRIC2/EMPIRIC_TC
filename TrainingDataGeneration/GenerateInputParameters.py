@@ -4,13 +4,12 @@
 
     We only randomize the genesis location frequency.
 """
+import numpy as np
 import os
+from scipy.ndimage import gaussian_filter
 import unittest
 
-import numpy as np
-
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-
 
 def getObservedGenesisLocations(basin, month, matrix_path=None):
     basins = ["EP", "NA", "NI", "SI", "SP", "WP"]
@@ -25,11 +24,11 @@ def getObservedGenesisLocations(basin, month, matrix_path=None):
         )
 
     grid_copy = np.load(matrix_path)
+    grid = np.nan_to_num(grid_copy)
 
-    return grid_copy
+    return grid
 
-
-def randomizedGenesisLocationMatrices(rng, future_data, monthlist, scale=1):
+def randomizedGenesisLocationMatrices(rng, future_data, monthlist, include_historical=False, basin='SP'):
     """
     Randomly perturb the observed genesis locations.
     Note: the current randomization is not based on any
@@ -44,20 +43,24 @@ def randomizedGenesisLocationMatrices(rng, future_data, monthlist, scale=1):
     models = ["CMCC-CM2-VHR4", "EC-Earth3P-HR", "CNRM-CM6-1-HR", "HadGEM3-GC31-HM"]
     genesis_location_matrices = {}
 
-    for month in monthlist:
+    if include_historical:
+        weights = rng.dirichlet((1,1,1,1,1))
+    else:
         weights = rng.dirichlet((1, 1, 1, 1))
 
-        future_data_for_month = [
+    for month in monthlist:
+        genesis_data_for_month = [
             np.nan_to_num(future_data[i][month]) for i in range(len(models))
         ]
 
-        grids = np.array(future_data_for_month)
+        if include_historical:
+            genesis_data_for_month.append(getObservedGenesisLocations(basin, month))
+        grids = np.array(genesis_data_for_month)
         randomized_grid = (grids.T @ weights).T
 
         genesis_location_matrices[month] = randomized_grid
 
     return genesis_location_matrices, weights
-
 
 def getMovementCoefficientData():
     constants_all = np.load(
@@ -68,8 +71,13 @@ def getMovementCoefficientData():
 
     return constants_all
 
-
-def generateInputParameters(future_data, monthslist):
+def generateInputParameters(
+        future_data,
+        monthslist,
+        basin='SP',
+        include_historical_genesis=False,
+        constant_historical_inputs=False
+):
     """
     Create a genesis probability map and tc track movement distribution
 
@@ -78,11 +86,24 @@ def generateInputParameters(future_data, monthslist):
     # create a new seed to avoid generating the same inputs in every worker
 
     rng = np.random.Generator(np.random.PCG64DXSM())
-    genesis_matrices, genesis_weightings = randomizedGenesisLocationMatrices(
-        rng, future_data, monthslist
-    )
-    return genesis_matrices, genesis_weightings, getMovementCoefficientData()
 
+    # if only using historical inputs, replace genesis with the historical
+    if constant_historical_inputs:
+        genesis_matrices = {}
+        for month in monthslist:
+            genesis_matrices[month] = getObservedGenesisLocations(basin, month)
+        genesis_weightings = None
+
+    else:
+        genesis_matrices, genesis_weightings = randomizedGenesisLocationMatrices(
+            rng,
+            future_data,
+            monthslist,
+            include_historical=include_historical_genesis,
+            basin=basin
+        )
+
+    return genesis_matrices, genesis_weightings, getMovementCoefficientData()
 
 class InputGenerationTest(unittest.TestCase):
     def get_data(self):
