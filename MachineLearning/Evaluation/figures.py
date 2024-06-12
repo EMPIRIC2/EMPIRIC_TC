@@ -105,6 +105,7 @@ def metrics_df(all_model_metrics):
     Creates a dataframe for metrics. Used to save the metrics in a latex table.
     """
     for model_metrics in all_model_metrics:
+
         # remove this entry because it can't go into the DF
         model_metrics.pop("Kolmogorov-Smirnov")
         model_metrics.pop("Relative Error Examples")
@@ -145,9 +146,7 @@ def plot_example_site_boxplot(ground_outputs, models_outputs, n_examples, save_p
 
         for i in range(n_examples):
             site_errors = site_squared_error(outputs[i], ground_outputs[i])
-            print(site_errors.shape)
             for j in range(site_errors.shape[0]):
-                print(site_errors[j].shape)
                 box_plot_data.append({"Site Squared Error": site_errors[j], "Test Example": i, "Model": model})
 
     df = pd.DataFrame(box_plot_data)
@@ -184,7 +183,6 @@ def make_single_model_figures(ground_outputs, model_outputs, ground_statistics, 
     @param save_folder:
     @return:
     """
-    #
     
     ks_statistic_map(metrics, os.path.join(save_folder, "ks_statistics.png"))
     top_relative_error_maps(metrics["Relative Error Examples"], os.path.join(save_folder, "worst_relative_errors.png"))
