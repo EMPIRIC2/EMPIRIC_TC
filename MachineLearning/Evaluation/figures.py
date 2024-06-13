@@ -95,10 +95,10 @@ def plot_quantile_maps(models_statistics, save_path=None):
         )
 
     for ax, col in zip(axes[:5], cols):
-        ax.set_title(col)
+        ax.set_title(col, pad=15)
 
     for ax, row in zip(axes[::5], rows):
-        ax.set_ylabel(row, rotation=90)
+        ax.set_ylabel(row, rotation=0, labelpad=40)
 
     fig.colorbar(cm, ax=axes)
 
