@@ -9,7 +9,7 @@ import seaborn_image as isns
 
 from MachineLearning.Evaluation.evaluation_utils import (
     get_lat_lon_data_for_mesh, get_many_site_values, get_site_name)
-from MachineLearning.Evaluation.site_metrics import site_squared_error
+from MachineLearning.Evaluation.site_metrics import site_squared_error, site_abs_error
 
 
 def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
@@ -192,7 +192,7 @@ def plot_example_site_boxplot(
 
     for model, outputs in models_outputs.items():
         for i in range(n_examples):
-            site_errors = site_squared_error(outputs[i], ground_outputs[i])
+            site_errors = site_abs_error(outputs[i], ground_outputs[i])
             for j in range(site_errors.shape[0]):
                 box_plot_data.append(
                     {
