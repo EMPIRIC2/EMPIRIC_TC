@@ -3,10 +3,7 @@ import math
 import numpy as np
 
 from HealthFacilities.getHealthFacilityData import Sites
-
-LAT_MIN, LAT_MAX = -60, -5
-LON_MIN, LON_MAX = 135, 240
-
+from TrainingDataGeneration.STORM.SELECT_BASIN import get_basin_boundaries
 
 def get_many_site_values(grids):
     """
@@ -36,26 +33,32 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     :return: indices of the lat and lon cells respectively
     """
 
-    if not (LAT_MIN <= lat < LAT_MAX):
+
+    lat_min, lat_max, lon_min, lon_max = get_basin_boundaries('SP')
+
+    if not (lat_min <= lat < lat_max):
         raise Exception("lat must be within the basin")
 
-    if not (LON_MIN <= lon < LON_MAX):
+    if not (lon_min <= lon < lon_max):
         raise Exception("lon must be within the basin")
 
-    n_lat_cells = math.floor((LAT_MAX - LAT_MIN) * 1 / resolution)
+    n_lat_cells = math.floor((lat_max - lat_min) * 1 / resolution)
 
     # flip the lat cell upside down
-    latCell = n_lat_cells - math.floor((lat - LAT_MIN) * 1 / resolution) - 1
+    latCell = n_lat_cells - math.floor((lat - lat_min) * 1 / resolution) - 1
 
-    lonCell = math.floor((lon - LON_MIN) * 1 / resolution)
+    lonCell = math.floor((lon - lon_min) * 1 / resolution)
 
     return latCell, lonCell
 
 
 def get_lat_lon_data_for_mesh(grid, resolution):
+
+    lat_min, lat_max, lon_min, lon_max = get_basin_boundaries('SP')
+
     # convert data into format for contour plot
-    lats = [(grid.shape[0] - i) * resolution + LAT_MIN for i in range(grid.shape[0])]
-    lons = [j * resolution + LON_MIN - 180 for j in range(grid.shape[1])]
+    lats = [(grid.shape[0] - i) * resolution + lat_min for i in range(grid.shape[0])]
+    lons = [j * resolution + lon_min - 180 for j in range(grid.shape[1])]
 
     return lats, lons
 
