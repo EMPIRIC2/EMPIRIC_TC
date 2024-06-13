@@ -353,5 +353,6 @@ if __name__ == "__main__":
         args.save_location,
         include_grids=args.include_grids,
         include_sites=args.include_sites,
-        include_historical_genesis=args.include_historical_genesis
+        include_historical_genesis=args.include_historical_genesis,
+        constant_historical_inputs=args.constant_historical_inputs
     )
