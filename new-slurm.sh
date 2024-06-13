@@ -13,7 +13,7 @@ ${GIVEN_NODE}
 #SBATCH --gpus-per-task=${NUM_GPUS_PER_NODE}
 #SBATCH --time=${WALL_TIME}
 #SBATCH --mem-per-cpu=${MEM}
-#SBATCH --cpus-per-task=10
+#SBATCH --cpus-per-task=24
 ${QOS_DEBUG}
 
 # Load modules or your own conda environment here
