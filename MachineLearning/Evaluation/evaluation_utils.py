@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from HealthFacilities.getHealthFacilityData import Sites
+from TrainingDataGeneration.STORM.SELECT_BASIN import get_basin_boundaries
 
 def get_many_site_values(grids):
     """
@@ -26,8 +27,7 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     :return: indices of the lat and lon cells respectively
     """
 
-    lat_min, lat_max = -60, -5
-    lon_min, lon_max = 135, 240
+    lat_min, lat_max, lon_min, lon_max = get_basin_boundaries('SP')
 
     if not (lat_min <= lat < lat_max):
         raise Exception("lat must be within the basin")
