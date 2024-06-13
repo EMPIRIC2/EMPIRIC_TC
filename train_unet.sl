@@ -3,8 +3,9 @@
 #SBATCH --job-name=train-unet
 #SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=2
-#SBATCH --time 01:00:00
+#SBATCH --time 00:15:00
 #SBATCH --mem 4G
+#SBATCH --qos=debug
 
 module purge
 source load-ml-environment.sh
