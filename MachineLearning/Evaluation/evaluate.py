@@ -81,23 +81,24 @@ if __name__ == "__main__":
         description="Evaluates trained models in models_info against STORM",
     )
 
-    parser.add_argument("data_folder", type=str)
-    parser.add_argument("output_save_folder", type=str)
+    parser.add_argument("eval_data_dir", type=str)
+    parser.add_argument("train_data_dir", type=str)
+    parser.add_argument("output_save_dir", type=str)
 
     args = parser.parse_args()
 
     test_data_ml = get_dataset(
-        args.data_folder, data_version=4, dataset="test", batch_size=32
+        args.eval_data_dir, data_version=4, dataset="test", batch_size=32
     )
 
     outputs_ds = test_data_ml.map(lambda x, y: y)
     ml_inputs = test_data_ml.map(lambda x, y: x)
 
     test_data_nearest_neighbors = get_dataset(
-        args.data_folder, data_version=5, dataset="test", batch_size=32
+        args.eval_data_dir, data_version=5, dataset="test", batch_size=32
     )
     nearest_neighbors_inputs = test_data_nearest_neighbors.map(lambda x, y: x)
-    nearest_neighbors_regressor = NearestNeighborsRegressor(args.data_folder)
+    nearest_neighbors_regressor = NearestNeighborsRegressor(args.train_data_dir)
     nearest_neighbors_regressor.load(
         os.path.join(__location__, "../NearestNeighbors/nearest_neighbors.pkl")
     )
