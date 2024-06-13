@@ -1,7 +1,6 @@
-from tensorflow import keras
+import keras
 from MachineLearning.dataset import get_dataset
 from MachineLearning.UNet.unet import UNet
-from MachineLearning.PredictionCallback import PredictionCallback
 import time
 import wandb
 from wandb.integration.keras import WandbMetricsLogger

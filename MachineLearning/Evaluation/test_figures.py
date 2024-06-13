@@ -44,7 +44,7 @@ class TestFigures(unittest.TestCase):
         ks_statistic_map(all_metrics)
 
     def test_quantile_maps(self):
-        plot_quantile_maps([storm_statistics, unet_statistics, unet_statistics])
+        plot_quantile_maps([storm_statistics, unet_statistics, unet_statistics, unet_statistics, unet_statistics, unet_statistics])
 
     def test_relative_change_error_map(self):
         error_maps, total_error = compute_all_relative_change_pairs(
