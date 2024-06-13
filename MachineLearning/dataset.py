@@ -1,8 +1,8 @@
 import glob
 import os
 import pickle
-import time
 import random
+import time
 
 import h5py
 import numpy as np
@@ -163,6 +163,7 @@ class hdf5_generator_nearest_neighbors:
                     else:  # this sample was never generated
                         break
 
+
 class hdf5_generator_UNets_Zero_Inputs:
     def __init__(
         self,
@@ -216,15 +217,13 @@ class hdf5_generator_UNets_Zero_Inputs:
 
                 for genesis, output in zip(geneses, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
-
                         # switch the order of genesis matrix
                         # and divide output by number of years
-                        yield np.zeros((112, 224, 1)), self._preprocess_output(
-                                output
-                        )
+                        yield np.zeros((112, 224, 1)), self._preprocess_output(output)
 
                     else:  # this sample was never generated
                         break
+
 
 class hdf5_generator_UNets:
     def __init__(
@@ -234,7 +233,6 @@ class hdf5_generator_UNets:
         min_category=0,
         max_category=2,
     ):
-
         self.file_paths = file_paths
         self.dataset = dataset
         self.min_category = min_category
@@ -311,12 +309,13 @@ class hdf5_generator_UNets:
                         # switch the order of genesis matrix
                         # and divide output by number of years
 
-                        yield self._preprocess_input(
-                            genesis
-                        ), self._preprocess_output(output)
+                        yield self._preprocess_input(genesis), self._preprocess_output(
+                            output
+                        )
 
                     else:  # this sample was never generated
                         break
+
 
 class hdf5_generator_v3:
     def __init__(self, file_paths, dataset="train", n_samples=None, zero_inputs=False):
