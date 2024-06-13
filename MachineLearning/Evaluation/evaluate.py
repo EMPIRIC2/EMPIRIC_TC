@@ -97,8 +97,14 @@ if __name__ == "__main__":
     test_data_nearest_neighbors = get_dataset(
         args.eval_data_dir, data_version=5, dataset="test", batch_size=32
     )
-    nearest_neighbors_inputs = test_data_nearest_neighbors.map(lambda x, y: x)
+    nearest_neighbors_inputs_ds = test_data_nearest_neighbors.map(lambda x, y: x)
+    
+    nearest_neighbors_inputs = np.empty(shape=(0, 5775))
+    for data in nearest_neighbors_inputs_ds.as_numpy_iterator():
+        nearest_neighbors_inputs = np.concatenate([nearest_neighbors_inputs, data])
+            
     nearest_neighbors_regressor = NearestNeighborsRegressor(args.train_data_dir)
+
     nearest_neighbors_regressor.load(
         os.path.join(__location__, "../NearestNeighbors/nearest_neighbors.pkl")
     )
@@ -106,6 +112,12 @@ if __name__ == "__main__":
     Object keeps track of the models we want to evaluate.
     """
     models_info = [
+        {
+            "Name": "Nearest Neighbors Regressor",
+            "Output": "Mean 0-2 Category TCs over 10 years",
+            "model": nearest_neighbors_regressor,
+            "inputs": nearest_neighbors_inputs
+        },
         {
             "Name": "DDIM Unet",
             "Output": "Mean 0-2 Category TCs over 10 years",
@@ -128,14 +140,8 @@ if __name__ == "__main__":
             "Name": "DDPM UNet w/o attention",
             "Output": "Mean 0-2 Category TCs over 10 years",
             "model": DDPMUNetNoAttention02CatCyclones.load_model(),
-            "inputs": ml_inputs,
-        },
-        {
-            "Name": "Nearest Neighbors Regressor",
-            "Output": "Mean 0-2 Category TCs over 10 years",
-            "model": nearest_neighbors_regressor,
-            "inputs": nearest_neighbors_inputs,
-        },
+            "inputs": ml_inputs
+        }
     ]
 
     predict_params = {"batch_size": 32, "verbose": 2}
