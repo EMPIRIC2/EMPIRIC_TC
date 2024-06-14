@@ -263,6 +263,19 @@ def get_cells_and_sites_touched_by_storm(storm, resolution, basin, storm_rmax_mu
 
 
 def storm_counts_per_month_for_year(storms, resolution, basin, storm_rmax_multiple):
+    """
+    Takes one year of storms and computes the storm counts on a lat lon grid,
+     separated by month and category
+    @param storms: a list of storms
+    a storm has format {"month": int, "year": int, "t": [0,..., n], "data": [...]}
+    @param resolution: size of lat/lon degree cells in degrees to compute counts in
+    @param basin: the ocean basin
+    @param storm_rmax_multiple: multiple of storm radius of maximum
+    wind speeds that determines whether a storm touches a cell.
+    @return: returns a 4d np.ndarray with dimensions
+    (lat_cells, lon_cells, months, category)
+    """
+
     grid = create_monthly_landfall_grid(basin, resolution)
 
     month_to_index = {month: i for i, month in enumerate([1, 2, 3, 4, 11, 12])}
@@ -322,14 +335,17 @@ def get_landfalls_data(
 ):
     """
     Take tropical cyclone tracks and data from STORM and calculate mean
-    tropical cyclone count in lat, lon bins per month and storm category
-    For use as the training output of ML model.
+    tropical cyclone counts in lat, lon bins per month and storm category
+    For use as the training output of an ML model.
 
-    :param TC_data: list of synthetically generated TC data
-    :param basin: the basin storms are being generated in
-    :param total_years: number of years that synthetic data was generated over
-    :param resolution: the lat, lon resolution to calculate statistics for in degrees
-    :return: a lat, lon, month matrix for the basin with values
+    @param TC_data: list of synthetically generated TC data
+    @param basin: the basin storms are being generated in
+    @param total_years: number of years that synthetic data was generated over
+    @param resolution: the lat, lon resolution to calculate statistics for in degrees
+    @param storm_rmax_multiple: constant that storm_rmax is multiplied by to
+    determine if it touches a region
+    @param local: boolean flag, true if code is not being run on cluster
+    @return: a lat, lon, month matrix for the basin with values
              the average number of landfalls in that month in the provided TC data
     """
 
