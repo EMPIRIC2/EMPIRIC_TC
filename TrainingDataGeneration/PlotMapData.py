@@ -3,30 +3,7 @@ import math
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-
-
-def BOUNDARIES_BASINS(idx):
-    """
-    Copied from STORM model
-
-    :param idx: basin index
-    :return:
-    """
-    if idx == "EP":  # Eastern Pacific
-        lat0, lat1, lon0, lon1 = 5, 60, 180, 285
-    if idx == "NA":  # North Atlantic
-        lat0, lat1, lon0, lon1 = 5, 60, 255, 359
-    if idx == "NI":  # North Indian
-        lat0, lat1, lon0, lon1 = 5, 60, 30, 100
-    if idx == "SI":  # South Indian
-        lat0, lat1, lon0, lon1 = -60, -5, 10, 135
-    if idx == "SP":  # South Pacific
-        lat0, lat1, lon0, lon1 = -60, -5, 135, 240
-    if idx == "WP":  # Western Pacific
-        lat0, lat1, lon0, lon1 = 5, 60, 100, 180
-
-    return lat0, lat1, lon0, lon1
-
+from TrainingDataGeneration.STORM.preprocessing import BOUNDARIES_BASINS
 
 def plotLatLonGridDataMultiple(
     datas, resolution, basin="SP", show=True, plot_names=None
