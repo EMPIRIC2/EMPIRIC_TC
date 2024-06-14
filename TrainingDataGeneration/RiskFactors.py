@@ -4,21 +4,20 @@
 import math
 import os
 import random
-import time
 from multiprocessing import Pool, cpu_count
 
 import numpy as np
 from geopy import distance
 from scipy.interpolate import make_interp_spline
+
 from TrainingDataGeneration.STORM.preprocessing import BOUNDARIES_BASINS
+
 
 def _get_random_year_combination(num_years, size):
     sample = set()
     while len(sample) < size:
-        # Choose one random item from items
-        elem = random.randint(0, num_years - 1)
-        # Using a set elminates duplicates easily
-        sample.add(elem)
+        year = random.randint(0, num_years - 1)
+        sample.add(year)
     return tuple(sample)
 
 
@@ -30,26 +29,26 @@ def get_random_year_combinations(num_combinations, num_years, size):
 
     return tuple(samples)
 
-def create_monthly_landfall_grid(basin, resolution):
+
+def create_monthly_landfall_grid(basin: str, resolution=0.5):
     """
     Generate a grid to store TC monthly landfall statistics
-    :param basin
+    :param basin: which ocean basin to create the grid for
     :param resolution: how many degrees each bin should be
-    :return:
+    :return: a 4d ndarray
     """
-    # create lat lon grid (only needs to cover the basin) at 1 degree resolution
-    # with [0] * 6 matrix in each
 
-    lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
+    lat_min, lat_max, lon_min, lon_max = BOUNDARIES_BASINS(basin)
 
     shape = (
-        math.ceil((lat1 - lat0) * 1 / resolution),
-        math.ceil((lon1 - lon0) * 1 / resolution),
+        math.ceil((lat_max - lat_min) * 1 / resolution),
+        math.ceil((lon_max - lon_min) * 1 / resolution),
         6,  # storm producing months
         6,  # storm categories
     )
 
     return np.zeros(shape)
+
 
 def get_grid_cell(lat, lon, resolution, basin):
     """
@@ -71,11 +70,13 @@ def get_grid_cell(lat, lon, resolution, basin):
 
     return lat_cell_index, lon_cell_index
 
+
 def get_lat_bounds_for_cell(lat_cell_index, resolution, basin):
     lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
 
     minimum = lat_cell_index * resolution + lat0
     return minimum, minimum + resolution
+
 
 def get_lon_bounds_for_cell(lon_cell_index, resolution, basin):
     lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
@@ -83,7 +84,10 @@ def get_lon_bounds_for_cell(lon_cell_index, resolution, basin):
     minimum = lon_cell_index * resolution + lon0
     return minimum, minimum + resolution
 
-def get_closest_lat_in_grid_cell_to_storm_center(lat_cell_index, storm_lat, resolution, basin):
+
+def get_closest_lat_in_grid_cell_to_storm_center(
+    lat_cell_index, storm_lat, resolution, basin
+):
     lat_min, lat_max = get_lat_bounds_for_cell(lat_cell_index, resolution, basin)
 
     # if the storm is at smaller latitude than the smallest in the cell,
@@ -95,7 +99,10 @@ def get_closest_lat_in_grid_cell_to_storm_center(lat_cell_index, storm_lat, reso
         return lat_max
     return storm_lat
 
-def get_closest_lon_in_grid_cell_to_storm_center(lon_cell_index, storm_lon, resolution, basin):
+
+def get_closest_lon_in_grid_cell_to_storm_center(
+    lon_cell_index, storm_lon, resolution, basin
+):
     lon_min, lon_max = get_lon_bounds_for_cell(lon_cell_index, resolution, basin)
 
     # same logic as getSmallestLatDistanceInGridCellToStormCenter
@@ -105,38 +112,33 @@ def get_closest_lon_in_grid_cell_to_storm_center(lon_cell_index, storm_lon, reso
         return lon_max
     return storm_lon
 
+
 def check_cell_touched_by_storm(
-        storm_lat,
-        storm_lon,
-        lat_cell_index,
-        lon_cell_index,
-        storm_radius_max_wind_speeds,
-        storm_rmax_multiple,
-        resolution,
-        basin
+    storm_lat,
+    storm_lon,
+    lat_cell_index,
+    lon_cell_index,
+    storm_radius_max_wind_speeds,
+    storm_rmax_multiple,
+    resolution,
+    basin,
 ):
     closest_lat = get_closest_lat_in_grid_cell_to_storm_center(
-        lat_cell_index,
-        storm_lat,
-        resolution,
-        basin
+        lat_cell_index, storm_lat, resolution, basin
     )
 
     closest_lon = get_closest_lon_in_grid_cell_to_storm_center(
-        lon_cell_index,
-        storm_lon,
-        resolution,
-        basin
+        lon_cell_index, storm_lon, resolution, basin
     )
 
     storm_distance = distance.distance(
-                        (closest_lat, closest_lon),
-                        (storm_lat, storm_lon)
-                    ).km
-    if (storm_distance <= storm_rmax_multiple * storm_radius_max_wind_speeds):
+        (closest_lat, closest_lon), (storm_lat, storm_lon)
+    ).km
+    if storm_distance <= storm_rmax_multiple * storm_radius_max_wind_speeds:
         return True
 
     return False
+
 
 def update_cells_touched_by_storm_rmax(
     touched_cells,
@@ -160,7 +162,9 @@ def update_cells_touched_by_storm_rmax(
     @param basin:
     @return:
     """
-    # make bounding box based on storm_radius_max_wind_speeds for which grid cells to iterate through
+
+    # make bounding box based on storm_radius_max_wind_speeds
+    # for which grid cells to check
     lat_min, lat_max, lon_min, lon_max = BOUNDARIES_BASINS(basin)
 
     storm_rmax_latitude_degrees = (
@@ -170,30 +174,45 @@ def update_cells_touched_by_storm_rmax(
     storm_max_lat = min((storm_lat + storm_rmax_latitude_degrees), lat_max - resolution)
     storm_min_lat = max((storm_lat - storm_rmax_latitude_degrees), lat_min)
 
-    min_km_per_degree = distance.distance((storm_max_lat, storm_lon), (storm_max_lat, storm_lon + 1)).km
+    min_km_per_degree = distance.distance(
+        (storm_max_lat, storm_lon), (storm_max_lat, storm_lon + 1)
+    ).km
 
-    storm_rmax_longitude_degrees = storm_rmax_multiple * storm_radius_max_wind_speeds / min_km_per_degree
+    storm_rmax_longitude_degrees = (
+        storm_rmax_multiple * storm_radius_max_wind_speeds / min_km_per_degree
+    )
 
     storm_max_lon = min(storm_lon + storm_rmax_longitude_degrees, lon_max - resolution)
     storm_min_lon = max(storm_lon - storm_rmax_longitude_degrees, lon_min)
 
-    i0, j0 = get_grid_cell(storm_min_lat, storm_min_lon, resolution, basin)
-    i1, j1 = get_grid_cell(storm_max_lat, storm_max_lon, resolution, basin)
+    lat_index_min, lon_index_min = get_grid_cell(
+        storm_min_lat, storm_min_lon, resolution, basin
+    )
+    lat_index_max, lon_index_max = get_grid_cell(
+        storm_max_lat, storm_max_lon, resolution, basin
+    )
 
-    for i in range(i0, i1 + 1):
-        for j in range(j0, j1 + 1):
+    for lat_index in range(lat_index_min, lat_index_max + 1):
+        for lon_index in range(lon_index_min, lon_index_max + 1):
             if check_cell_touched_by_storm(
-                storm_lat, storm_lon, i, j, storm_radius_max_wind_speeds, storm_rmax_multiple, resolution, basin
+                storm_lat,
+                storm_lon,
+                lon_index,
+                lat_index,
+                storm_radius_max_wind_speeds,
+                storm_rmax_multiple,
+                resolution,
+                basin,
             ):
-                touched_cells[(i, j)] = max(
-                    touched_cells.get((i, j), 0), int(storm_category)
+                current_category = touched_cells.get((lat_index, lon_index), 0)
+                touched_cells[(lat_index, lon_index)] = max(
+                    current_category, int(storm_category)
                 )
 
-def get_cells_and_sites_touched_by_storm(
-    storm, resolution, basin, storm_rmax_multiple
-):
+
+def get_cells_and_sites_touched_by_storm(storm, resolution, basin, storm_rmax_multiple):
     # interpolate
-    b = make_interp_spline(storm["t"], storm["data"], k=1)
+    bspline = make_interp_spline(storm["t"], storm["data"], k=1)
 
     touched_cells = {}
 
@@ -225,7 +244,9 @@ def get_cells_and_sites_touched_by_storm(
 
         # now use the actual step to check the touching points with spline values
         for j in [h * step + t for h in range(0, int(1 / step))]:
-            lat, lon, pressure, wind, storm_radius_max_wind_speeds, category = b(j)
+            lat, lon, pressure, wind, storm_radius_max_wind_speeds, category = bspline(
+                j
+            )
 
             update_cells_touched_by_storm_rmax(
                 touched_cells,
@@ -235,28 +256,20 @@ def get_cells_and_sites_touched_by_storm(
                 category,
                 storm_rmax_multiple,
                 resolution,
-                basin
+                basin,
             )
 
     return touched_cells
 
-def storm_counts_per_month_for_year(
-        storms,
-        resolution,
-        basin,
-        storm_rmax_multiple
-):
 
+def storm_counts_per_month_for_year(storms, resolution, basin, storm_rmax_multiple):
     grid = create_monthly_landfall_grid(basin, resolution)
 
     month_to_index = {month: i for i, month in enumerate([1, 2, 3, 4, 11, 12])}
 
     for i, storm in enumerate(storms):
         touched_cells = get_cells_and_sites_touched_by_storm(
-            storm,
-            resolution,
-            basin,
-            storm_rmax_multiple=storm_rmax_multiple
+            storm, resolution, basin, storm_rmax_multiple=storm_rmax_multiple
         )
 
         month = storm["month"]
@@ -268,10 +281,10 @@ def storm_counts_per_month_for_year(
         del touched_cells
     return grid
 
+
 def get_grid_sum_samples(
     yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years
 ):
-
     sums = []
     yearly_grids = np.array(yearly_grids)
     year_indices = get_random_year_combinations(n_samples, total_years, n_years_to_sum)
@@ -293,6 +306,7 @@ def get_grid_sum_samples(
     sums = np.array(sums)
     return sums
 
+
 def get_grid_mean_samples(
     yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years
 ):
@@ -302,16 +316,13 @@ def get_grid_mean_samples(
 
     return np.mean(sums, axis=0)
 
+
 def get_landfalls_data(
-        TC_data,
-        basin,
-        total_years,
-        resolution,
-        storm_rmax_multiple=4,
-        local=False
+    TC_data, basin, total_years, resolution, storm_rmax_multiple=4, local=False
 ):
     """
-    Calculate average landfalls per month within lat, lon bins from synthetic TC data.
+    Take tropical cyclone tracks and data from STORM and calculate mean
+    tropical cyclone count in lat, lon bins per month and storm category
     For use as the training output of ML model.
 
     :param TC_data: list of synthetically generated TC data
@@ -322,7 +333,6 @@ def get_landfalls_data(
              the average number of landfalls in that month in the provided TC data
     """
 
-    print("calculating landfalls")
     """
     TC_data is list of [
         year,
@@ -388,7 +398,6 @@ def get_landfalls_data(
 
         year_results = pool.starmap(storm_counts_per_month_for_year, args)
         for i, grid in enumerate(year_results):
-
             yearly_grids.append(grid)
 
         mean_samples = get_grid_mean_samples(yearly_grids, 10, 100, 100, total_years)
