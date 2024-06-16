@@ -1,7 +1,6 @@
-from tensorflow import keras
+import keras
 from MachineLearning.dataset import get_dataset
 from MachineLearning.UNet.unet import UNet
-from MachineLearning.PredictionCallback import PredictionCallback
 import time
 import wandb
 from wandb.integration.keras import WandbMetricsLogger
@@ -13,8 +12,8 @@ output_size_default = (110, 210, 1)
 def train_unet(model_name, data_folder, data_version, model_config, training_config):
 
     model = UNet(**model_config)
-
-    local_save_path = 'models/{}_{}.keras'.format(model_name, str(time.time()))
+    unique_model_name = '{}_{}'.format(model_name, str(time.time()))
+    local_save_path = 'models/{}.keras'.format(unique_model_name)
 
     # Start a run, tracking hyperparameters
     wandb.init(
@@ -27,7 +26,7 @@ def train_unet(model_name, data_folder, data_version, model_config, training_con
 
     ## track the model with an artifact
     model_artifact = wandb.Artifact(
-        "UNet-custom",
+        unique_model_name,
         type="model",
         metadata={
             "save_path": local_save_path,
