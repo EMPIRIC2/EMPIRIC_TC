@@ -16,10 +16,10 @@ def evaluate(dataset, output_dir, predict_params):
     :param: output_save_folder: folder to save metrics latex and figure pictures
     """
 
-    outputs_ds = dataset.map(lambda x, y: y)
-    outputs = np.squeeze(np.concatenate(list(outputs_ds.as_numpy_iterator()), axis=0))
-
-    inputs = dataset.map(lambda x,y: x)
+    inputs = dataset.map(lambda x, y: x)
+    outputs = dataset.map(lambda x, y: y)
+    
+    outputs = np.squeeze(np.concatenate(list(outputs.as_numpy_iterator()), axis=0))
 
     metrics = []
     storm_statistics = compute_ensemble_statistics(outputs)
