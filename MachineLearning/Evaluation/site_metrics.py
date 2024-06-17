@@ -4,7 +4,6 @@ from sklearn.metrics import mean_squared_error
 from MachineLearning.Evaluation.evaluation_utils import (get_many_site_values,
                                                          get_site_values)
 
-
 def site_squared_error(output1, output2):
     """
     Calculates the squared error at each health facility site
@@ -19,7 +18,6 @@ def site_squared_error(output1, output2):
     output2_sites = get_site_values(output2)
 
     return (output1_sites - output2_sites) ** 2
-
 
 def site_abs_error(output1, output2):
     """

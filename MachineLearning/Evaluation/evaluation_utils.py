@@ -5,6 +5,7 @@ import numpy as np
 from HealthFacilities.getHealthFacilityData import Sites
 from TrainingDataGeneration.STORM.SELECT_BASIN import get_basin_boundaries
 
+
 def get_many_site_values(grids):
     """
     Gets the vectors of site values for many output grids
@@ -33,8 +34,8 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     :return: indices of the lat and lon cells respectively
     """
 
-
     lat_min, lat_max, lon_min, lon_max = get_basin_boundaries('SP')
+
 
     if not (lat_min <= lat < lat_max):
         raise Exception("lat must be within the basin")
@@ -62,9 +63,7 @@ def get_lat_lon_data_for_mesh(grid, resolution):
 
     return lats, lons
 
-
 sites = Sites(1)
-
 
 def get_site_name(i):
     return sites.names[i]
@@ -72,8 +71,8 @@ def get_site_name(i):
 
 def get_site_values(grid):
     """
-    :param: grid: an array of values that is the model output on a
-    latitude longitude grid.
+    :param: grid: an array of values that is the model output on
+    a latitude longitude grid.
 
     Returns a vector of values for each site
     values for each site are taken from the grid cell the site is located in

@@ -5,6 +5,7 @@ import numpy as np
 
 from MachineLearning.dataset import get_dataset
 from MachineLearning.Evaluation.evaluation_utils import process_predictions
+
 from MachineLearning.Evaluation.figures import (make_collective_model_figures,
                                                 make_single_model_figures,
                                                 save_metrics_as_latex)
@@ -20,7 +21,7 @@ from saved_models.saved_models import (DDPMUNet02CatCyclones,
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 
-def evaluate(outputs_ds, output_dir):
+def evaluate(outputs_ds, output_dir, models):
     """
     Compute all evaluation metrics and then save the resulting figures to disk.
 
@@ -32,16 +33,18 @@ def evaluate(outputs_ds, output_dir):
     metrics = []
 
     batch_axis = 0
+
     unbatched_outputs = np.concatenate(
         list(outputs_ds.as_numpy_iterator()), axis=batch_axis
     )
     outputs = np.squeeze(unbatched_outputs)
     storm_statistics = compute_ensemble_statistics("STORM", outputs)
 
+
     all_outputs = {"STORM": outputs}
     all_statistics = [storm_statistics]
 
-    for model_info in models_info:
+    for model_info in models:
         model = model_info["model"]
         inputs = model_info["inputs"]
 
@@ -49,15 +52,15 @@ def evaluate(outputs_ds, output_dir):
 
         predictions = process_predictions(predictions)
 
-        model_statistics = compute_ensemble_statistics(model_info["Name"], predictions)
+        model_statistics = compute_ensemble_statistics(model_info["name"], predictions)
 
         model_metrics = compute_metrics(
-            outputs, predictions, storm_statistics, model_statistics, model_info["Name"]
+            outputs, predictions, storm_statistics, model_statistics, model_info["name"]
         )
         metrics.append(model_metrics)
 
-        if not os.path.exists(os.path.join(output_dir, model_info["Name"])):
-            os.makedirs(os.path.join(output_dir, model_info["Name"]))
+        if not os.path.exists(os.path.join(output_dir, model_info["name"])):
+            os.makedirs(os.path.join(output_dir, model_info["name"]))
 
         make_single_model_figures(
             outputs,
@@ -65,15 +68,14 @@ def evaluate(outputs_ds, output_dir):
             storm_statistics,
             model_statistics,
             model_metrics,
-            os.path.join(output_dir, model_info["Name"]),
+            os.path.join(output_dir, model_info["name"]),
         )
 
-        all_outputs[model_info["Name"]] = predictions
+        all_outputs[model_info["name"]] = predictions
         all_statistics.append(model_statistics)
 
     make_collective_model_figures(all_outputs, all_statistics, output_dir)
     save_metrics_as_latex(metrics, os.path.join(output_dir, "metrics.tex"))
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -113,32 +115,32 @@ if __name__ == "__main__":
     """
     models_info = [
         {
-            "Name": "Nearest Neighbors Regressor",
-            "Output": "Mean 0-2 Category TCs over 10 years",
+            "name": "Nearest Neighbors Regressor",
+            "output_description": "Mean 0-2 Category TCs over 10 years",
             "model": nearest_neighbors_regressor,
             "inputs": nearest_neighbors_inputs
         },
         {
-            "Name": "DDIM Unet",
-            "Output": "Mean 0-2 Category TCs over 10 years",
+            "name": "DDIM Unet",
+            "output_description": "Mean 0-2 Category TCs over 10 years",
             "model": SongUNet.load_model(),
             "inputs": ml_inputs,
         },
         {
-            "Name": "Custom UNet",
-            "Output": "Mean 0-2 Category TCs over 10 years",
+            "name": "Custom UNet",
+            "output_description": "Mean 0-2 Category TCs over 10 years",
             "model": UNetCustom02CatCyclones.load_model(),
             "inputs": ml_inputs,
         },
         {
-            "Name": "DDPM UNet",
-            "Output": "Mean 0-2 Category TCs over 10 years",
+            "name": "DDPM UNet",
+            "output_description": "Mean 0-2 Category TCs over 10 years",
             "model": DDPMUNet02CatCyclones.load_model(),
             "inputs": ml_inputs,
         },
         {
-            "Name": "DDPM UNet w/o attention",
-            "Output": "Mean 0-2 Category TCs over 10 years",
+            "name": "DDPM UNet w/o attention",
+            "output_description": "Mean 0-2 Category TCs over 10 years",
             "model": DDPMUNetNoAttention02CatCyclones.load_model(),
             "inputs": ml_inputs
         }
@@ -146,4 +148,4 @@ if __name__ == "__main__":
 
     predict_params = {"batch_size": 32, "verbose": 2}
 
-    evaluate(outputs_ds, args.output_save_folder)
+    evaluate(outputs_ds, args.output_save_folder, models_info)

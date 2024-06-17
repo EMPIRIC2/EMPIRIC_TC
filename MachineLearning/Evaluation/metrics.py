@@ -13,7 +13,6 @@ def compute_metrics(
 ):
     """
     Computes all the metrics for a given model and statistics
-
     :param ground_outputs: the "true" model outputs to benchmark against
     :param model_outputs: the outputs of the model to benchmark
     :param ground_statistics: the statistics computed from the ground model
