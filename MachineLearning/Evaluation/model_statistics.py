@@ -32,7 +32,7 @@ def kolmogorov_smirnov_statistics(ground_truths, predictions):
     # flatten all but the first axis
 
     lat_length, lon_length = ground_truths[0].shape
-    ground_truth_sample_length = lat_length[0] * lon_length[1]
+    ground_truth_sample_length = lat_length * lon_length
 
     ground_truths = np.reshape(
         ground_truths, (len(ground_truths), ground_truth_sample_length)
