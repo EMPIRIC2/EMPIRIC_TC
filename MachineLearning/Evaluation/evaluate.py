@@ -1,11 +1,15 @@
-from MachineLearning.Evaluation.evaluation_utils import process_predictions
-from MachineLearning.Evaluation.model_statistics import compute_ensemble_statistics
-import os
-from MachineLearning.Evaluation.metrics import compute_metrics
 import argparse
-from MachineLearning.Evaluation.model_info import models_info
+import os
+
 import numpy as np
+
 from MachineLearning.dataset import get_dataset
+from MachineLearning.Evaluation.evaluation_utils import process_predictions
+from MachineLearning.Evaluation.metrics import compute_metrics
+from MachineLearning.Evaluation.model_info import models_info
+from MachineLearning.Evaluation.model_statistics import \
+    compute_ensemble_statistics
+
 
 def evaluate(dataset, output_dir, predict_params):
     """
@@ -19,7 +23,7 @@ def evaluate(dataset, output_dir, predict_params):
     outputs_ds = dataset.map(lambda x, y: y)
     outputs = np.squeeze(np.concatenate(list(outputs_ds.as_numpy_iterator()), axis=0))
 
-    inputs = dataset.map(lambda x,y: x)
+    inputs = dataset.map(lambda x, y: x)
 
     metrics = []
     storm_statistics = compute_ensemble_statistics(outputs)
@@ -27,16 +31,15 @@ def evaluate(dataset, output_dir, predict_params):
     for model_info in models_info:
         model = model_info["model"]
 
-        predictions = model.predict(
-            inputs,
-            **predict_params
-        )
-        
+        predictions = model.predict(inputs, **predict_params)
+
         predictions = process_predictions(predictions)
 
         model_statistics = compute_ensemble_statistics(predictions)
 
-        model_metrics = compute_metrics(outputs, predictions, storm_statistics, model_statistics, model_info["Name"])
+        model_metrics = compute_metrics(
+            outputs, predictions, storm_statistics, model_statistics, model_info["Name"]
+        )
         metrics.append(model_metrics)
 
         if not os.path.exists(os.path.join(output_dir, model_info["Name"])):
@@ -44,10 +47,9 @@ def evaluate(dataset, output_dir, predict_params):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(
         prog="Evaluate Models",
-        description="Evaluates trained models in models_info against STORM"
+        description="Evaluates trained models in models_info against STORM",
     )
 
     parser.add_argument("data_folder", type=str)
@@ -55,11 +57,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    test_data = get_dataset(args.data_folder, data_version=3, dataset='test', batch_size=32)
+    test_data = get_dataset(
+        args.data_folder, data_version=3, dataset="test", batch_size=32
+    )
 
-    predict_params = {
-        "batch_size": 32,
-        "verbose": 2
-    }
+    predict_params = {"batch_size": 32, "verbose": 2}
 
     evaluate(test_data, args.output_save_folder, predict_params)
