@@ -28,8 +28,8 @@ def kolmogorov_smirnov_statistics(ground_truths, predictions):
     ks_statistics = []
 
     # flatten all but the first axis
-    sample_shape = ground_truths[0].shape
-    ground_truth_sample_length = sample_shape[0] * sample_shape[1]
+    lat_length, lon_length = ground_truths[0].shape
+    ground_truth_sample_length = lat_length[0] * lon_length[1]
     ground_truths = np.reshape(
         ground_truths, (len(ground_truths), ground_truth_sample_length)
     )
@@ -44,5 +44,5 @@ def kolmogorov_smirnov_statistics(ground_truths, predictions):
         )
 
     # regrid the ks statistics
-    ks_statistics = np.reshape(ks_statistics, sample_shape)
+    ks_statistics = np.reshape(ks_statistics, (lat_length, lon_length))
     return ks_statistics

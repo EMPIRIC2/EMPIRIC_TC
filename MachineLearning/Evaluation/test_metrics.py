@@ -20,7 +20,7 @@ outputs, predictions, storm_statistics, unet_statistics, all_metrics = (
 
 
 class TestMetrics(unittest.TestCase):
-    def test_site_se(self):
+    def test_site_squared_error(self):
         ground_outputs, model_outputs = TEST_GRIDS_1, TEST_GRIDS_2
 
         site_se_1 = site_squared_error(model_outputs[0], ground_outputs[0])
@@ -28,7 +28,7 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(site_se_1[0], 9)
         self.assertEqual(site_se_1[1], 0)
 
-    def test_site_mse(self):
+    def test_site_mean_squared_error(self):
         site_mse_1 = site_mean_squared_error(predictions[0], outputs[0])
 
         n_in_gridcell = 0

@@ -1,9 +1,11 @@
+from types import MappingProxyType
+
 from saved_models.saved_models import UNetCustom02CatCyclones
 
 """
 Object keeps track of the models we want to evaluate.
 """
-models_info = [
+MODELS: tuple[MappingProxyType] = MappingProxyType(
     {
         "Name": "Custom UNet",
         "Output": "Mean 0-2 Category TCs over 10 years",
@@ -11,4 +13,4 @@ models_info = [
         "model": UNetCustom02CatCyclones.load_model(),
         "params": ((55, 105, 1), (11, 13), 1),
     }
-]
+)
