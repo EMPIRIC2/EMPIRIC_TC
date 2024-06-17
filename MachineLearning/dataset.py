@@ -8,7 +8,7 @@ import h5py
 import numpy as np
 import tensorflow as tf
 from sklearn.decomposition import PCA
-
+import random
 from utils import get_random_year_combinations
 
 print("loaded packages")
@@ -316,6 +316,8 @@ class hdf5_generator_UNets:
                     else:  # this sample was never generated
                         break
 
+            if file_path == self.file_paths[-1]:
+                random.shuffle(self.file_paths)
 
 class hdf5_generator_v3:
     def __init__(self, file_paths, dataset="train", n_samples=None, zero_inputs=False):
