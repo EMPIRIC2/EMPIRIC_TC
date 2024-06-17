@@ -6,10 +6,9 @@ import numpy as np
 from MachineLearning.dataset import get_dataset
 from MachineLearning.Evaluation.evaluation_utils import process_predictions
 from MachineLearning.Evaluation.metrics import compute_metrics
-from MachineLearning.Evaluation.model_info import models_info
+from MachineLearning.Evaluation.model_info import MODELS
 from MachineLearning.Evaluation.model_statistics import \
     compute_ensemble_statistics
-
 
 def evaluate(dataset, output_dir, predict_params):
     """
@@ -20,15 +19,15 @@ def evaluate(dataset, output_dir, predict_params):
     :param: output_save_folder: folder to save metrics latex and figure pictures
     """
 
-    outputs_ds = dataset.map(lambda x, y: y)
-    outputs = np.squeeze(np.concatenate(list(outputs_ds.as_numpy_iterator()), axis=0))
-
     inputs = dataset.map(lambda x, y: x)
+    outputs = dataset.map(lambda x, y: y)
+    
+    outputs = np.squeeze(np.concatenate(list(outputs.as_numpy_iterator()), axis=0))
 
     metrics = []
     storm_statistics = compute_ensemble_statistics(outputs)
 
-    for model_info in models_info:
+    for model_info in MODELS:
         model = model_info["model"]
 
         predictions = model.predict(inputs, **predict_params)
