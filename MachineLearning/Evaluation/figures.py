@@ -9,7 +9,7 @@ import seaborn_image as isns
 
 from MachineLearning.Evaluation.evaluation_utils import (
     get_lat_lon_data_for_mesh, get_many_site_values, get_site_name)
-from MachineLearning.Evaluation.site_metrics import site_squared_error, site_abs_error
+from MachineLearning.Evaluation.site_metrics import (site_abs_error)
 
 
 def example_site_ensemble_boxplot_figure(all_site_outputs, save_path=None):
@@ -196,7 +196,7 @@ def plot_example_site_boxplot(
             for j in range(site_errors.shape[0]):
                 box_plot_data.append(
                     {
-                        "Site Squared Error": site_errors[j],
+                        "Site Absolute Error": site_errors[j],
                         "Test Example": i,
                         "Model": model,
                     }
@@ -212,16 +212,25 @@ def plot_example_site_boxplot(
         plt.show()
 
 
-def make_collective_model_figures(all_outputs, all_statistics, save_folder):
+def make_collective_model_figures(all_outputs, all_statistics, save_dir):
+    """
+    Make figures that involve all of the models
+
+    @param all_outputs: dict containing the outputs of every model {model: outputs}
+    @param all_statistics: list of statistic objects for every model (including storm}
+    @param save_dir: folder to save data in
+    @return:
+    """
+
     all_site_outputs = {
         model: get_many_site_values(outputs) for model, outputs in all_outputs.items()
     }
 
     example_site_ensemble_boxplot_figure(
-        all_site_outputs, os.path.join(save_folder, "site_ensemble_boxplot.png")
+        all_site_outputs, os.path.join(save_dir, "site_ensemble_boxplot.png")
     )
 
-    plot_quantile_maps(all_statistics, os.path.join(save_folder, "quantile_maps.png"))
+    plot_quantile_maps(all_statistics, os.path.join(save_dir, "quantile_maps.png"))
 
     ground_outputs = all_outputs["STORM"]
     models_outputs = {k: i for k, i in all_outputs.items() if k != "STORM"}
@@ -229,32 +238,23 @@ def make_collective_model_figures(all_outputs, all_statistics, save_folder):
         ground_outputs,
         models_outputs,
         10,
-        os.path.join(save_folder, "example_site_boxplots.png"),
+        os.path.join(save_dir, "example_site_boxplots.png"),
     )
 
-
 def make_single_model_figures(
-    ground_outputs,
-    model_outputs,
-    ground_statistics,
-    model_statistics,
     metrics,
-    save_folder,
+    save_dir,
 ):
     """
     Creates all figures for a single network
 
-    @param ground_outputs:
-    @param model_outputs:
-    @param ground_statistics:
-    @param model_statistics:
     @param metrics:
     @param save_folder:
     @return:
     """
 
-    ks_statistic_map(metrics, os.path.join(save_folder, "ks_statistics.png"))
+    ks_statistic_map(metrics, os.path.join(save_dir, "ks_statistics.png"))
     top_relative_error_maps(
         metrics["Relative Error Examples"],
-        os.path.join(save_folder, "worst_relative_errors.png"),
+        os.path.join(save_dir, "worst_relative_errors.png"),
     )

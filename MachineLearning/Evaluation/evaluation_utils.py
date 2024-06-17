@@ -34,8 +34,7 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     :return: indices of the lat and lon cells respectively
     """
 
-    lat_min, lat_max, lon_min, lon_max = get_basin_boundaries('SP')
-
+    lat_min, lat_max, lon_min, lon_max = get_basin_boundaries("SP")
 
     if not (lat_min <= lat < lat_max):
         raise Exception("lat must be within the basin")
@@ -54,8 +53,7 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
 
 
 def get_lat_lon_data_for_mesh(grid, resolution):
-
-    lat_min, lat_max, lon_min, lon_max = get_basin_boundaries('SP')
+    lat_min, lat_max, lon_min, lon_max = get_basin_boundaries("SP")
 
     # convert data into format for contour plot
     lats = [(grid.shape[0] - i) * resolution + lat_min for i in range(grid.shape[0])]
@@ -63,7 +61,9 @@ def get_lat_lon_data_for_mesh(grid, resolution):
 
     return lats, lons
 
+
 sites = Sites(1)
+
 
 def get_site_name(i):
     return sites.names[i]

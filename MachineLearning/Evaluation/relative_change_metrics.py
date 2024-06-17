@@ -3,8 +3,8 @@ import itertools
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-
 from MachineLearning.Evaluation.site_metrics import site_mean_squared_error
+
 
 def relative_change(a, b, eps=1e-5):
     """
@@ -12,6 +12,7 @@ def relative_change(a, b, eps=1e-5):
     """
 
     return (a - b) / (a + eps)
+
 
 def compute_all_relative_change_pairs(ground_outputs, model_outputs, max_pairs=200):
     """
@@ -50,7 +51,6 @@ def compute_all_relative_change_pairs(ground_outputs, model_outputs, max_pairs=2
     total_site_mse = np.mean(site_mean_squared_errors)
     n_examples = min(10, len(ground_outputs), max_pairs)
     largest_error_indices = np.argpartition(site_mean_squared_errors, -n_examples)[
-
         -n_examples:
     ]
     top_error_maps = np.array(error_maps)[largest_error_indices]

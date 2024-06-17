@@ -20,7 +20,6 @@ outputs, predictions, storm_statistics, unet_statistics, all_metrics = (
 
 
 class TestMetrics(unittest.TestCase):
-
     def test_site_squared_error(self):
         ground_outputs, model_outputs = TEST_GRIDS_1, TEST_GRIDS_2
 

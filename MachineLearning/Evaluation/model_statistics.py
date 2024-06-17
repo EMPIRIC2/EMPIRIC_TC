@@ -5,6 +5,7 @@ import scipy
 def get_quantiles(data):
     return np.quantile(data, [0, 0.25, 0.5, 0.75, 1], axis=0)
 
+
 def compute_ensemble_statistics(model, outputs):
     statistics = {
         "Model": model,
@@ -13,6 +14,7 @@ def compute_ensemble_statistics(model, outputs):
     }
 
     return statistics
+
 
 def kolmogorov_smirnov_statistics(ground_truths, predictions):
     """

@@ -5,7 +5,6 @@ import numpy as np
 
 from MachineLearning.dataset import get_dataset
 from MachineLearning.Evaluation.evaluation_utils import process_predictions
-
 from MachineLearning.Evaluation.figures import (make_collective_model_figures,
                                                 make_single_model_figures,
                                                 save_metrics_as_latex)
@@ -39,7 +38,6 @@ def evaluate(outputs_ds, output_dir, models):
     )
     outputs = np.squeeze(unbatched_outputs)
     storm_statistics = compute_ensemble_statistics("STORM", outputs)
-
 
     all_outputs = {"STORM": outputs}
     all_statistics = [storm_statistics]
@@ -77,6 +75,7 @@ def evaluate(outputs_ds, output_dir, models):
     make_collective_model_figures(all_outputs, all_statistics, output_dir)
     save_metrics_as_latex(metrics, os.path.join(output_dir, "metrics.tex"))
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="Evaluate Models",
@@ -100,11 +99,11 @@ if __name__ == "__main__":
         args.eval_data_dir, data_version=5, dataset="test", batch_size=32
     )
     nearest_neighbors_inputs_ds = test_data_nearest_neighbors.map(lambda x, y: x)
-    
+
     nearest_neighbors_inputs = np.empty(shape=(0, 5775))
     for data in nearest_neighbors_inputs_ds.as_numpy_iterator():
         nearest_neighbors_inputs = np.concatenate([nearest_neighbors_inputs, data])
-            
+
     nearest_neighbors_regressor = NearestNeighborsRegressor(args.train_data_dir)
 
     nearest_neighbors_regressor.load(
@@ -118,7 +117,7 @@ if __name__ == "__main__":
             "name": "Nearest Neighbors Regressor",
             "output_description": "Mean 0-2 Category TCs over 10 years",
             "model": nearest_neighbors_regressor,
-            "inputs": nearest_neighbors_inputs
+            "inputs": nearest_neighbors_inputs,
         },
         {
             "name": "DDIM Unet",
@@ -142,8 +141,8 @@ if __name__ == "__main__":
             "name": "DDPM UNet w/o attention",
             "output_description": "Mean 0-2 Category TCs over 10 years",
             "model": DDPMUNetNoAttention02CatCyclones.load_model(),
-            "inputs": ml_inputs
-        }
+            "inputs": ml_inputs,
+        },
     ]
 
     predict_params = {"batch_size": 32, "verbose": 2}
