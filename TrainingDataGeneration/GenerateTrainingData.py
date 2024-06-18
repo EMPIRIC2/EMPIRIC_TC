@@ -24,7 +24,7 @@ decade_length = 1
 
 
 def generateOneTrainingDataSample(
-    total_years, future_data, refs, sites, include_grids, include_sites, basin="SP"
+    total_years, future_data, refs, sites, include_grids, include_sites, compute_stats, basin="SP"
 ):
     """
     Generate ML training data
@@ -58,11 +58,16 @@ def generateOneTrainingDataSample(
 
     tc_data = sampleStorm(total_years, month_map, refs)
 
-    print("Storm Sampled!")
-    grid_means, sites = getLandfallsData(
-        tc_data, basin, total_years, 0.5, sites, include_grids, include_sites
+    
+    outputs = getLandfallsData(
+        tc_data, basin, total_years, 0.5, sites, include_grids, include_sites, compute_stats
     )
 
+    if compute_stats:
+        grid_means, decade_std = outputs
+        return genesis_matrix, genesis_weightings, grid_means, decade_std, tc_data
+    else:
+        grid_means, sites = outputs
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
@@ -78,6 +83,7 @@ def generateTrainingData(
     basin="SP",
     include_grids=False,
     include_sites=False,
+    compute_stats=False
 ):
     print("Beginning TrainingDataGeneration \n")
     print("Running storm for {} years in each sample\n".format(total_years))
@@ -182,7 +188,14 @@ def generateTrainingData(
             data.create_dataset(
                 "validation_grids", (n_validation_samples, 2 * lat, 2 * lon, 6, 6)
             )
-
+        if compute_stats:
+            data.create_dataset(
+                "train_decade_std", (n_train_samples, 2 * lat, 2 * lon, 6, 6)
+            )
+            data.create_dataset("test_decade_std", (n_test_samples, 2 * lat, 2 * lon, 6, 6))
+            data.create_dataset(
+                "validation_decade_std", (n_validation_samples, 2 * lat, 2 * lon, 6, 6)
+            )
         if include_sites:
             data.create_dataset(
                 "train_sites", (n_train_samples, total_years, 530, 6, 5)
@@ -216,13 +229,7 @@ def generateTrainingData(
 
         print("Generating {} sample: {}".format(dataset, i - offset))
 
-        (
-            genesis_matrices,
-            genesis_weightings,
-            grid_means,
-            yearly_site_data,
-            tc_data,
-        ) = generateOneTrainingDataSample(
+        outputs = generateOneTrainingDataSample(
             total_years,
             future_data,
             [
@@ -239,9 +246,26 @@ def generateTrainingData(
             sites,
             include_grids,
             include_sites,
+            compute_stats,
             basin,
         )
 
+        if compute_stats:
+            (  genesis_matrices,
+                genesis_weightings,
+                grid_means,
+                decadal_std,
+                tc_data
+            ) = outputs
+        else:
+            (
+                genesis_matrices,
+                genesis_weightings,
+                grid_means,
+                yearly_site_data,
+                tc_data,
+            ) = outputs
+            
         with h5py.File(
             os.path.join(save_location, "AllData_{}.hdf5".format(file_time)), "r+"
         ) as data:
@@ -252,6 +276,10 @@ def generateTrainingData(
 
             if include_grids:
                 data["{}_grids".format(dataset)][i - offset] = grid_means
+            
+            if compute_stats:
+                data["{}_decade_std".format(dataset)][i-offset] = decadal_std
+            
             if include_sites:
                 data["{}_sites".format(dataset)][i - offset] = yearly_site_data
         all_tc_data.append(tc_data)
@@ -287,6 +315,12 @@ if __name__ == "__main__":
         help="If True generated gridded quantile data",
         default=False,
     )
+    parser.add_argument(
+        "--compute_stats",
+        action="store_true",
+        help="If True compute std of decade counts",
+        default=False
+    )
 
     parser.add_argument(
         "--include_sites",
@@ -307,4 +341,5 @@ if __name__ == "__main__":
         args.save_location,
         include_grids=args.include_grids,
         include_sites=args.include_sites,
+        compute_stats=args.compute_stats
     )
