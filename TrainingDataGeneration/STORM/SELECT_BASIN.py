@@ -69,6 +69,24 @@ def Storms(idx, mu_list):
     s=np.random.poisson(mu,1)[0]
     return s
 
+def get_basin_boundaries(basin):
+
+    if basin == "EP":  # Eastern Pacific
+        lat_min, lat_max, lon_min, lon_max = 5, 60, 180, 285
+    elif basin == "NA":  # North Atlantic
+        lat_min, lat_max, lon_min, lon_max = 5, 60, 255, 359
+    elif basin == "NI":  # North Indian
+        lat_min, lat_max, lon_min, lon_max = 5, 60, 30, 100
+    elif basin == "SI":  # South Indian
+        lat_min, lat_max, lon_min, lon_max = -60, -5, 10, 135
+    elif basin == "SP":  # South Pacific
+        lat_min, lat_max, lon_min, lon_max = -60, -5, 135, 240
+    elif basin == "WP":  # Western Pacific
+        lat_min, lat_max, lon_min, lon_max = 5, 60, 100, 180
+    else:
+        raise Exception("Invalid Basin")
+
+    return lat_min, lat_max, lon_min, lon_max
 def Basins_WMO(basin, mu_list, monthlist):
     """
     Basin definitions
@@ -81,10 +99,10 @@ def Basins_WMO(basin, mu_list, monthlist):
     -------
     s : number of storms.
     month : list of genesis months.
-    lat0 : lower left corner latitude.
-    lat1 : upper right corner latitude.
-    lon0 : lower left corner longitude.
-    lon1 : upper right corner longitude.
+    lat_min : lower left corner latitude.
+    lat_max : upper right corner latitude.
+    lon_min : lower left corner longitude.
+    lon_max : upper right corner longitude.
 
     """
     # We follow the basin definitions from the IBTrACS dataset, but with lat boundaries set at 60 N/S
@@ -94,21 +112,10 @@ def Basins_WMO(basin, mu_list, monthlist):
     basin_name = dict(zip(basins, [0, 1, 2, 3, 4, 5]))
     idx = basin_name[basin]
 
+    lat_min, lat_max, lon_min, lon_max = get_basin_boundaries(basin)
+
     s = Storms(idx, mu_list)
 
     month = Genesis_month(idx, s, monthlist)
 
-    if idx == 0:  # Eastern Pacific
-        lat0, lat1, lon0, lon1 = 5, 60, 180, 285
-    if idx == 1:  # North Atlantic
-        lat0, lat1, lon0, lon1 = 5, 60, 255, 359
-    if idx == 2:  # North Indian
-        lat0, lat1, lon0, lon1 = 5, 60, 30, 100
-    if idx == 3:  # South Indian
-        lat0, lat1, lon0, lon1 = -60, -5, 10, 135
-    if idx == 4:  # South Pacific
-        lat0, lat1, lon0, lon1 = -60, -5, 135, 240
-    if idx == 5:  # Western Pacific
-        lat0, lat1, lon0, lon1 = 5, 60, 100, 180
-
-    return s, month, lat0, lat1, lon0, lon1
+    return s, month, lat_min, lat_max, lon_min, lon_max

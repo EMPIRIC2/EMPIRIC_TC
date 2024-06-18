@@ -389,6 +389,34 @@ def get_grid_sum_samples(
     sums = np.array(sums)
     return sums
 
+def get_grid_decade_statistics(yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years):
+    
+    yearly_grids = np.array(yearly_grids)
+    year_indices = get_random_year_combinations(n_samples, total_years, n_years_to_sum)
+    year_indices_cat_4_5 = get_random_year_combinations(
+        n_samples, total_years, n_years_to_sum_cat_4_5
+    )
+    
+    s_1 = np.zeros(shape=yearly_grids.shape[1:])
+    s_2 = np.zeros(shape=yearly_grids.shape[1:])
+    
+    for i in range(n_samples):
+        sampled_sum = np.zeros(yearly_grids[0].shape)
+
+        sampled_sum[:, :, :, :4] = np.sum(
+            yearly_grids[list(year_indices[i]), :, :, :, :4].copy(), axis=0
+        )
+        sampled_sum[:, :, :, 4:] = np.sum(
+            yearly_grids[list(year_indices_cat_4_5[i]), :, :, :, 4:].copy(), axis=0
+        )
+        s_1 += sampled_sum
+        s_2 += sampled_sum ** 2
+        
+    mean = s_1 / n_samples
+    std_dev = np.sqrt(s_2 / n_samples - (s_1 / n_samples) ** 2)
+    
+    return mean, std_dev
+
 
 def get_grid_mean_samples(
     yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years
@@ -401,7 +429,7 @@ def get_grid_mean_samples(
 
 
 def getLandfallsData(
-    TC_data, basin, total_years, resolution, sites, include_grids, include_sites
+    TC_data, basin, total_years, resolution, sites, include_grids, include_sites, compute_stats
 ):
     """
     Calculate average landfalls per month within lat, lon bins from synthetic TC data.
@@ -488,7 +516,11 @@ def getLandfallsData(
 
             if include_sites:
                 yearly_site_data.append(site_data)
-
+        
+        if compute_stats:
+            mean_samples, std_dev = get_grid_decade_statistics(yearly_grids, 10, 100, 1000, total_years)
+            return mean_samples, std_dev
+            
         mean_samples = get_grid_mean_samples(yearly_grids, 10, 100, 100, total_years)
         del yearly_grids
     
