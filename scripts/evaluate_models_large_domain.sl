@@ -13,4 +13,4 @@ source load-ml-environment.sh
 export PYTHONNOUSERSITE=1
 export PYTHONPATH=$PYTHONPATH:/nesi/project/uoa03669/ewin313/TropicalCycloneAI/
 
-srun python MachineLearning/Evaluation/evaluate.py /nesi/project/uoa03669/ewin313/storm_data/include_historical/ /nesi/project/uoa03669/ewin313/storm_data/v5/ /nesi/project/uoa03669/ewin313/TropicalCycloneAI/Figures/include_historical
+srun python ../MachineLearning/Evaluation/evaluate.py /nesi/project/uoa03669/ewin313/storm_data/include_historical/ /nesi/project/uoa03669/ewin313/storm_data/v5/ /nesi/project/uoa03669/ewin313/TropicalCycloneAI/Figures/include_historical
