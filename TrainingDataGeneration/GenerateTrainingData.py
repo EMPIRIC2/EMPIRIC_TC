@@ -1,7 +1,6 @@
 import argparse
 import os
 import time
-
 import h5py
 import numpy as np
 from GenerateInputParameters import generateInputParameters, getObservedGenesisLocations
@@ -77,8 +76,8 @@ def generateOneTrainingDataSample(
     )
 
     if compute_stats:
-        grid_means, decade_std = outputs
-        return genesis_matrix, genesis_weightings, grid_means, decade_std, tc_data
+        grid_means, decade_stds = outputs
+        return genesis_matrix, genesis_weightings, grid_means, decade_stds, tc_data
     else:
         grid_means, sites = outputs
     # split up input, output data for each month and flatten the matrices
@@ -97,7 +96,7 @@ def generateTrainingData(
     include_grids=False,
     include_sites=False,
     include_historical_genesis=False,
-    constant_historical_inputs=False
+    constant_historical_inputs=False,
     compute_stats=False
 ):
     print("Beginning TrainingDataGeneration \n")
@@ -204,21 +203,20 @@ def generateTrainingData(
         data.create_dataset("validation_genesis", (n_validation_samples, 6, lat, lon))
 
         if include_grids:
+            
+            if compute_stats:
+                shape = (2 * lat, 2 * lon)
+            else:
+                shape = (2 * lat, 2 * lon, 6, 6)
+             
             data.create_dataset(
-                "train_grids", (n_train_samples, 2 * lat, 2 * lon, 6, 6)
+                "train_grids", (n_train_samples, *shape)
             )
-            data.create_dataset("test_grids", (n_test_samples, 2 * lat, 2 * lon, 6, 6))
+            data.create_dataset("test_grids", (n_test_samples, *shape))
             data.create_dataset(
-                "validation_grids", (n_validation_samples, 2 * lat, 2 * lon, 6, 6)
+                "validation_grids", (n_validation_samples, *shape)
             )
-        if compute_stats:
-            data.create_dataset(
-                "train_decade_std", (n_train_samples, 2 * lat, 2 * lon, 6, 6)
-            )
-            data.create_dataset("test_decade_std", (n_test_samples, 2 * lat, 2 * lon, 6, 6))
-            data.create_dataset(
-                "validation_decade_std", (n_validation_samples, 2 * lat, 2 * lon, 6, 6)
-            )
+            
         if include_sites:
             data.create_dataset(
                 "train_sites", (n_train_samples, total_years, 530, 6, 5)
@@ -280,7 +278,7 @@ def generateTrainingData(
             (  genesis_matrices,
                 genesis_weightings,
                 grid_means,
-                decadal_std,
+                decadal_stds,
                 tc_data
             ) = outputs
         else:
@@ -304,13 +302,16 @@ def generateTrainingData(
 
             if include_grids:
                 data["{}_grids".format(dataset)][i - offset] = grid_means
-            
-            if compute_stats:
-                data["{}_decade_std".format(dataset)][i-offset] = decadal_std
-            
+           
             if include_sites:
                 data["{}_sites".format(dataset)][i - offset] = yearly_site_data
-        all_tc_data.append(tc_data)
+        #all_tc_data.append(tc_data)
+        
+        if compute_stats:
+            np.save(os.path.join(save_location, "decal_sums_{}_{}".format(file_time, i)),
+                np.array(decadal_stds, dtype=object),
+                allow_pickle=True,
+            )
 
     if save_location is not None:
         print("Saving to: {}".format(save_location))
@@ -389,6 +390,6 @@ if __name__ == "__main__":
         include_grids=args.include_grids,
         include_sites=args.include_sites,
         include_historical_genesis=args.include_historical_genesis,
-        constant_historical_inputs=args.constant_historical_inputs
+        constant_historical_inputs=args.constant_historical_inputs,
         compute_stats=args.compute_stats
     )

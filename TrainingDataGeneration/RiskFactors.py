@@ -1,17 +1,19 @@
 """
     Take a list of storm tracks from storm and compute landfalls per month
 """
+import cProfile
 import math
 import os
 import random
 import time
+from math import asin, cos, radians, sin, sqrt
 from multiprocessing import Pool
 
 import numpy as np
-from geopy import distance
 from scipy.interpolate import make_interp_spline
 
 rmax_multiple = 4
+
 
 def _get_random_year_combination(num_years, size):
     sample = set()
@@ -30,6 +32,25 @@ def get_random_year_combinations(num_combinations, num_years, size):
         samples.add(comb)
 
     return tuple(samples)
+
+
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+
+    taken from https://stackoverflow.com/questions/15736995/how-can-i-quickly-estimate-the-distance-between-two-latitude-longitude-points
+    """
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * asin(sqrt(a))
+    # Radius of earth in kilometers is 6371
+    km = 6371 * c
+    return km
 
 
 month_to_index = {month: i for i, month in enumerate([1, 2, 3, 4, 11, 12])}
@@ -150,7 +171,7 @@ def checkCellTouchedByStorm(
     )
 
     if (
-        distance.distance((closest_lat, closest_lon), (storm_lat, storm_lon)).km
+        haversine(closest_lat, closest_lon, storm_lat, storm_lon)
         <= rmax_multiple * rmax
     ):
         return True
@@ -181,7 +202,7 @@ def updateCellsAndSitesTouchedByStormRMax(
     max_lat = min((lat + latitudeRmax), lat1 - resolution)
     min_lat = max((lat - latitudeRmax), lat0)
 
-    minKmPerLonDegree = distance.distance((max_lat, lon), (max_lat, lon + 1)).km
+    minKmPerLonDegree = haversine(max_lat, lon, max_lat, lon + 1)
 
     longitudeRmax = rmax_multiple * rmax / minKmPerLonDegree
 
@@ -311,7 +332,7 @@ def landfallsPerMonthForYear(
                 ] += 1
         del touched_cells
         del touched_sites
-    print("Finished one year.", flush=True)
+
     return grid, site_data
 
 
@@ -337,7 +358,7 @@ def getQuantilesFromYearlyGrids(
     start = time.time()
 
     sums = []
-    print(yearly_grids.shape)
+
     for i in range(n_samples):
         cat_0_3 = np.sum(
             yearly_grids[list(year_indices[i]), :, :, :, :4].copy(), axis=0
@@ -366,7 +387,6 @@ def getQuantilesFromYearlyGrids(
 def get_grid_sum_samples(
     yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years
 ):
-    print("getting grid sums", flush=True)
 
     sums = []
     yearly_grids = np.array(yearly_grids)
@@ -389,18 +409,21 @@ def get_grid_sum_samples(
     sums = np.array(sums)
     return sums
 
-def get_grid_decade_statistics(yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years):
-    
+
+def get_grid_decade_statistics(
+    yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years
+):
     yearly_grids = np.array(yearly_grids)
     year_indices = get_random_year_combinations(n_samples, total_years, n_years_to_sum)
     year_indices_cat_4_5 = get_random_year_combinations(
         n_samples, total_years, n_years_to_sum_cat_4_5
     )
-    
-    s_1 = np.zeros(shape=yearly_grids.shape[1:])
-    s_2 = np.zeros(shape=yearly_grids.shape[1:])
-    
+
+    s_1 = np.zeros(shape=yearly_grids.shape[1:3])
+    s_2 = np.zeros(shape=yearly_grids.shape[1:3])
+    std_devs = []
     for i in range(n_samples):
+
         sampled_sum = np.zeros(yearly_grids[0].shape)
 
         sampled_sum[:, :, :, :4] = np.sum(
@@ -409,13 +432,16 @@ def get_grid_decade_statistics(yearly_grids, n_years_to_sum, n_years_to_sum_cat_
         sampled_sum[:, :, :, 4:] = np.sum(
             yearly_grids[list(year_indices_cat_4_5[i]), :, :, :, 4:].copy(), axis=0
         )
-        s_1 += sampled_sum
-        s_2 += sampled_sum ** 2
-        
+        s_1 += np.sum(sampled_sum[:, :, :, :4], axis=(-1, -2))
+        s_2 += np.sum(sampled_sum[:, :, :, :4], axis=(-1, -2)) ** 2
+        std_dev = np.sqrt(s_2 / n_samples - (s_1 / n_samples) ** 2)
+        std_devs.append(std_dev)
+
+        del sampled_sum
+
     mean = s_1 / n_samples
-    std_dev = np.sqrt(s_2 / n_samples - (s_1 / n_samples) ** 2)
-    
-    return mean, std_dev
+
+    return mean, std_devs
 
 
 def get_grid_mean_samples(
@@ -429,7 +455,14 @@ def get_grid_mean_samples(
 
 
 def getLandfallsData(
-    TC_data, basin, total_years, resolution, sites, include_grids, include_sites, compute_stats
+    TC_data,
+    basin,
+    total_years,
+    resolution,
+    sites,
+    include_grids,
+    include_sites,
+    compute_stats,
 ):
     """
     Calculate average landfalls per month within lat, lon bins from synthetic TC data.
@@ -516,12 +549,14 @@ def getLandfallsData(
 
             if include_sites:
                 yearly_site_data.append(site_data)
-        
+
         if compute_stats:
-            mean_samples, std_dev = get_grid_decade_statistics(yearly_grids, 10, 100, 1000, total_years)
+            mean_samples, std_dev = get_grid_decade_statistics(
+                yearly_grids, 10, 100, 1000, total_years
+            )
             return mean_samples, std_dev
-            
-        mean_samples = get_grid_mean_samples(yearly_grids, 10, 100, 100, total_years)
+
+        mean_samples = get_grid_mean_samples(yearly_grids, 10, 100, 1000, total_years)
         del yearly_grids
-    
+
     return mean_samples, yearly_site_data
