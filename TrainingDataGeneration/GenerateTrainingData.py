@@ -76,8 +76,8 @@ def generateOneTrainingDataSample(
     )
 
     if compute_stats:
-        grid_means, decade_stds = outputs
-        return genesis_matrix, genesis_weightings, grid_means, decade_stds, tc_data
+        grid_means, std_dev, std_devs = outputs
+        return genesis_matrix, genesis_weightings, grid_means, std_dev, std_devs, tc_data
     else:
         grid_means, sites = outputs
     # split up input, output data for each month and flatten the matrices
@@ -206,6 +206,15 @@ def generateTrainingData(
             
             if compute_stats:
                 shape = (2 * lat, 2 * lon)
+                data.create_dataset(
+                    "train_stds", (n_train_samples, *shape)
+                )
+                data.create_dataset(
+                    "validation_stds", (n_validation_samples, *shape)
+                )
+                data.create_dataset(
+                    "test_stds", (n_test_samples, *shape)
+                )
             else:
                 shape = (2 * lat, 2 * lon, 6, 6)
              
@@ -278,7 +287,8 @@ def generateTrainingData(
             (  genesis_matrices,
                 genesis_weightings,
                 grid_means,
-                decadal_stds,
+                grid_std,
+                stds,
                 tc_data
             ) = outputs
         else:
@@ -301,6 +311,9 @@ def generateTrainingData(
                 ] = genesis_weightings
 
             if include_grids:
+                if compute_stats:
+                    data["{}_stds".format(dataset)][i-offset] = grid_std
+                    
                 data["{}_grids".format(dataset)][i - offset] = grid_means
            
             if include_sites:
@@ -308,7 +321,7 @@ def generateTrainingData(
         #all_tc_data.append(tc_data)
         
         if compute_stats:
-            np.save(os.path.join(save_location, "decal_sums_{}_{}".format(file_time, i)),
+            np.save(os.path.join(save_location, "stds_{}_{}".format(file_time, i)),
                 np.array(decadal_stds, dtype=object),
                 allow_pickle=True,
             )
