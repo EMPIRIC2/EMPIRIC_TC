@@ -559,7 +559,7 @@ def getLandfallsData(
 
         if compute_stats:
             mean_samples, std_dev, std_devs = get_grid_decade_statistics(
-                yearly_grids, 10, 10, 10000, total_years
+                yearly_grids, 10, 10, 1000, total_years
             )
             return mean_samples, std_dev, std_devs
 
