@@ -5,7 +5,7 @@ import time
 import h5py
 import numpy as np
 from GenerateInputParameters import generateInputParameters
-from RiskFactors import getLandfallsData
+from RiskFactors import get_landfalls_data
 from SampleSTORM import sampleStorm
 
 from HealthFacilities.getHealthFacilityData import Sites
@@ -24,7 +24,7 @@ decade_length = 1
 
 
 def generateOneTrainingDataSample(
-    total_years, future_data, refs, sites, include_grids, include_sites, basin="SP"
+    total_years, future_data, refs, on_slurm, n_years_to_sum, n_samples, basin="SP"
 ):
     """
     Generate ML training data
@@ -56,17 +56,23 @@ def generateOneTrainingDataSample(
     refs.append(genesis_matrix)
     refs.append(movement_coefficients)
 
-    tc_data = sampleStorm(total_years, month_map, refs)
+    tc_data = sampleStorm(total_years, month_map, refs, on_slurm)
 
     print("Storm Sampled!")
-    grid_means, sites = getLandfallsData(
-        tc_data, basin, total_years, 0.5, sites, include_grids, include_sites
+    grid_means = get_landfalls_data(
+        tc_data,
+        basin,
+        total_years,
+        0.5,
+        on_slurm,
+        n_years_to_sum,
+        n_samples
     )
 
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
-    return genesis_matrix, genesis_weightings, grid_means, sites, tc_data
+    return genesis_matrix, genesis_weightings, grid_means, tc_data
 
 
 def generateTrainingData(
@@ -75,13 +81,13 @@ def generateTrainingData(
     n_test_samples,
     n_validation_samples,
     save_location,
+    on_slurm,
+    n_years_to_sum,
+    n_samples,
     basin="SP",
-    include_grids=False,
-    include_sites=False,
 ):
     print("Beginning TrainingDataGeneration \n")
     print("Running storm for {} years in each sample\n".format(total_years))
-    print("Including grid quantiles: {}".format(include_grids))
     print("Training Samples: {}\n".format(n_train_samples))
     print("Test Samples: {}\n".format(n_test_samples))
 
@@ -174,23 +180,14 @@ def generateTrainingData(
         data.create_dataset("validation_genesis", (n_validation_samples, 6, lat, lon))
         data.create_dataset("validation_genesis_weightings", (n_train_samples, 4))
 
-        if include_grids:
-            data.create_dataset(
-                "train_grids", (n_train_samples, 2 * lat, 2 * lon, 6, 6)
-            )
-            data.create_dataset("test_grids", (n_test_samples, 2 * lat, 2 * lon, 6, 6))
-            data.create_dataset(
-                "validation_grids", (n_validation_samples, 2 * lat, 2 * lon, 6, 6)
-            )
 
-        if include_sites:
-            data.create_dataset(
-                "train_sites", (n_train_samples, total_years, 530, 6, 5)
-            )
-            data.create_dataset("test_sites", (n_test_samples, total_years, 530, 6, 5))
-            data.create_dataset(
-                "validation_sites", (n_validation_samples, total_years, 530, 6, 5)
-            )
+        data.create_dataset(
+            "train_grids", (n_train_samples, 2 * lat, 2 * lon, 6, 6)
+        )
+        data.create_dataset("test_grids", (n_test_samples, 2 * lat, 2 * lon, 6, 6))
+        data.create_dataset(
+            "validation_grids", (n_validation_samples, 2 * lat, 2 * lon, 6, 6)
+        )
 
     rmax_pres = np.load(
         os.path.join(__location__, "STORM", "RMAX_PRESSURE.npy"), allow_pickle=True
@@ -220,7 +217,6 @@ def generateTrainingData(
             genesis_matrices,
             genesis_weightings,
             grid_means,
-            yearly_site_data,
             tc_data,
         ) = generateOneTrainingDataSample(
             total_years,
@@ -236,9 +232,9 @@ def generateTrainingData(
                 monthlist,
                 rmax_pres,
             ],
-            sites,
-            include_grids,
-            include_sites,
+            on_slurm,
+            n_years_to_sum,
+            n_samples,
             basin,
         )
 
@@ -250,10 +246,8 @@ def generateTrainingData(
                 i - offset
             ] = genesis_weightings
 
-            if include_grids:
-                data["{}_grids".format(dataset)][i - offset] = grid_means
-            if include_sites:
-                data["{}_sites".format(dataset)][i - offset] = yearly_site_data
+            data["{}_grids".format(dataset)][i - offset] = grid_means
+
         all_tc_data.append(tc_data)
 
     if save_location is not None:
@@ -281,23 +275,11 @@ if __name__ == "__main__":
     parser.add_argument("num_test", type=int, help="number of test samples")
     parser.add_argument("num_validation", type=int, help="number of validation samples")
     parser.add_argument("save_location", type=str, help="Directory to save data to.")
-    parser.add_argument(
-        "--include_grids",
-        action="store_true",
-        help="If True generated gridded quantile data",
-        default=False,
-    )
-
-    parser.add_argument(
-        "--include_sites",
-        action="store_true",
-        help="If True generated site specific data",
-        default=False,
-    )
+    parser.add_argument("n_years_to_sum", type=int, help="number of years to compute mean counts of Tropical Cyclones")
+    parser.add_argument("n_samples", type=int, help="number of samples to take to compute mean counts")
+    parser.add_argument("--on_slurm", action="store_true", default=False)
 
     args = parser.parse_args()
-    if not (args.include_grids or args.include_sites):
-        raise Exception("ERROR: Must generate either grids or sites as the output data")
 
     generateTrainingData(
         args.total_years,
@@ -305,6 +287,7 @@ if __name__ == "__main__":
         args.num_test,
         args.num_validation,
         args.save_location,
-        include_grids=args.include_grids,
-        include_sites=args.include_sites,
+        args.on_slurm,
+        args.n_years_to_sum,
+        args.n_samples
     )

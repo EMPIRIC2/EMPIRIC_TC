@@ -4,28 +4,7 @@ import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
-
-def BOUNDARIES_BASINS(idx):
-    """
-    Copied from STORM model
-
-    :param idx: basin index
-    :return:
-    """
-    if idx == "EP":  # Eastern Pacific
-        lat0, lat1, lon0, lon1 = 5, 60, 180, 285
-    if idx == "NA":  # North Atlantic
-        lat0, lat1, lon0, lon1 = 5, 60, 255, 359
-    if idx == "NI":  # North Indian
-        lat0, lat1, lon0, lon1 = 5, 60, 30, 100
-    if idx == "SI":  # South Indian
-        lat0, lat1, lon0, lon1 = -60, -5, 10, 135
-    if idx == "SP":  # South Pacific
-        lat0, lat1, lon0, lon1 = -60, -5, 135, 240
-    if idx == "WP":  # Western Pacific
-        lat0, lat1, lon0, lon1 = 5, 60, 100, 180
-
-    return lat0, lat1, lon0, lon1
+from TrainingDataGeneration.STORM.preprocessing import BOUNDARIES_BASINS
 
 
 def plotLatLonGridDataMultiple(
@@ -99,10 +78,17 @@ def plotLatLonGridData(
         lons, lats, data, transform=ccrs.PlateCarree(central_longitude=180), vmin=-2
     )
     plt.colorbar()
-            
+
     if boxes is not None:
         for box in boxes:
-            rect = Rectangle((box[2] - 180, box[0]), box[3] - box[2], box[1] - box[0], linewidth=1, edgecolor='r', facecolor='none')
+            rect = Rectangle(
+                (box[2] - 180, box[0]),
+                box[3] - box[2],
+                box[1] - box[0],
+                linewidth=1,
+                edgecolor="r",
+                facecolor="none",
+            )
             ax.add_patch(rect)
 
     if points is not None:
@@ -115,6 +101,6 @@ def plotLatLonGridData(
     if show is True:
         plt.show()
 
-        
+
 def showPlots():
     plt.show()
