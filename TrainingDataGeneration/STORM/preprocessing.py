@@ -31,8 +31,8 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 # 4 = SP = South Pacific
 # 5 = WP = Western Pacific
 
-
-def BOUNDARIES_BASINS(idx):
+def BOUNDARIES_BASINS(basin):
+    idx = find_basin(basin)
     if idx == 0:  # Eastern Pacific
         lat0, lat1, lon0, lon1 = 5, 60, 180, 285
     if idx == 1:  # North Atlantic

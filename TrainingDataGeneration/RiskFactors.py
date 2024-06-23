@@ -10,7 +10,7 @@ import numpy as np
 from geopy import distance
 from scipy.interpolate import make_interp_spline
 
-from TrainingDataGeneration.STORM.preprocessing import BOUNDARIES_BASINS
+from TrainingDataGeneration.STORM.preprocessing import BOUNDARIES_BASINS, find_basin
 
 
 def _get_random_year_combination(num_years, size):
@@ -72,16 +72,16 @@ def get_grid_cell(lat, lon, resolution, basin):
 
 
 def get_lat_bounds_for_cell(lat_cell_index, resolution, basin):
-    lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
+    lat_min, lat_max, lon_min, lon_max = BOUNDARIES_BASINS(basin)
 
-    minimum = lat_cell_index * resolution + lat0
+    minimum = lat_cell_index * resolution + lat_min
     return minimum, minimum + resolution
 
 
 def get_lon_bounds_for_cell(lon_cell_index, resolution, basin):
-    lat0, lat1, lon0, lon1 = BOUNDARIES_BASINS(basin)
+    lat_min, lat_max, lon_min, lon_max = BOUNDARIES_BASINS(basin)
 
-    minimum = lon_cell_index * resolution + lon0
+    minimum = lon_cell_index * resolution + lon_min
     return minimum, minimum + resolution
 
 
@@ -222,12 +222,12 @@ def get_cells_and_sites_touched_by_storm(storm, resolution, basin, storm_rmax_mu
         # make sure that there is never more than resolution
         # degree change in lat or lon between t values
         if t != len(storm["t"]) - 1:
-            lat0 = storm["data"][t][0]
-            lat1 = storm["data"][t + 1][0]
-            lon0 = storm["data"][t][1]
-            lon1 = storm["data"][t + 1][1]
+            lat_min = storm["data"][t][0]
+            lat_max = storm["data"][t + 1][0]
+            lon_min = storm["data"][t][1]
+            lon_max = storm["data"][t + 1][1]
 
-            if abs(lat0 - lat1) + abs(lon0 - lon1) > resolution:
+            if abs(lat_min - lat_max) + abs(lon_min - lon_max) > resolution:
                 # then half the step size until it is small enough
 
                 n = math.ceil(
@@ -296,23 +296,17 @@ def storm_counts_per_month_for_year(storms, resolution, basin, storm_rmax_multip
 
 
 def get_grid_sum_samples(
-    yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years
+    yearly_grids, n_years_to_sum, n_samples, total_years
 ):
     sums = []
     yearly_grids = np.array(yearly_grids)
     year_indices = get_random_year_combinations(n_samples, total_years, n_years_to_sum)
-    year_indices_cat_4_5 = get_random_year_combinations(
-        n_samples, total_years, n_years_to_sum_cat_4_5
-    )
 
     for i in range(n_samples):
         sampled_sum = np.zeros(yearly_grids[0].shape)
 
-        sampled_sum[:, :, :, :4] = np.sum(
-            yearly_grids[list(year_indices[i]), :, :, :, :4].copy(), axis=0
-        )
-        sampled_sum[:, :, :, 4:] = np.sum(
-            yearly_grids[list(year_indices_cat_4_5[i]), :, :, :, 4:].copy(), axis=0
+        sampled_sum[:, :, :, :] = np.sum(
+            yearly_grids[list(year_indices[i]), :, :, :, :].copy(), axis=0
         )
         sums.append(sampled_sum)
 
@@ -321,17 +315,17 @@ def get_grid_sum_samples(
 
 
 def get_grid_mean_samples(
-    yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years
+    yearly_grids, n_years_to_sum, n_samples, total_years
 ):
     sums = get_grid_sum_samples(
-        yearly_grids, n_years_to_sum, n_years_to_sum_cat_4_5, n_samples, total_years
+        yearly_grids, n_years_to_sum, n_samples, total_years
     )
 
     return np.mean(sums, axis=0)
 
 
 def get_landfalls_data(
-    TC_data, basin, total_years, resolution, storm_rmax_multiple=4, local=False
+    TC_data, basin, total_years, resolution, on_slurm, n_years_to_sum, n_samples, storm_rmax_multiple=4
 ):
     """
     Take tropical cyclone tracks and data from STORM and calculate mean
@@ -342,9 +336,12 @@ def get_landfalls_data(
     @param basin: the basin storms are being generated in
     @param total_years: number of years that synthetic data was generated over
     @param resolution: the lat, lon resolution to calculate statistics for in degrees
+    @param n_years_to_sum: the number of years to compute mean counts over for cat 0 - 3 tropical cyclones
+    @param n_years_to_sum_cat_4_5: the number of years to compute mean counts over for cat 4-5 tropical cyclones
+    @param n_samples: the number of samples to take to compute the mean counts
     @param storm_rmax_multiple: constant that storm_rmax is multiplied by to
     determine if it touches a region
-    @param local: boolean flag, true if code is not being run on cluster
+    @param on_slurm: boolean flag, true if code is being run as a slurm job
     @return: a lat, lon, month matrix for the basin with values
              the average number of landfalls in that month in the provided TC data
     """
@@ -388,12 +385,12 @@ def get_landfalls_data(
             storm["year"] = storm_point[0]
             storms.append(storm)
 
-    if local:
-        # if not on the cluster you should do this instead
-        number_of_cores = cpu_count()
-    else:
+    if on_slurm:
         # number of cores you have allocated for your slurm task
         number_of_cores = int(os.environ["SLURM_CPUS_PER_TASK"])
+    else:
+        # if not on the cluster you should do this instead
+        number_of_cores = cpu_count()
 
     years_of_storms = [[] for i in range(total_years)]
 
@@ -416,7 +413,7 @@ def get_landfalls_data(
         for i, grid in enumerate(year_results):
             yearly_grids.append(grid)
 
-        mean_samples = get_grid_mean_samples(yearly_grids, 10, 100, 100, total_years)
+        mean_samples = get_grid_mean_samples(yearly_grids, n_years_to_sum, n_samples, total_years)
         del yearly_grids
 
     return mean_samples
