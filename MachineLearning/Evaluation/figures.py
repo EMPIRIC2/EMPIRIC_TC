@@ -219,7 +219,6 @@ def make_collective_model_figures(all_outputs, all_statistics, save_dir):
     @param all_outputs: dict containing the outputs of every model {model: outputs}
     @param all_statistics: list of statistic objects for every model (including storm}
     @param save_dir: folder to save data in
-    @return:
     """
 
     all_site_outputs = {
@@ -248,7 +247,7 @@ def make_single_model_figures(
     """
     Creates all figures for a single network
 
-    @param metrics:
+    @param metrics: metrics dict for the network for which to plot figures
     @param save_folder:
     @return:
     """
