@@ -1,6 +1,10 @@
-import numpy as np
 import math
+
+import numpy as np
+
 from HealthFacilities.getHealthFacilityData import Sites
+from TrainingDataGeneration.STORM.SELECT_BASIN import get_basin_boundaries
+
 
 def get_many_site_values(grids):
     """
@@ -14,27 +18,23 @@ def get_many_site_values(grids):
 
     return np.array(site_outputs)
 
-def get_outputs(dataset):
-    """
-    Takes a tensorflow dataset and returns a numpy array of the output data
-    """
-    outputs_ds = dataset.map(lambda x, y: y)
-    return np.squeeze(np.concatenate(list(outputs_ds.as_numpy_iterator()), axis=0))
 
 def process_predictions(predictions):
     return np.squeeze(predictions)
 
+
 def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     """
-    Returns the grid cell that given latitude, longitude falls into for the specified resolution.
-    The 0,0 cell is in the upper left corner, eg. latitude -5, longitude 135
-    latCell index increases as latitude goes down and lonCell index increases as longitude goes up
+    Returns the grid cell that given latitude, longitude falls into
+    for the specified resolution. The 0,0 cell is in the upper left corner,
+    eg. latitude -5, longitude 135 latCell index increases as latitude
+    goes down and lonCell index increases
+     as longitude goes up
 
     :return: indices of the lat and lon cells respectively
     """
 
-    lat_min, lat_max = -60, -5
-    lon_min, lon_max = 135, 240
+    lat_min, lat_max, lon_min, lon_max = get_basin_boundaries("SP")
 
     if not (lat_min <= lat < lat_max):
         raise Exception("lat must be within the basin")
@@ -51,14 +51,18 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
 
     return latCell, lonCell
 
+
 sites = Sites(1)
+
 
 def get_site_name(i):
     return sites.names[i]
 
+
 def get_site_values(grid):
     """
-    :param: grid: an array of values that is the model output on a latitude longitude grid.
+    :param: grid: an array of values that is the model output on
+    a latitude longitude grid.
 
     Returns a vector of values for each site
     values for each site are taken from the grid cell the site is located in
@@ -68,7 +72,7 @@ def get_site_values(grid):
     site_values = np.zeros((len(sites.sites),))
 
     for i, site in enumerate(sites.sites):
-        cell = get_grid_cell(*site, .5)
+        cell = get_grid_cell(*site, 0.5)
         site_values[i] = grid[cell]
 
     return site_values
