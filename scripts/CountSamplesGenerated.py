@@ -27,7 +27,6 @@ if __name__ == "__main__":
     parser.add_argument('file_path',  type=str, help="Path to hd5f file to count samples of")
     
     args = parser.parse_args()
-    print(args.file_path)
     paths = None
     # check if file path is a folder
     if path.isdir(args.file_path):
@@ -36,7 +35,6 @@ if __name__ == "__main__":
        paths = glob.glob(os.path.join(args.file_path, "*.hdf5"))
     if path.isfile(args.file_path):
         paths = [args.file_path]
-    print(paths)
     if paths is not None:
         for p in paths:
             countSamplesGenerated(p)

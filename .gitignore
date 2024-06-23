@@ -1,29 +1,29 @@
+scripts/logs/*
 .idea/
 env/
 *.pyc*
-Training Data Generation/Data/
-Training Data Generation/GCM-TC-Tracks-Data
+TrainingDataGeneration/Data/
+TrainingDataGeneration/GCM-TC-Tracks-Data
 dap.ceda.ac.uk/
 *.nc
 *.nc.*
-Training Data Generation/STORM-climate-change/*.txt
-Training Data Generation/STORM-climate-change/*.npy
-Training Data Generation/STORM-climate-change/ne*
-Training Data Generation/.DS_Store
-Training Data Generation/STORM-climate-change/.DS_Store
-*.pyc
-Training Data Generation/STORM/__pycache__/SELECT_BASIN.cpython-39.pyc
-Training Data Generation/STORM/__pycache__/SAMPLE_TC_MOVEMENT.cpython-39.pyc
-Training Data Generation/STORM/__pycache__/SAMPLE_STARTING_POINT.cpython-39.pyc
-Training Data Generation/STORM-climate-change/.DS_Store
+TrainingDataGeneration/STORM-climate-change/*.txt
+TrainingDataGeneration/STORM-climate-change/*.npy
+TrainingDataGeneration/STORM-climate-change/ne*
+TrainingDataGeneration/.DS_Store
+TrainingDataGeneration/STORM-climate-change/.DS_Store
+TrainingDataGeneration/STORM/__pycache__/SELECT_BASIN.cpython-39.pyc
+TrainingDataGeneration/STORM/__pycache__/SAMPLE_TC_MOVEMENT.cpython-39.pyc
+TrainingDataGeneration/STORM/__pycache__/SAMPLE_STARTING_POINT.cpython-39.pyc
+TrainingDataGeneration/STORM-climate-change/.DS_Store
 MachineLearning/predictions/*
 MachineLearning/models/unet.keras
 test.hdf5
 *.hdf5
-Training Data Generation/STORM-climate-change/.DS_Store
-Training Data Generation/STORM/__pycache__/SAMPLE_STARTING_POINT.cpython-39.pyc
-Training Data Generation/STORM/__pycache__/SAMPLE_TC_MOVEMENT.cpython-39.pyc
-Training Data Generation/STORM/__pycache__/SELECT_BASIN.cpython-39.pyc
+TrainingDataGeneration/STORM-climate-change/.DS_Store
+TrainingDataGeneration/STORM/__pycache__/SAMPLE_STARTING_POINT.cpython-39.pyc
+TrainingDataGeneration/STORM/__pycache__/SAMPLE_TC_MOVEMENT.cpython-39.pyc
+TrainingDataGeneration/STORM/__pycache__/SELECT_BASIN.cpython-39.pyc
 /Data/
 mprofile_*.dat
 *.keras
