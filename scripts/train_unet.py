@@ -24,7 +24,7 @@ if __name__ == "__main__":
     train_unet(
         'UNet-Custom',
         '/nesi/project/uoa03669/ewin313/storm_data/v5',
-        4,
+        "unet",
         MODEL_CONFIG,
         TRAINING_CONFIG
     )

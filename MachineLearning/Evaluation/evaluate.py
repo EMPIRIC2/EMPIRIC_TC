@@ -13,9 +13,7 @@ from MachineLearning.Evaluation.model_statistics import \
     compute_ensemble_statistics
 from MachineLearning.NearestNeighbors.nearest_neighbors import \
     NearestNeighborsRegressor
-from saved_models.saved_models import (DDPMUNet02CatCyclones,
-                                       DDPMUNetNoAttention02CatCyclones,
-                                       SongUNet, UNetCustom02CatCyclones)
+from saved_models.saved_models import (DDPMUNet)
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -89,14 +87,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     test_data_ml = get_dataset(
-        args.eval_data_dir, data_version=4, dataset="test", batch_size=32
+        args.eval_data_dir, data_version="unet", dataset="test", batch_size=32
     )
 
     outputs_ds = test_data_ml.map(lambda x, y: y)
     ml_inputs = test_data_ml.map(lambda x, y: x)
 
     test_data_nearest_neighbors = get_dataset(
-        args.eval_data_dir, data_version=5, dataset="test", batch_size=32
+        args.eval_data_dir, data_version="nearest_neighbors", dataset="test", batch_size=32
     )
     nearest_neighbors_inputs_ds = test_data_nearest_neighbors.map(lambda x, y: x)
 
@@ -120,27 +118,9 @@ if __name__ == "__main__":
             "inputs": nearest_neighbors_inputs,
         },
         {
-            "name": "DDIM Unet",
-            "output_description": "Mean 0-2 Category TCs over 10 years",
-            "model": SongUNet.load_model(),
-            "inputs": ml_inputs,
-        },
-        {
-            "name": "Custom UNet",
-            "output_description": "Mean 0-2 Category TCs over 10 years",
-            "model": UNetCustom02CatCyclones.load_model(),
-            "inputs": ml_inputs,
-        },
-        {
             "name": "DDPM UNet",
             "output_description": "Mean 0-2 Category TCs over 10 years",
-            "model": DDPMUNet02CatCyclones.load_model(),
-            "inputs": ml_inputs,
-        },
-        {
-            "name": "DDPM UNet w/o attention",
-            "output_description": "Mean 0-2 Category TCs over 10 years",
-            "model": DDPMUNetNoAttention02CatCyclones.load_model(),
+            "model": DDPMUNet.load_model(),
             "inputs": ml_inputs,
         },
     ]
