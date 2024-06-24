@@ -4,7 +4,7 @@ import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
-from TrainingDataGeneration.STORM.preprocessing import BOUNDARIES_BASINS
+from STORM.preprocessing import BOUNDARIES_BASINS
 
 
 def plotLatLonGridDataMultiple(

@@ -9,7 +9,6 @@ import numpy as np
 import tensorflow as tf
 from sklearn.decomposition import PCA
 import random
-from utils import get_random_year_combinations
 
 print("loaded packages")
 months = [1, 2, 3, 4, 11, 12]
@@ -356,157 +355,6 @@ class hdf5_generator_v3:
                     else:  # this sample was never generated
                         break
 
-
-class hdf5_generator_v2:
-    # similar to v1 but adding more data sources
-    def __init__(
-        self,
-        file_paths,
-        pca_path,
-        month,
-        dataset="train",
-        year_grouping_size=100,
-        zero_inputs=False,
-        n_samples=None,
-    ):
-        self.file_paths = file_paths
-        self.dataset = dataset
-        self.pca_genesis = pickle.load(open(pca_path + "pca_genesis.pkl", "rb"))
-        self.pca_movement = pickle.load(open(pca_path + "pca_movement.pkl", "rb"))
-
-        self.mean_genesis = np.load(os.path.join(pca_path, "mean_genesis.npy"))
-        self.mean_movement = np.load(os.path.join(pca_path, "mean_movement.npy"))
-
-        self.year_grouping_size = year_grouping_size
-        self.zero_inputs = zero_inputs
-        self.n_samples = n_samples
-        self.month = month
-
-        for file_path in file_paths:
-            self.process_data(file_path, month)
-        genesis_variance, movement_variance = compute_pca_variance(file_paths, dataset)
-        self.genesis_variance = genesis_variance
-        self.movement_variance = movement_variance
-
-    def create_histogram(self, output, year_indices, month):
-        hist = np.zeros((542, 8))
-        print("Creating histogram")
-        # make a histogram of values
-        for year_index in year_indices:
-            summed_counts = np.sum(
-                np.sum(output[list(year_index)], axis=0)[:, month, :], -1
-            )
-            summed_counts = np.clip(summed_counts, 0, 7)
-            # now add summed counts to the histogram
-            for i in range(542):
-                hist[i][int(summed_counts[i])] = hist[i][int(summed_counts[i])] + 1
-
-            # remove the duplicate sites from the histogram
-        indices = [i for i in range(542) if i not in not_used_site_indices]
-        hist = hist[indices]
-
-        density = hist / 1000
-
-        return density
-
-    def process_data(self, file_path, month):
-        with h5py.File(file_path, "r+") as file:
-            geneses = file[self.dataset + "_genesis"]
-            movements = file[self.dataset + "_movement"]
-
-            outputs = file[self.dataset + "_sites"]
-
-            try:
-                histograms = file.require_dataset(
-                    self.dataset + "_histograms", (len(geneses), 530, 8), dtype="f"
-                )  # (months, sites, count)
-            except Exception as e:
-                print(e)
-                # it was the wrong shape
-                del file[self.dataset + "_histograms"]
-                histograms = file.require_dataset(
-                    self.dataset + "_histograms", (len(geneses), 530, 8), dtype="f"
-                )  # (months, sites, count)
-
-            geneses_pca = file.require_dataset(
-                self.dataset + "_genesis_pca", (len(geneses), 4), dtype="f"
-            )
-
-            movements_pca = file.require_dataset(
-                self.dataset + "_movement_pca", (len(geneses), 4), dtype="f"
-            )
-
-            if np.count_nonzero(histograms[0]) != 0:
-                return  # data has already been processed
-
-            # print(histograms[0])
-            # print(geneses_pca[0])
-            # randomly select combinations of years for training
-            year_indices = get_random_year_combinations(
-                1000, 1000, self.year_grouping_size
-            )
-
-            for j, (genesis, movement, output) in enumerate(
-                zip(geneses, movements, outputs)
-            ):
-                if np.count_nonzero(genesis) != 0:  # data has been made
-                    # switch the order of genesis matrix
-                    # and divide output by number of years
-                    if (
-                        np.count_nonzero(movements_pca) == 0
-                        or np.count_nonzero(histograms[j]) == 0
-                    ):  # data has not been made, convert data
-                        histogram = self.create_histogram(
-                            output, year_indices, month=month
-                        )
-                        histograms[j] = histogram
-
-                        # center around 0
-                        centered_genesis = (
-                            np.array(genesis[month]) - self.mean_genesis[month]
-                        )
-                        centered_movement = np.array(movement) - self.mean_movement
-
-                        geneses_pca[j] = self.pca_genesis.transform(
-                            centered_genesis.reshape(1, -1)
-                        )[0]
-                        movements_pca[j] = self.pca_movement.transform(
-                            centered_movement.reshape(1, -1)
-                        )[0]
-
-    def __call__(self):
-        # samples_generated = 0
-        for file_path in self.file_paths:
-            with h5py.File(file_path, "r") as file:
-                geneses_pca = file[self.dataset + "_genesis_pca"]
-                movements_pca = file[self.dataset + "_movement_pca"]
-
-                hists = file[self.dataset + "_histograms"]
-
-                for genesis, movement, hist in zip(geneses_pca, movements_pca, hists):
-                    if np.count_nonzero(genesis) != 0:  # data has been made
-                        hist = hist[:1]
-                        hist[:, 3] += hist[:, 4] + hist[:, 5] + hist[:, 6] + hist[:, 7]
-                        hist = hist[:, :4]
-                        if self.zero_inputs:
-                            yield (
-                                np.zeros(
-                                    4,
-                                ),
-                                np.zeros(
-                                    4,
-                                ),
-                            ), hist
-                        else:
-                            yield (
-                                genesis / self.genesis_variance,
-                                movement / self.movement_variance,
-                            ), hist
-
-                    else:  # this sample was never generated
-                        break
-
-
 class hdf5_generator_v1:
     def __init__(self, file_paths, dataset="train", year_grouping_size=30):
         self.file_paths = file_paths
@@ -591,33 +439,6 @@ def get_dataset(
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
 
-    if data_version == 2:
-        if generate_pcas:
-            mean_genesis, mean_movement = compute_input_means(
-                file_paths, dataset, pca_path
-            )
-            computePCADecompForGeneratorV2(
-                file_paths, dataset, pca_path, mean_genesis, mean_movement, month
-            )
-
-        generator = hdf5_generator_v2(
-            file_paths,
-            pca_path,
-            month,
-            dataset=dataset,
-            n_samples=n_samples,
-            zero_inputs=zero_inputs,
-        )
-        genesis_size = (4,)
-        movement_size = (4,)
-        output_size = (1, 4)
-        output_signature = (
-            (
-                tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
-                tf.TensorSpec(shape=movement_size, dtype=tf.float32),
-            ),
-            tf.TensorSpec(shape=output_size, dtype=tf.float32),
-        )
     if data_version == 3:
         generator = hdf5_generator_v3(
             file_paths, dataset=dataset, zero_inputs=False, n_samples=n_samples

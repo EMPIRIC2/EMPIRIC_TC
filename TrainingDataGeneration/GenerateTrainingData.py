@@ -120,7 +120,7 @@ def generateTrainingData(
 
     # load all files upfront to store in memory, otherwise parallelization is very slow
     JM_pressure = np.load(
-        os.path.join(__location__, "STORM", "COEFFICIENTS_JM_PRESSURE.npy"),
+        os.path.join(__location__, "..", "STORM", "COEFFICIENTS_JM_PRESSURE.npy"),
         allow_pickle=True,
     ).item()
 
@@ -129,7 +129,7 @@ def generateTrainingData(
     )
 
     Genpres = np.load(
-        os.path.join(__location__, "STORM", "DP0_PRES_GENESIS.npy"), allow_pickle=True
+        os.path.join(__location__, "..", "STORM", "DP0_PRES_GENESIS.npy"), allow_pickle=True
     ).item()
     Genpres_for_basin = np.array(
         [Genpres[basins.index(basin)][month] for month in monthlist]
@@ -137,7 +137,7 @@ def generateTrainingData(
 
     # this is the wind pressure relationship coefficients: eq. 3 in the
     WPR_coefficients = np.load(
-        os.path.join(__location__, "STORM", "COEFFICIENTS_WPR_PER_MONTH.npy"),
+        os.path.join(__location__, "..", "STORM", "COEFFICIENTS_WPR_PER_MONTH.npy"),
         allow_pickle=True,
     ).item()
     WPR_coefficients_for_basin = np.array(
@@ -145,29 +145,29 @@ def generateTrainingData(
     )
 
     Genwind = np.load(
-        os.path.join(__location__, "STORM", "GENESIS_WIND.npy"), allow_pickle=True
+        os.path.join(__location__, "..", "STORM", "GENESIS_WIND.npy"), allow_pickle=True
     ).item()
     Genwind_for_basin = [Genwind[basins.index(basin)][month] for month in monthlist]
 
     Penv = {
         month: np.loadtxt(
             os.path.join(
-                __location__, "STORM", "Monthly_mean_MSLP_" + str(month) + ".txt"
+                __location__, "..", "STORM", "Monthly_mean_MSLP_" + str(month) + ".txt"
             )
         )
         for month in monthlist
     }
 
     land_mask = np.loadtxt(
-        os.path.join(__location__, "STORM", "Land_ocean_mask_" + str(basin) + ".txt")
+        os.path.join(__location__, "..", "STORM", "Land_ocean_mask_" + str(basin) + ".txt")
     )
 
     mu_list = np.loadtxt(
-        os.path.join(__location__, "STORM", "POISSON_GENESIS_PARAMETERS.txt")
+        os.path.join(__location__, "..", "STORM", "POISSON_GENESIS_PARAMETERS.txt")
     )
 
     monthlist = np.load(
-        os.path.join(__location__, "STORM", "GENESIS_MONTHS.npy"), allow_pickle=True
+        os.path.join(__location__, "..", "STORM", "GENESIS_MONTHS.npy"), allow_pickle=True
     ).item()
 
     models = ["CMCC-CM2-VHR4", "EC-Earth3P-HR", "CNRM-CM6-1-HR", "HadGEM3-GC31-HM"]
@@ -234,7 +234,7 @@ def generateTrainingData(
         )
 
     rmax_pres = np.load(
-        os.path.join(__location__, "STORM", "RMAX_PRESSURE.npy"), allow_pickle=True
+        os.path.join(__location__, "..", "STORM", "RMAX_PRESSURE.npy"), allow_pickle=True
     ).item()
 
     all_tc_data = []
@@ -277,7 +277,6 @@ def generateTrainingData(
             include_historical_genesis=include_historical_genesis,
             compute_stats=compute_stats,
             basin=basin,
-
         )
 
         if compute_stats:

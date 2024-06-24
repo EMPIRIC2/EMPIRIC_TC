@@ -12,7 +12,7 @@ from multiprocessing import Pool, cpu_count
 import numpy as np
 from scipy.interpolate import make_interp_spline
 
-from TrainingDataGeneration.STORM.preprocessing import BOUNDARIES_BASINS, find_basin
+from STORM.preprocessing import BOUNDARIES_BASINS, find_basin
 
 
 

@@ -64,7 +64,7 @@ def randomizedGenesisLocationMatrices(rng, future_data, monthlist, include_histo
 
 def getMovementCoefficientData():
     constants_all = np.load(
-        os.path.join(__location__, "STORM", "TRACK_COEFFICIENTS.npy"),
+        os.path.join(__location__, "..", "STORM", "TRACK_COEFFICIENTS.npy"),
         allow_pickle=True,
         encoding="latin1",
     ).item()

@@ -3,7 +3,7 @@ import math
 import numpy as np
 
 from HealthFacilities.getHealthFacilityData import Sites
-from TrainingDataGeneration.STORM.SELECT_BASIN import get_basin_boundaries
+from STORM.SELECT_BASIN import get_basin_boundaries
 
 
 def get_many_site_values(grids):

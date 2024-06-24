@@ -26,12 +26,12 @@ class STORM:
         monthlist = STORM.monthsall[basins.index(basin)]
 
         self.month_map = {month: i for i, month in enumerate(STORM.monthsall[basins.index(basin)])}
-
+        print(self.month_map)
         print("Loading files")
 
         # load all files upfront to store in memory, otherwise parallelization is very slow
         self.JM_pressure = np.load(
-            os.path.join(__location__, "STORM", "COEFFICIENTS_JM_PRESSURE.npy"),
+            os.path.join(__location__, "COEFFICIENTS_JM_PRESSURE.npy"),
             allow_pickle=True,
         ).item()
 
@@ -40,7 +40,7 @@ class STORM:
         )
 
         self.Genpres = np.load(
-            os.path.join(__location__, "STORM", "DP0_PRES_GENESIS.npy"), allow_pickle=True
+            os.path.join(__location__, "DP0_PRES_GENESIS.npy"), allow_pickle=True
         ).item()
         self.Genpres_for_basin = np.array(
             [self.Genpres[basins.index(basin)][month] for month in monthlist]
@@ -48,7 +48,7 @@ class STORM:
 
         # this is the wind pressure relationship coefficients: eq. 3 in the
         WPR_coefficients = np.load(
-            os.path.join(__location__, "STORM", "COEFFICIENTS_WPR_PER_MONTH.npy"),
+            os.path.join(__location__, "COEFFICIENTS_WPR_PER_MONTH.npy"),
             allow_pickle=True,
         ).item()
         self.WPR_coefficients_for_basin = np.array(
@@ -56,33 +56,33 @@ class STORM:
         )
 
         Genwind = np.load(
-            os.path.join(__location__, "STORM", "GENESIS_WIND.npy"), allow_pickle=True
+            os.path.join(__location__, "GENESIS_WIND.npy"), allow_pickle=True
         ).item()
         self.Genwind_for_basin = [Genwind[basins.index(basin)][month] for month in monthlist]
 
         self.Penv = {
             month: np.loadtxt(
                 os.path.join(
-                    __location__, "STORM", "Monthly_mean_MSLP_" + str(month) + ".txt"
+                    __location__, "Monthly_mean_MSLP_" + str(month) + ".txt"
                 )
             )
             for month in monthlist
         }
 
         self.land_mask = np.loadtxt(
-            os.path.join(__location__, "STORM", "Land_ocean_mask_" + str(basin) + ".txt")
+            os.path.join(__location__, "Land_ocean_mask_" + str(basin) + ".txt")
         )
 
         self.mu_list = np.loadtxt(
-            os.path.join(__location__, "STORM", "POISSON_GENESIS_PARAMETERS.txt")
+            os.path.join(__location__, "POISSON_GENESIS_PARAMETERS.txt")
         )
 
         self.monthlist = np.load(
-            os.path.join(__location__, "STORM", "GENESIS_MONTHS.npy"), allow_pickle=True
+            os.path.join(__location__, "GENESIS_MONTHS.npy"), allow_pickle=True
         ).item()
 
         self.rmax_pres = np.load(
-            os.path.join(__location__, "STORM", "RMAX_PRESSURE.npy"), allow_pickle=True
+            os.path.join(__location__, "RMAX_PRESSURE.npy"), allow_pickle=True
         ).item()
 
         self.movementCoefficients = getMovementCoefficientData()
@@ -103,7 +103,7 @@ class STORM:
                 self.movementCoefficients
             ]
 
-        TC_data = sampleStorm(1000, self.month_map, storm_arguments, on_slurm=False)
+        TC_data = sampleStorm(self.total_years, self.month_map, storm_arguments, on_slurm=False)
 
         mean_samples = get_landfalls_data(
             TC_data,
