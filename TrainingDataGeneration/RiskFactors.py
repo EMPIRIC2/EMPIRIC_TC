@@ -4,13 +4,16 @@
 import math
 import os
 import random
+import time
+from math import asin, cos, radians, sin, sqrt
 from multiprocessing import Pool, cpu_count
 
+
 import numpy as np
-from geopy import distance
 from scipy.interpolate import make_interp_spline
 
 from TrainingDataGeneration.STORM.preprocessing import BOUNDARIES_BASINS, find_basin
+
 
 
 def _get_random_year_combination(num_years, size):
@@ -22,12 +25,36 @@ def _get_random_year_combination(num_years, size):
 
 
 def get_random_year_combinations(num_combinations, num_years, size):
+    
+    if math.comb(num_years, size) < num_combinations: raise Exception("Not enough years to make {} combinations".format(num_combinations))
+    
     samples = set()
     while len(samples) < num_combinations:
         comb = _get_random_year_combination(num_years, size)
         samples.add(comb)
 
     return tuple(samples)
+
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+
+    taken from https://stackoverflow.com/questions/15736995/how-can-i-quickly-estimate-the-distance-between-two-latitude-longitude-points
+    """
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * asin(sqrt(a))
+    # Radius of earth in kilometers is 6371
+    km = 6371 * c
+    return km
+
+
+month_to_index = {month: i for i, month in enumerate([1, 2, 3, 4, 11, 12])}
 
 
 def create_monthly_landfall_grid(basin: str, resolution=0.5):
@@ -131,10 +158,10 @@ def check_cell_touched_by_storm(
         lon_cell_index, storm_lon, resolution, basin
     )
 
-    storm_distance = distance.distance(
-        (closest_lat, closest_lon), (storm_lat, storm_lon)
-    ).km
-    if storm_distance <= storm_rmax_multiple * storm_radius_max_wind_speeds:
+    if (
+        haversine(closest_lat, closest_lon, storm_lat, storm_lon)
+        <= storm_rmax_multiple * storm_radius_max_wind_speeds
+    ):
         return True
 
     return False
@@ -174,9 +201,9 @@ def update_cells_touched_by_storm_rmax(
     storm_max_lat = min((storm_lat + storm_rmax_latitude_degrees), lat_max - resolution)
     storm_min_lat = max((storm_lat - storm_rmax_latitude_degrees), lat_min)
 
-    min_km_per_degree = distance.distance(
-        (storm_max_lat, storm_lon), (storm_max_lat, storm_lon + 1)
-    ).km
+    min_km_per_degree = haversine(
+        storm_max_lat, storm_lon, storm_max_lat, storm_lon + 1
+    )
 
     storm_rmax_longitude_degrees = (
         storm_rmax_multiple * storm_radius_max_wind_speeds / min_km_per_degree
@@ -295,6 +322,7 @@ def storm_counts_per_month_for_year(storms, resolution, basin, storm_rmax_multip
     return grid
 
 
+
 def get_grid_sum_samples(
     yearly_grids, n_years_to_sum, n_samples, total_years
 ):
@@ -314,6 +342,33 @@ def get_grid_sum_samples(
     return sums
 
 
+def get_grid_decade_statistics(
+    yearly_grids, n_years_to_sum, n_samples, total_years
+):
+    yearly_grids = np.array(yearly_grids)
+    year_indices = get_random_year_combinations(n_samples, total_years, n_years_to_sum)
+
+
+    s_1 = np.zeros(shape=yearly_grids.shape[1:3])
+    s_2 = np.zeros(shape=yearly_grids.shape[1:3])
+    std_devs = []
+    for i in range(n_samples):
+
+        sampled_sum = np.zeros(yearly_grids[0].shape)
+
+        sampled_sum[:, :, :, :] = np.sum(
+            yearly_grids[list(year_indices[i]), :, :, :, :].copy(), axis=0
+        )
+        s_1 += np.sum(sampled_sum[:, :, :, :], axis=(-1, -2))
+        s_2 += np.sum(sampled_sum[:, :, :, :], axis=(-1, -2)) ** 2
+        std_dev = np.sqrt(s_2 / (i+1) - (s_1 / (i+1)) ** 2)
+        std_devs.append(np.max(std_dev))
+        del sampled_sum
+
+    mean = s_1 / n_samples
+    return mean, std_dev, std_devs
+
+
 def get_grid_mean_samples(
     yearly_grids, n_years_to_sum, n_samples, total_years
 ):
@@ -324,8 +379,17 @@ def get_grid_mean_samples(
     return np.mean(sums, axis=0)
 
 
+
 def get_landfalls_data(
-    TC_data, basin, total_years, resolution, on_slurm, n_years_to_sum, n_samples, storm_rmax_multiple=4
+        TC_data,
+        basin,
+        total_years,
+        resolution,
+        on_slurm,
+        n_years_to_sum,
+        n_samples,
+        compute_stats,
+        storm_rmax_multiple=4
 ):
     """
     Take tropical cyclone tracks and data from STORM and calculate mean
@@ -412,6 +476,11 @@ def get_landfalls_data(
         year_results = pool.starmap(storm_counts_per_month_for_year, args)
         for i, grid in enumerate(year_results):
             yearly_grids.append(grid)
+        if compute_stats:
+            mean_samples, std_dev, std_devs = get_grid_decade_statistics(
+                yearly_grids, n_years_to_sum, n_samples, total_years
+            )
+            return mean_samples, std_dev, std_devs
 
         mean_samples = get_grid_mean_samples(yearly_grids, n_years_to_sum, n_samples, total_years)
         del yearly_grids
