@@ -26,6 +26,9 @@ def _get_random_year_combination(num_years, size):
 
 
 def get_random_year_combinations(num_combinations, num_years, size):
+    
+    if math.comb(num_years, size) < num_combinations: raise Exception("Not enough years to make {} combinations".format(num_combinations))
+    
     samples = set()
     while len(samples) < num_combinations:
         comb = _get_random_year_combination(num_years, size)
@@ -303,6 +306,7 @@ def get_cells_and_sites_touched_by_storm(
 def landfallsPerMonthForYear(
     storms, resolution, basin, sites, include_grids, include_sites
 ):
+    start = time.time()
     if include_sites:
         site_data = sites.create_site_landfall_vector()
     else:
@@ -332,7 +336,8 @@ def landfallsPerMonthForYear(
                 ] += 1
         del touched_cells
         del touched_sites
-
+    end = time.time()
+    print("Finished year in {}".format(str(end - start)), flush=True)
     return grid, site_data
 
 
@@ -434,14 +439,15 @@ def get_grid_decade_statistics(
         )
         s_1 += np.sum(sampled_sum[:, :, :, :4], axis=(-1, -2))
         s_2 += np.sum(sampled_sum[:, :, :, :4], axis=(-1, -2)) ** 2
-        std_dev = np.sqrt(s_2 / n_samples - (s_1 / n_samples) ** 2)
-        std_devs.append(std_dev)
+        std_dev = np.sqrt(s_2 / (i+1) - (s_1 / (i+1)) ** 2)
+        
+        std_devs.append(np.max(std_dev))
 
         del sampled_sum
 
     mean = s_1 / n_samples
 
-    return mean, std_devs
+    return mean, std_dev, std_devs
 
 
 def get_grid_mean_samples(
@@ -538,9 +544,10 @@ def getLandfallsData(
             (year_of_storms, resolution, basin, sites, include_grids, include_sites)
             for year_of_storms in years_of_storms
         ]
-
+        start = time.time()
         year_results = pool.starmap(landfallsPerMonthForYear, args)
-        print("computed yearly results", flush=True)
+        end = time.time()
+        print("computed yearly results in {}".format(str(end-start)), flush=True)
         for i, year_result in enumerate(year_results):
             grid, site_data = year_result
 
@@ -551,10 +558,10 @@ def getLandfallsData(
                 yearly_site_data.append(site_data)
 
         if compute_stats:
-            mean_samples, std_dev = get_grid_decade_statistics(
-                yearly_grids, 10, 100, 1000, total_years
+            mean_samples, std_dev, std_devs = get_grid_decade_statistics(
+                yearly_grids, 10, 10, 500, total_years
             )
-            return mean_samples, std_dev
+            return mean_samples, std_dev, std_devs
 
         mean_samples = get_grid_mean_samples(yearly_grids, 10, 100, 1000, total_years)
         del yearly_grids
