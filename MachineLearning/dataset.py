@@ -1,6 +1,7 @@
 import glob
 import os
 import pickle
+import random
 import time
 
 import h5py
@@ -112,24 +113,37 @@ def computePCADecompForGeneratorV2(
 
 
 class hdf5_generator_nearest_neighbors:
-    def __init__(self, file_paths, dataset="train", n_samples=100):
+    def __init__(self, file_paths, dataset="train", min_category=0, max_category=2):
         self.file_paths = file_paths
         self.dataset = dataset
+        self.min_category = min_category
+        self.max_category = max_category
 
-    def preprocess_input(self, genesis: np.ndarray):
-        '''
+    def _preprocess_input(self, genesis: np.ndarray):
+        """
 
         @param genesis: (months = 6, lat = 55, lon = 105) np.ndarray
         @return: (5775,) np.ndarray
-        '''
+        """
 
-        # month sum
-        genesis_month_sum = np.sum(genesis, axis=0)
+        month_axis = 0
+        genesis_month_sum = np.sum(genesis, axis=month_axis)
         flat_genesis = genesis_month_sum.flatten()
         return flat_genesis
 
-    def preprocess_output(self, output):
-        mean_0_2_cat = np.flipud(np.sum(np.sum(output, axis=-1)[:, :, :3], axis=-1))
+    def _preprocess_output(self, output):
+        month_axis = 2
+        output_month_sum = np.sum(output, axis=month_axis)
+
+        tc_category_axis = 2
+
+        output_selected_categories = output_month_sum[
+            :, :, self.min_category : self.max_category + 1
+        ]
+        output_category_sum = np.sum(output_selected_categories, axis=tc_category_axis)
+
+        # the generated outputs are upside down from the genesis maps
+        mean_0_2_cat = np.flipud(output_category_sum)
 
         return mean_0_2_cat
 
@@ -142,38 +156,54 @@ class hdf5_generator_nearest_neighbors:
 
                 for genesis, output in zip(geneses, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
-                        yield self.preprocess_input(
-                            genesis
-                        ), self.preprocess_output(output)
+                        yield self._preprocess_input(genesis), self._preprocess_output(
+                            output
+                        )
 
                     else:  # this sample was never generated
                         break
 
 
-class hdf5_generator_v4:
-    def __init__(self, file_paths, dataset="train", n_samples=100, zero_inputs=False):
+class hdf5_generator_UNets_Zero_Inputs:
+    def __init__(
+        self,
+        file_paths,
+        dataset="train",
+        min_category=0,
+        max_category=2,
+    ):
         self.file_paths = file_paths
         self.dataset = dataset
-        self.n_samples = n_samples
-        self.zero_inputs = zero_inputs
+        self.min_category = min_category
+        self.max_category = max_category
 
-    def preprocess_input(self, genesis):
-        # month sum
-        genesis = np.sum(genesis, axis=0)
+    def _preprocess_output(self, output: np.ndarray):
+        """
+        This function preprocesses the outputs by summing over months
+        and the specified TC categories
+        @param output: (latitude = 110,
+                        longitude = 210,
+                        months = 6,
+                        tc_categories = 6)
+                shaped ndarray storing mean number of TCs passing over each
+                cell over 10 years, separated by month and category.
+        @return: a (latitude = 110, longitude = 210, channels = 1) shaped ndarray
+            representing mean TCs passing over each cell per 10 years
+        """
+        month_axis = 2
+        output_month_sum = np.sum(output, axis=month_axis)
 
-        # this is a simple way to do a nearest neighbor upsample
-        upsampled_genesis = np.kron(genesis, np.ones((2, 2)))
+        tc_category_axis = 2
+        output_selected_categories = output_month_sum[
+            :, :, self.min_category : self.max_category + 1
+        ]
+        output_category_sum = np.sum(output_selected_categories, axis=tc_category_axis)
 
-        # pad. by upsampling first, the padding can be symmetric
-        padded_genesis = np.pad(upsampled_genesis, ((1, 1), (7, 7)))
+        # the generated outputs are upside down from the genesis maps
+        mean_0_2_cat = np.flipud(output_category_sum)
 
-        # normalize and add channel dimension
-        normalized_genesis = normalize_input(np.expand_dims(padded_genesis, axis=-1))
-        return normalized_genesis
-
-    def preprocess_output(self, output):
-        mean_0_2_cat = np.flipud(np.sum(np.sum(output, axis=-1)[:, :, :3], axis=-1))
-        output_w_channels = np.expand_dims(mean_0_2_cat, axis=-1)
+        channel_axis = -1
+        output_w_channels = np.expand_dims(mean_0_2_cat, axis=channel_axis)
 
         return output_w_channels
 
@@ -189,14 +219,99 @@ class hdf5_generator_v4:
                     if np.count_nonzero(genesis) != 0:  # data has been made
                         # switch the order of genesis matrix
                         # and divide output by number of years
-                        if self.zero_inputs:
-                            yield np.zeros((112, 224, 1)), self.preprocess_output(
-                                output
-                            )
-                        else:
-                            yield self.preprocess_input(
-                                genesis
-                            ), self.preprocess_output(output)
+                        yield np.zeros((112, 224, 1)), self._preprocess_output(output)
+
+                    else:  # this sample was never generated
+                        break
+
+
+class hdf5_generator_UNets:
+    def __init__(
+        self,
+        file_paths,
+        dataset="train",
+        min_category=0,
+        max_category=2,
+    ):
+        self.file_paths = file_paths
+        self.dataset = dataset
+        self.min_category = min_category
+        self.max_category = max_category
+
+    def _preprocess_input(self, genesis: np.ndarray):
+        """
+
+        @param genesis: (months = 6, lat = 55, lon = 105) shaped np.ndarray
+        @return: (lat = 110, lon=210, channels = 1) shaped np.ndarray
+        with values normalized [-1, 1]
+        """
+
+        month_axis = 0
+        genesis_month_sum = np.sum(genesis, axis=month_axis)
+
+        # this is a simple way to do a nearest neighbor upsample
+        scaling_factor = 2
+        scaling_matrix = np.ones((scaling_factor, scaling_factor))
+        upsampled_genesis = np.kron(genesis_month_sum, scaling_matrix)
+
+        # we pad the inputs so that each dimension is divisible by 8
+        # upsampled_genesis has shape (110, 210)
+        # the closest shape with dimensions divisible by 8 is (112, 224)
+        lat_padding = (1, 1)
+        lon_padding = (7, 7)
+
+        padded_genesis = np.pad(upsampled_genesis, (lat_padding, lon_padding))
+
+        # normalize and add channel dimension
+        normalized_genesis = normalize_input(np.expand_dims(padded_genesis, axis=-1))
+        return normalized_genesis
+
+    def _preprocess_output(self, output: np.ndarray):
+        """
+        This function preprocesses the outputs by summing over months
+        and the specified TC categories
+        @param output: (latitude = 110,
+                        longitude = 210,
+                        months = 6,
+                        tc_categories = 6)
+                shaped ndarray storing mean number of TCs passing over each
+                cell over 10 years, separated by month and category.
+        @return: a (latitude = 110, longitude = 210, channels = 1) shaped ndarray
+            representing mean TCs passing over each cell per 10 years
+        """
+        month_axis = 2
+        output_month_sum = np.sum(output, axis=month_axis)
+
+        tc_category_axis = 2
+        output_selected_categories = output_month_sum[
+            :, :, self.min_category : self.max_category + 1
+        ]
+        output_category_sum = np.sum(output_selected_categories, axis=tc_category_axis)
+
+        # the generated outputs are upside down from the genesis maps
+        mean_0_2_cat = np.flipud(output_category_sum)
+
+        channel_axis = -1
+        output_w_channels = np.expand_dims(mean_0_2_cat, axis=channel_axis)
+
+        return output_w_channels
+
+    def __call__(self):
+        for file_path in self.file_paths:
+            print(file_path)
+            with h5py.File(file_path, "r") as file:
+                geneses = file[self.dataset + "_genesis"]
+
+                outputs = file[self.dataset + "_grids"]
+
+                for genesis, output in zip(geneses, outputs):
+                    if np.count_nonzero(genesis) != 0:  # data has been made
+                        # switch the order of genesis matrix
+                        # and divide output by number of years
+
+                        yield self._preprocess_input(genesis), self._preprocess_output(
+                            output
+                        )
 
                     else:  # this sample was never generated
                         break
@@ -205,12 +320,9 @@ class hdf5_generator_v4:
                 random.shuffle(self.file_paths)
 
 class hdf5_generator_v3:
-    def __init__(
-        self, file_paths, dataset="train", month=3, n_samples=None, zero_inputs=False
-    ):
+    def __init__(self, file_paths, dataset="train", n_samples=None, zero_inputs=False):
         self.file_paths = file_paths
         self.dataset = dataset
-        # self.month = month
         self.n_samples = n_samples
         self.zero_inputs = zero_inputs
         self.times_sampled = 0
@@ -518,13 +630,14 @@ def get_dataset(
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
     if data_version == 4:
-        generator = hdf5_generator_v4(file_paths, dataset=dataset, zero_inputs=False)
+        generator = hdf5_generator_UNets(file_paths, dataset=dataset)
         genesis_size = (112, 224, 1)
         output_size = (110, 210, 1)
         output_signature = (
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
+
     if data_version == 5:
         generator = hdf5_generator_nearest_neighbors(file_paths, dataset=dataset)
         genesis_size = (5775,)
@@ -533,13 +646,18 @@ def get_dataset(
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
-    start = time.time()
+    if data_version == 6:
+        generator = hdf5_generator_UNets_Zero_Inputs(file_paths, dataset=dataset)
+        genesis_size = (112, 224, 1)
+        output_size = (110, 210, 1)
+        output_signature = (
+            tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
+            tf.TensorSpec(shape=output_size, dtype=tf.float32),
+        )
+
     dataset = tf.data.Dataset.from_generator(
         generator, output_signature=output_signature
     )
-    end = time.time()
-
-    print("create dataset time: {}".format(end - start))
 
     # do not shuffle test dataset so we can get all outputs
     if dataset != "test":

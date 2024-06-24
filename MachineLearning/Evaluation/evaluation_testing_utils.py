@@ -31,8 +31,8 @@ test_grid_parameters_2 = [
 TEST_GRIDS_1 = [create_test_grid(params) for params in test_grid_parameters_1]
 TEST_GRIDS_2 = [create_test_grid(params) for params in test_grid_parameters_2]
 
-STATISTICS_1 = model_statistics.compute_ensemble_statistics(TEST_GRIDS_1)
-STATISTICS_2 = model_statistics.compute_ensemble_statistics(TEST_GRIDS_2)
+STATISTICS_1 = model_statistics.compute_ensemble_statistics("STORM", TEST_GRIDS_1)
+STATISTICS_2 = model_statistics.compute_ensemble_statistics("UNet", TEST_GRIDS_2)
 
 ALL_METRICS = compute_metrics(
     TEST_GRIDS_1, TEST_GRIDS_2, STATISTICS_1, STATISTICS_2, "Custom-UNet"

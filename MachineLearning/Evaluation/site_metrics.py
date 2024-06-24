@@ -21,6 +21,22 @@ def site_squared_error(output1, output2):
     return (output1_sites - output2_sites) ** 2
 
 
+def site_abs_error(output1, output2):
+    """
+    Calculates the absolute error at each health facility site
+    Note that it will include sites that are in the same grid cell
+
+    :param output1: a grid (2d array) output by one of the models
+    :param output2: a grid (2d array) output by one of the models
+    """
+
+    # get numpy arrays of the output values for each health facility
+    output1_sites = get_site_values(output1)
+    output2_sites = get_site_values(output2)
+
+    return np.abs(output2_sites - output1_sites)
+
+
 def site_mean_squared_error(output1, output2):
     """
     Calculates the mean squared error at the health facility locations

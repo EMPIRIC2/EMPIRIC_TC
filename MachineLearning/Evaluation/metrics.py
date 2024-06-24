@@ -13,23 +13,16 @@ def compute_metrics(
 ):
     """
     Computes all the metrics for a given model and statistics
+    :param ground_outputs: the "true" model outputs to benchmark against
+    :param model_outputs: the outputs of the model to benchmark
+    :param ground_statistics: the statistics computed from the ground model
+    :param model_statistics: the statistics computed from the model being evaluated
+    :param model_name: the name of the model that we are evaluating
 
-    :param ground_outputs: the "true" model outputs to benchmark
-    against (i.e. STORM->RISK model)
-    :param model_outputs: the outputs of the model to
-    benchmark (i.e. the ML model)
-    :param ground_statistics: the statistics computed from
-    the output of the ground model
-    :param model_statistics: the statistics computed from the output
-    of model being evaluated
-    :param model_name: the name of the model that we are evaluating.
-    Meant for displaying table of multiple model performance
-
-    :returns: a dict containing model name and all the metrics
-    used to evaluate the model
+    :returns: a dict containing model name and  the metrics
     """
 
-    top_relative_change_error_maps, mse = compute_all_relative_change_pairs(
+    top_relative_change_error_maps, site_mse = compute_all_relative_change_pairs(
         ground_outputs, model_outputs
     )
 
@@ -47,7 +40,7 @@ def compute_metrics(
         "Kolmogorov-Smirnov": kolmogorov_smirnov_statistics(
             ground_outputs, model_outputs
         ),
-        "Relative Change Mean Squared Error": mse,
+        "Relative Change Site Mean Squared Error": site_mse,
         "Relative Error Examples": top_relative_change_error_maps,
         "Site Mean Squared Error": total_site_mean_squared_error(
             ground_outputs, model_outputs

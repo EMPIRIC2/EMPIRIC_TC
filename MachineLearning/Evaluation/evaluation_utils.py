@@ -25,11 +25,11 @@ def process_predictions(predictions):
 
 def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     """
-    Returns the grid cell that given latitude, longitude falls into
-    for the specified resolution. The 0,0 cell is in the upper left corner,
-    eg. latitude -5, longitude 135 latCell index increases as latitude
-    goes down and lonCell index increases
-     as longitude goes up
+    Returns the grid cell that given latitude,
+    longitude falls into for the specified resolution.
+    The 0,0 cell is in the upper left corner, eg. latitude -5, longitude 135
+    latCell index increases as latitude goes
+    down and lonCell index increases as longitude goes up
 
     :return: indices of the lat and lon cells respectively
     """
@@ -50,6 +50,16 @@ def get_grid_cell(lat: float, lon: float, resolution: float) -> tuple[int, int]:
     lonCell = math.floor((lon - lon_min) * 1 / resolution)
 
     return latCell, lonCell
+
+
+def get_lat_lon_data_for_mesh(grid, resolution):
+    lat_min, lat_max, lon_min, lon_max = get_basin_boundaries("SP")
+
+    # convert data into format for contour plot
+    lats = [(grid.shape[0] - i) * resolution + lat_min for i in range(grid.shape[0])]
+    lons = [j * resolution + lon_min - 180 for j in range(grid.shape[1])]
+
+    return lats, lons
 
 
 sites = Sites(1)
