@@ -1,27 +1,24 @@
 import glob
 import os
-import pickle
 import random
-import time
 
 import h5py
 import numpy as np
 import tensorflow as tf
-from sklearn.decomposition import PCA
-import random
 
 months = [1, 2, 3, 4, 11, 12]
 
 not_used_site_indices = [338, 409, 411, 418, 412, 419, 423, 426, 429, 500, 531, 511]
+
 
 def normalize_input(data):
     max_val = np.max(data)
     min_val = np.min(data)
     return 2 * (data - min_val) / (max(max_val - min_val, 1e-3)) - 1
 
+
 class hdf5_generator_nearest_neighbors:
     def __init__(self, file_paths, dataset="train", min_category=0, max_category=2):
-
         self.file_paths = file_paths
         self.dataset = dataset
         self.min_category = min_category
@@ -70,6 +67,7 @@ class hdf5_generator_nearest_neighbors:
 
                     else:  # this sample was never generated
                         break
+
 
 class hdf5_generator_UNets_Zero_Inputs:
     def __init__(
@@ -225,6 +223,7 @@ class hdf5_generator_UNets:
 
             if file_path == self.file_paths[-1]:
                 random.shuffle(self.file_paths)
+
 
 def get_dataset(
     folder_path,
