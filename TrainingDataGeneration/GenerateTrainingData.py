@@ -288,7 +288,7 @@ def generateTrainingData(
                 genesis_weightings,
                 grid_means,
                 grid_std,
-                stds,
+                stds_max,
                 tc_data
             ) = outputs
         else:
@@ -322,7 +322,7 @@ def generateTrainingData(
         
         if compute_stats:
             np.save(os.path.join(save_location, "stds_{}_{}".format(file_time, i)),
-                np.array(decadal_stds, dtype=object),
+                np.array(stds_max, dtype=object),
                 allow_pickle=True,
             )
 

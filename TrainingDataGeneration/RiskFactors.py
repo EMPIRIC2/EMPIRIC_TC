@@ -439,9 +439,9 @@ def get_grid_decade_statistics(
         )
         s_1 += np.sum(sampled_sum[:, :, :, :4], axis=(-1, -2))
         s_2 += np.sum(sampled_sum[:, :, :, :4], axis=(-1, -2)) ** 2
-        std_dev = np.sqrt(s_2 / n_samples - (s_1 / n_samples) ** 2)
+        std_dev = np.sqrt(s_2 / (i+1) - (s_1 / (i+1)) ** 2)
         
-        std_devs.append({'max': np.max(std_dev), 'mean': np.mean(std_dev)})
+        std_devs.append(np.max(std_dev))
 
         del sampled_sum
 
@@ -559,7 +559,7 @@ def getLandfallsData(
 
         if compute_stats:
             mean_samples, std_dev, std_devs = get_grid_decade_statistics(
-                yearly_grids, 10, 10, 1000, total_years
+                yearly_grids, 10, 10, 500, total_years
             )
             return mean_samples, std_dev, std_devs
 
