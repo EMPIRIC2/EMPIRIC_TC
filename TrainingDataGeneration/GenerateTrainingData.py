@@ -4,7 +4,7 @@ import time
 import h5py
 import numpy as np
 from GenerateInputParameters import generateInputParameters, getObservedGenesisLocations
-from RiskFactors import getLandfallsData
+from RiskFactors import get_landfalls_data
 from SampleSTORM import sampleStorm
 
 from HealthFacilities.getHealthFacilityData import Sites
@@ -23,16 +23,16 @@ decade_length = 1
 
 
 def generateOneTrainingDataSample(
-        total_years,
-        future_data,
-        refs,
-        sites,
-        include_grids,
-        include_sites,
-        basin="SP",
-        include_historical_genesis=False,
-        constant_historical_inputs=False,
-        compute_stats=False
+    total_years,
+    future_data,
+    refs,
+    on_slurm,
+    n_years_to_sum,
+    n_samples,
+    include_historical_genesis=False,
+    constant_historical_inputs=False,
+    compute_stats=False,
+    basin="SP"
 ):
     """
     Generate ML training data
@@ -68,22 +68,29 @@ def generateOneTrainingDataSample(
     refs.append(genesis_matrix)
     refs.append(movement_coefficients)
 
-    tc_data = sampleStorm(total_years, month_map, refs)
+    tc_data = sampleStorm(total_years, month_map, refs, on_slurm)
 
-    
-    outputs = getLandfallsData(
-        tc_data, basin, total_years, 0.5, sites, include_grids, include_sites, compute_stats
+    print("Storm Sampled!")
+    outputs = get_landfalls_data(
+        tc_data,
+        basin,
+        total_years,
+        0.5,
+        on_slurm,
+        n_years_to_sum,
+        n_samples,
+        compute_stats
     )
 
     if compute_stats:
         grid_means, std_dev, std_devs = outputs
         return genesis_matrix, genesis_weightings, grid_means, std_dev, std_devs, tc_data
     else:
-        grid_means, sites = outputs
+        grid_means = outputs
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
-    return genesis_matrix, genesis_weightings, grid_means, sites, tc_data
+    return genesis_matrix, genesis_weightings, grid_means, tc_data
 
 
 def generateTrainingData(
@@ -92,16 +99,16 @@ def generateTrainingData(
     n_test_samples,
     n_validation_samples,
     save_location,
+    on_slurm,
+    n_years_to_sum,
+    n_samples,
     basin="SP",
-    include_grids=False,
-    include_sites=False,
     include_historical_genesis=False,
     constant_historical_inputs=False,
     compute_stats=False
 ):
     print("Beginning TrainingDataGeneration \n")
     print("Running storm for {} years in each sample\n".format(total_years))
-    print("Including grid quantiles: {}".format(include_grids))
     print("Training Samples: {}\n".format(n_train_samples))
     print("Test Samples: {}\n".format(n_test_samples))
 
@@ -202,44 +209,33 @@ def generateTrainingData(
         data.create_dataset("test_genesis", (n_test_samples, 6, lat, lon))
         data.create_dataset("validation_genesis", (n_validation_samples, 6, lat, lon))
 
-        if include_grids:
-            
-            if compute_stats:
-                shape = (2 * lat, 2 * lon)
-                data.create_dataset(
-                    "train_stds", (n_train_samples, *shape)
-                )
-                data.create_dataset(
-                    "validation_stds", (n_validation_samples, *shape)
-                )
-                data.create_dataset(
-                    "test_stds", (n_test_samples, *shape)
-                )
-            else:
-                shape = (2 * lat, 2 * lon, 6, 6)
-             
+        if compute_stats:
+            shape = (2 * lat, 2 * lon)
             data.create_dataset(
-                "train_grids", (n_train_samples, *shape)
+                "train_stds", (n_train_samples, *shape)
             )
-            data.create_dataset("test_grids", (n_test_samples, *shape))
             data.create_dataset(
-                "validation_grids", (n_validation_samples, *shape)
+                "validation_stds", (n_validation_samples, *shape)
             )
-            
-        if include_sites:
             data.create_dataset(
-                "train_sites", (n_train_samples, total_years, 530, 6, 5)
+                "test_stds", (n_test_samples, *shape)
             )
-            data.create_dataset("test_sites", (n_test_samples, total_years, 530, 6, 5))
-            data.create_dataset(
-                "validation_sites", (n_validation_samples, total_years, 530, 6, 5)
-            )
+        else:
+            shape = (2 * lat, 2 * lon, 6, 6)
+
+        data.create_dataset(
+            "train_grids", (n_train_samples, *shape)
+        )
+        data.create_dataset(
+            "test_grids", (n_test_samples, *shape)
+        )
+        data.create_dataset(
+            "validation_grids", (n_validation_samples, *shape)
+        )
 
     rmax_pres = np.load(
         os.path.join(__location__, "STORM", "RMAX_PRESSURE.npy"), allow_pickle=True
     ).item()
-
-    print("Finished loading files")
 
     all_tc_data = []
 
@@ -259,10 +255,10 @@ def generateTrainingData(
 
         print("Generating {} sample: {}".format(dataset, i - offset))
 
+
         outputs = generateOneTrainingDataSample(
             total_years,
             future_data,
-            refs=
             [
                 JM_pressure_for_basin,
                 Genpres_for_basin,
@@ -274,13 +270,14 @@ def generateTrainingData(
                 monthlist,
                 rmax_pres,
             ],
-            sites=sites,
-            include_grids=include_grids,
-            include_sites=include_sites,
-            basin=basin,
+            on_slurm,
+            n_years_to_sum,
+            n_samples,
             constant_historical_inputs=constant_historical_inputs,
             include_historical_genesis=include_historical_genesis,
-            compute_stats=compute_stats
+            compute_stats=compute_stats,
+            basin=basin,
+
         )
 
         if compute_stats:
@@ -296,7 +293,6 @@ def generateTrainingData(
                 genesis_matrices,
                 genesis_weightings,
                 grid_means,
-                yearly_site_data,
                 tc_data,
             ) = outputs
             
@@ -310,21 +306,22 @@ def generateTrainingData(
                     i - offset
                 ] = genesis_weightings
 
-            if include_grids:
-                if compute_stats:
-                    data["{}_stds".format(dataset)][i-offset] = grid_std
+
+
+            if compute_stats:
+                data["{}_stds".format(dataset)][i-offset] = grid_std
                     
-                data["{}_grids".format(dataset)][i - offset] = grid_means
-           
-            if include_sites:
-                data["{}_sites".format(dataset)][i - offset] = yearly_site_data
-        #all_tc_data.append(tc_data)
+            data["{}_grids".format(dataset)][i - offset] = grid_means
+
+        all_tc_data.append(tc_data)
         
         if compute_stats:
             np.save(os.path.join(save_location, "stds_{}_{}".format(file_time, i)),
                 np.array(stds_max, dtype=object),
                 allow_pickle=True,
             )
+
+        all_tc_data.append(tc_data)
 
     if save_location is not None:
         print("Saving to: {}".format(save_location))
@@ -339,36 +336,57 @@ def generateTrainingData(
 
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(
         description="Generate machine learning training data from STORM"
     )
+
     parser.add_argument(
         "total_years",
         type=int,
         help="Number of years to run STORM for when generating training data",
     )
-    parser.add_argument("num_training", type=int, help="Number of training samples")
-    parser.add_argument("num_test", type=int, help="number of test samples")
-    parser.add_argument("num_validation", type=int, help="number of validation samples")
-    parser.add_argument("save_location", type=str, help="Directory to save data to.")
+
     parser.add_argument(
-        "--include_grids",
-        action="store_true",
-        help="If True generate gridded quantile data",
-        default=False,
-    )
-    parser.add_argument(
-        "--compute_stats",
-        action="store_true",
-        help="If True compute std of decade counts",
-        default=False
+        "num_training",
+        type=int,
+        help="Number of training samples"
     )
 
     parser.add_argument(
-        "--include_sites",
+        "num_test",
+        type=int,
+        help="number of test samples"
+    )
+
+    parser.add_argument(
+        "num_validation",
+        type=int,
+        help="number of validation samples"
+    )
+
+    parser.add_argument(
+        "save_location",
+        type=str,
+        help="Directory to save data to."
+    )
+
+    parser.add_argument(
+        "n_years_to_sum",
+        type=int,
+        help="number of years to compute mean counts of Tropical Cyclones"
+    )
+
+    parser.add_argument(
+        "n_samples",
+        type=int,
+        help="number of samples to take to compute mean counts"
+    )
+
+    parser.add_argument(
+        "--on_slurm",
         action="store_true",
-        help="If True generate site specific data",
-        default=False,
+        default=False
     )
 
     parser.add_argument(
@@ -386,9 +404,14 @@ if __name__ == "__main__":
         default=False
     )
 
+    parser.add_argument(
+        "--compute_stats",
+        action="store_true",
+        help="If True compute std of decade counts",
+        default=False
+    )
+
     args = parser.parse_args()
-    if not (args.include_grids or args.include_sites):
-        raise Exception("ERROR: Must generate either grids or sites as the output data")
 
     if (args.include_historical_genesis and args.constant_historical_inputs):
         raise Exception("ERROR: --include_historical_genesis and "
@@ -400,8 +423,9 @@ if __name__ == "__main__":
         args.num_test,
         args.num_validation,
         args.save_location,
-        include_grids=args.include_grids,
-        include_sites=args.include_sites,
+        args.on_slurm,
+        args.n_years_to_sum,
+        args.n_samples,
         include_historical_genesis=args.include_historical_genesis,
         constant_historical_inputs=args.constant_historical_inputs,
         compute_stats=args.compute_stats

@@ -4,7 +4,7 @@ Given STORM model input parameters, generate storm tracks
 """
 
 import os
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
 import numpy as np
 from STORM.SAMPLE_STARTING_POINT import Startingpoint
@@ -92,7 +92,7 @@ def stormYear(
     return TC_data
 
 
-def sampleStorm(total_years, month_map, refs, basin="SP"):
+def sampleStorm(total_years, month_map, refs, on_slurm, basin="SP", ):
     """
     rewrite of STORM.MASTER to only get TC tracks without intensity data
     :param total_years
@@ -103,8 +103,10 @@ def sampleStorm(total_years, month_map, refs, basin="SP"):
     """
     print("Sampling Storm")
     # number of cores you have allocated for your slurm task:
-    number_of_cores = int(os.environ["SLURM_CPUS_PER_TASK"])
-    # number_of_cores = cpu_count() # if not on the cluster you should do this instead
+    if on_slurm:
+        number_of_cores = int(os.environ["SLURM_CPUS_PER_TASK"])
+    else:
+        number_of_cores = cpu_count() # if not on the cluster you should do this instead
 
     args = [(year, month_map, basin, *refs) for year in range(total_years)]
     # multiprocssing pool to distribute tasks to:
