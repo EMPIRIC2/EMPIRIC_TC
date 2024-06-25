@@ -7,7 +7,7 @@ import random
 import time
 from math import asin, cos, radians, sin, sqrt
 from multiprocessing import Pool, cpu_count
-
+from geopy import distance
 
 import numpy as np
 from scipy.interpolate import make_interp_spline
@@ -35,7 +35,7 @@ def get_random_year_combinations(num_combinations, num_years, size):
 
     return tuple(samples)
 
-def haversine(lon1, lat1, lon2, lat2):
+def haversine(lat1, lon1, lat2, lon2):
     """
     Calculate the great circle distance between two points
     on the earth (specified in decimal degrees)
@@ -74,7 +74,7 @@ def create_monthly_landfall_grid(basin: str, resolution=0.5):
         6,  # storm categories
     )
 
-    return np.zeros(shape)
+    return np.zeros(shape, dtype=np.uint8)
 
 
 def get_grid_cell(lat, lon, resolution, basin):
@@ -159,7 +159,8 @@ def check_cell_touched_by_storm(
     )
 
     if (
-        haversine(closest_lat, closest_lon, storm_lat, storm_lon)
+        haversine(closest_lat, closest_lon,storm_lat, storm_lon)
+
         <= storm_rmax_multiple * storm_radius_max_wind_speeds
     ):
         return True
@@ -215,17 +216,17 @@ def update_cells_touched_by_storm_rmax(
     lat_index_min, lon_index_min = get_grid_cell(
         storm_min_lat, storm_min_lon, resolution, basin
     )
+
     lat_index_max, lon_index_max = get_grid_cell(
         storm_max_lat, storm_max_lon, resolution, basin
     )
-
     for lat_index in range(lat_index_min, lat_index_max + 1):
         for lon_index in range(lon_index_min, lon_index_max + 1):
             if check_cell_touched_by_storm(
                 storm_lat,
                 storm_lon,
-                lon_index,
                 lat_index,
+                lon_index,
                 storm_radius_max_wind_speeds,
                 storm_rmax_multiple,
                 resolution,
@@ -235,7 +236,6 @@ def update_cells_touched_by_storm_rmax(
                 touched_cells[(lat_index, lon_index)] = max(
                     current_category, int(storm_category)
                 )
-
 
 def get_cells_and_sites_touched_by_storm(storm, resolution, basin, storm_rmax_multiple):
     # interpolate

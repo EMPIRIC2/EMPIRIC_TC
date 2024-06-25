@@ -24,7 +24,8 @@ class hdf5_generator_nearest_neighbors:
         self.min_category = min_category
         self.max_category = max_category
 
-    def _preprocess_input(self, genesis: np.ndarray):
+    @staticmethod
+    def preprocess_input(genesis: np.ndarray):
         """
 
         @param genesis: (months = 6, lat = 55, lon = 105) np.ndarray
@@ -61,7 +62,7 @@ class hdf5_generator_nearest_neighbors:
 
                 for genesis, output in zip(geneses, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
-                        yield self._preprocess_input(genesis), self._preprocess_output(
+                        yield hdf5_generator_nearest_neighbors.preprocess_input(genesis), self._preprocess_output(
                             output
                         )
 

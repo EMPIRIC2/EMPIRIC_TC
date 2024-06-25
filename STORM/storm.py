@@ -3,6 +3,8 @@ from TrainingDataGeneration.GenerateInputParameters import getMovementCoefficien
 import numpy as np
 import os
 from TrainingDataGeneration.RiskFactors import get_landfalls_data
+import matplotlib.pyplot as plt
+
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 class STORM:
@@ -15,11 +17,13 @@ class STORM:
         [5, 6, 7, 8, 9, 10, 11]
     ]
 
-    def __init__(self, basin="SP", total_years=1000, resolution=0.5):
+    def __init__(self, basin="SP", total_years=1000, resolution=0.5, n_years_to_sum=10, n_samples=100):
 
         self.basin = basin
         self.total_years = total_years
         self.resolution = resolution
+        self.n_years_to_sum = n_years_to_sum
+        self.n_samples = n_samples
 
         basins = ["EP", "NA", "NI", "SI", "SP", "WP"]
 
@@ -105,14 +109,20 @@ class STORM:
 
         TC_data = sampleStorm(self.total_years, self.month_map, storm_arguments, on_slurm=False)
 
+        lats = [point[5] for point in TC_data]
+        lons = [point[6] for point in TC_data]
+
+        plt.scatter(lats, lons)
+        plt.show()
+
         mean_samples = get_landfalls_data(
             TC_data,
             self.basin,
             self.total_years,
             self.resolution,
             on_slurm=False,
-            n_years_to_sum=10,
-            n_samples=100,
+            n_years_to_sum=self.n_years_to_sum,
+            n_samples=self.n_samples,
             compute_stats=False
         )
 
