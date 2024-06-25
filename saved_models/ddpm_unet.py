@@ -239,9 +239,7 @@ def build_model(
             x = ResidualBlock(
                 widths[i], groups=norm_groups, activation_fn=activation_fn, include_temb=include_temb
             )(inputs)
-            print(has_attention[i])
             if has_attention[i]:
-                print("Using Attention")
                 x = AttentionBlock(widths[i], groups=norm_groups)(x)
 
         if i != 0:

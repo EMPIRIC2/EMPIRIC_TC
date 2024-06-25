@@ -36,8 +36,6 @@ class STORM:
         monthlist = STORM.monthsall[basins.index(basin)]
 
         self.month_map = {month: i for i, month in enumerate(STORM.monthsall[basins.index(basin)])}
-        print(self.month_map)
-        print("Loading files")
 
         # load all files upfront to store in memory, otherwise parallelization is very slow
         self.JM_pressure = np.load(

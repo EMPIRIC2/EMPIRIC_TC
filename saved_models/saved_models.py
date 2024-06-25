@@ -61,7 +61,6 @@ class DDPMUNet_model:
     def __call__(self, x):
         x = self.preprocess_input(x)
         x = x[np.newaxis, :]
-        print(x.shape)
         return self.model(x)[0]
 
 class NearestNeighbors_model:
