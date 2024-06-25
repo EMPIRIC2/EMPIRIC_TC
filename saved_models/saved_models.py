@@ -83,6 +83,7 @@ class NearestNeighbors_model:
         genesis_month_sum = np.sum(genesis, axis=month_axis)
         flat_genesis = genesis_month_sum.flatten()
         return flat_genesis
+
     @staticmethod
     def load_model(train_data_dir):
         nearest_neighbors_regressor = NearestNeighborsRegressor(train_data_dir)

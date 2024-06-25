@@ -18,15 +18,29 @@
 
 Saved models are stored in `./saved_models/` and can be loaded from `saved_models.saved_models`. 
 
-For example, 
+The three current models are DDPMUNet_model, STORM_model and NearestNeighbors_model.
+Raw input data can be loaded from HDF5 files using the `raw_input_generator("path/to/data/file.hdf5")`.
+
+Otherwise, models all expect a (6, 55, 105) float-valued numpy ndarray representing the relative 
+spatial frequency of genesis events (the scale does not matter 
+since they are normalized before inputting to the machine learning model).
+
+For example, this code shows evaluating an input for both the deep learning model and STORM.
 
 ```python
-from saved_models.save_models import UNetCustom02CatCyclones
-model = UNetCustom02CatCyclones.load_model()
+from saved_models.saved_models import DDPMUNet_model
+model = DDPMUNet_model()
 
-# for a model input x, x is a (55, 105, 1) numpy array
+# for a model input x, x is a (6, 55, 105) numpy array
 y = model(x)
 # get a model prediction y, y is a (110, 210, 1) numpy array
+
+# Or
+
+from saved_models.saved_models import STORM_model
+model = STORM_model(total_years=1, n_years_to_sum=1, n_samples=1)
+
+y = model(x)
 ```
 
-There is an example of this in the notebook example_code/prediction_example.ipynb
+There is an example of this in the notebook `example_code/prediction_example.ipynb`
