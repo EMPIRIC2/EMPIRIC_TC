@@ -4,7 +4,7 @@
 
 1. Install Python if you don’t already have it. I am using python version 3.11.9. I would recommend using the this version because there are some issues with using the most recent Python release. You can find the installers here: https://www.python.org/downloads/release/python-3119/
 2. Install git: https://git-scm.com/download/win for windows or https://git-scm.com/download/mac for mac. On windows, if it has an option in the install like “Use git in Windows command prompt”, select yes. (I haven’t used git on windows)
-3. Get the latest release of the code locally by opening the command line and running: `git clone https://github.com/EMPIRIC2/EMPIRIC-AI-emulation --branch v0.1.0-beta` 
+3. Get the latest release of the code locally by opening the command line and running: `git clone https://github.com/EMPIRIC2/EMPIRIC-AI-emulation.git --branch v0.1.0-beta` 
     1. You’ll need to do some authentication for your github account, you can do this by making a personal access token through your github account here: https://github.com/settings/tokens. There is also a guide on this here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
     2. this will put the project folder in your current working directory, so make sure to move to the directory you want to use in the command line
 4.  Move into the code folder: `cd EMPIRIC-AI-emulation` 
