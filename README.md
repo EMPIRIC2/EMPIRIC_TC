@@ -14,6 +14,7 @@
     3. Install the required python packages: `pip install -r ml_requirements.txt`
 6. Download the model and test data files from the most recent release: https://github.com/EMPIRIC2/EMPIRIC-AI-emulation/releases/tag/v0.1.0-beta
 7. Move the saved model ("DDPM-Unet_1718141443.4486032.keras") you have downloaded into the folder EMPIRIC-AI-emulation/saved_models
+8. To run the STORM model directly, you must download the storm_data.zip file from the most recent release (see ^), unzip it, and add all the files to the EMPIRIC-AI-emulation/STORM folder.
 
 ## Running the Model
 
