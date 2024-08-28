@@ -21,13 +21,11 @@ monthsall = [
 ]
 decade_length = 1
 
-
 def generateOneTrainingDataSample(
     total_years,
     future_data,
     refs,
     on_slurm,
-    n_samples,
     include_historical_genesis=False,
     constant_historical_inputs=False,
     basin="SP"
@@ -75,7 +73,6 @@ def generateOneTrainingDataSample(
         total_years,
         0.5,
         on_slurm,
-        n_samples,
     )
 
     # split up input, output data for each month and flatten the matrices
@@ -95,11 +92,9 @@ def generateTrainingData(
     n_validation_samples,
     save_location,
     on_slurm,
-    n_samples,
     basin="SP",
     include_historical_genesis=False,
     constant_historical_inputs=False,
-    compute_stats=False
 ):
     print("Beginning TrainingDataGeneration \n")
     print("Running storm for {} years in each sample\n".format(total_years))
@@ -260,7 +255,6 @@ def generateTrainingData(
                 rmax_pres,
             ],
             on_slurm,
-            n_samples,
             constant_historical_inputs=constant_historical_inputs,
             include_historical_genesis=include_historical_genesis,
             basin=basin,
@@ -338,18 +332,6 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "n_years_to_sum",
-        type=int,
-        help="number of years to compute mean counts of Tropical Cyclones"
-    )
-
-    parser.add_argument(
-        "n_samples",
-        type=int,
-        help="number of samples to take to compute mean counts"
-    )
-
-    parser.add_argument(
         "--on_slurm",
         action="store_true",
         default=False
@@ -390,8 +372,6 @@ if __name__ == "__main__":
         args.num_validation,
         args.save_location,
         args.on_slurm,
-        args.n_samples,
         include_historical_genesis=args.include_historical_genesis,
         constant_historical_inputs=args.constant_historical_inputs,
-        compute_stats=args.compute_stats
     )
