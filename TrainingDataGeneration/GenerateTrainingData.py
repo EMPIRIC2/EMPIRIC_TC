@@ -27,11 +27,9 @@ def generateOneTrainingDataSample(
     future_data,
     refs,
     on_slurm,
-    n_years_to_sum,
     n_samples,
     include_historical_genesis=False,
     constant_historical_inputs=False,
-    compute_stats=False,
     basin="SP"
 ):
     """
@@ -77,20 +75,17 @@ def generateOneTrainingDataSample(
         total_years,
         0.5,
         on_slurm,
-        n_years_to_sum,
         n_samples,
-        compute_stats
     )
 
-    if compute_stats:
-        grid_means, std_dev, std_devs = outputs
-        return genesis_matrix, genesis_weightings, grid_means, std_dev, std_devs, tc_data
-    else:
-        grid_means = outputs
     # split up input, output data for each month and flatten the matrices
     genesis_matrix = np.nan_to_num(genesis_matrix)
 
-    return genesis_matrix, genesis_weightings, grid_means, tc_data
+    grid_means, std_devs = outputs
+
+    return genesis_matrix, genesis_weightings, grid_means, std_devs, tc_data
+
+
 
 
 def generateTrainingData(
@@ -100,7 +95,6 @@ def generateTrainingData(
     n_validation_samples,
     save_location,
     on_slurm,
-    n_years_to_sum,
     n_samples,
     basin="SP",
     include_historical_genesis=False,
@@ -194,7 +188,6 @@ def generateTrainingData(
     ) as data:
         lat, lon = future_data[0][1].shape
 
-
         if include_historical_genesis:
             n_weights = 5
         else:
@@ -209,19 +202,16 @@ def generateTrainingData(
         data.create_dataset("test_genesis", (n_test_samples, 6, lat, lon))
         data.create_dataset("validation_genesis", (n_validation_samples, 6, lat, lon))
 
-        if compute_stats:
-            shape = (2 * lat, 2 * lon)
-            data.create_dataset(
+        shape = (total_years // 1000, 2 * lat, 2 * lon, 6, 6)
+        data.create_dataset(
                 "train_stds", (n_train_samples, *shape)
             )
-            data.create_dataset(
+        data.create_dataset(
                 "validation_stds", (n_validation_samples, *shape)
             )
-            data.create_dataset(
+        data.create_dataset(
                 "test_stds", (n_test_samples, *shape)
             )
-        else:
-            shape = (2 * lat, 2 * lon, 6, 6)
 
         data.create_dataset(
             "train_grids", (n_train_samples, *shape)
@@ -255,7 +245,6 @@ def generateTrainingData(
 
         print("Generating {} sample: {}".format(dataset, i - offset))
 
-
         outputs = generateOneTrainingDataSample(
             total_years,
             future_data,
@@ -271,30 +260,19 @@ def generateTrainingData(
                 rmax_pres,
             ],
             on_slurm,
-            n_years_to_sum,
             n_samples,
             constant_historical_inputs=constant_historical_inputs,
             include_historical_genesis=include_historical_genesis,
-            compute_stats=compute_stats,
             basin=basin,
         )
 
-        if compute_stats:
-            (  genesis_matrices,
-                genesis_weightings,
-                grid_means,
-                grid_std,
-                stds_max,
-                tc_data
-            ) = outputs
-        else:
-            (
-                genesis_matrices,
-                genesis_weightings,
-                grid_means,
-                tc_data,
-            ) = outputs
-            
+        (  genesis_matrices,
+            genesis_weightings,
+            grid_means,
+            grid_std,
+            tc_data
+        ) = outputs
+
         with h5py.File(
             os.path.join(save_location, "AllData_{}.hdf5".format(file_time)), "r+"
         ) as data:
@@ -305,20 +283,9 @@ def generateTrainingData(
                     i - offset
                 ] = genesis_weightings
 
-
-
-            if compute_stats:
-                data["{}_stds".format(dataset)][i-offset] = grid_std
+            data["{}_stds".format(dataset)][i-offset] = grid_std
                     
             data["{}_grids".format(dataset)][i - offset] = grid_means
-
-        all_tc_data.append(tc_data)
-        
-        if compute_stats:
-            np.save(os.path.join(save_location, "stds_{}_{}".format(file_time, i)),
-                np.array(stds_max, dtype=object),
-                allow_pickle=True,
-            )
 
         all_tc_data.append(tc_data)
 
@@ -423,7 +390,6 @@ if __name__ == "__main__":
         args.num_validation,
         args.save_location,
         args.on_slurm,
-        args.n_years_to_sum,
         args.n_samples,
         include_historical_genesis=args.include_historical_genesis,
         constant_historical_inputs=args.constant_historical_inputs,
