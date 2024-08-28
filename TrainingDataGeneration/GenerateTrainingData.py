@@ -202,7 +202,7 @@ def generateTrainingData(
         data.create_dataset("test_genesis", (n_test_samples, 6, lat, lon))
         data.create_dataset("validation_genesis", (n_validation_samples, 6, lat, lon))
 
-        shape = (total_years, 2 * lat, 2 * lon, 6, 6)
+        shape = (total_years // 1000, 2 * lat, 2 * lon, 6, 6)
         data.create_dataset(
                 "train_stds", (n_train_samples, *shape)
             )
