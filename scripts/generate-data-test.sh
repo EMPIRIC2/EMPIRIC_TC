@@ -1,7 +1,7 @@
 python slurm-launch.py \
   --exp-name test_data_generation \
-  --command "python ../TrainingDataGeneration/GenerateTrainingData.py 100 1 0 0 ./Data/ 10 100 --on_slurm" \
-  --load-env "source load-environment.sh" \
-  --mem "300MB" \
-  --time "00:10:00" \
+  --command "python TrainingDataGeneration/GenerateTrainingData.py 1000 1 0 0 ./Data/ --on_slurm" \
+  --load-env "source scripts/load-environment.sh" \
+  --mem "1GB" \
+  --time "00:15:00" \
   --debug True
