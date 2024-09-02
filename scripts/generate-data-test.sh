@@ -4,3 +4,4 @@ python slurm-launch.py \
   --load-env "source scripts/load-environment.sh" \
   --mem "1GB" \
   --time "00:15:00" \
+  --chdir "/users/ewinkelm/EMPIRIC_AI_emulation/"
