@@ -4,10 +4,8 @@
 import math
 import os
 import random
-import time
 from math import asin, cos, radians, sin, sqrt
 from multiprocessing import Pool, cpu_count
-from geopy import distance
 
 import numpy as np
 from scipy.interpolate import make_interp_spline
@@ -289,9 +287,9 @@ def get_cells_and_sites_touched_by_storm(storm, resolution, basin, storm_rmax_mu
     return touched_cells
 
 
-def storm_counts_per_month_for_year(storms, resolution, basin, storm_rmax_multiple):
+def storm_counts_per_month(storms, resolution, basin, storm_rmax_multiple):
     """
-    Takes one year of storms and computes the storm counts on a lat lon grid,
+    Takes storms and computes the storm counts on a lat lon grid,
      separated by month and category
     @param storms: a list of storms
     a storm has format {"month": int, "year": int, "t": [0,..., n], "data": [...]}
@@ -311,17 +309,13 @@ def storm_counts_per_month_for_year(storms, resolution, basin, storm_rmax_multip
         touched_cells = get_cells_and_sites_touched_by_storm(
             storm, resolution, basin, storm_rmax_multiple=storm_rmax_multiple
         )
-
         month = storm["month"]
-
         for cell, category in touched_cells.items():
             lat, lon = cell
             grid[lat][lon][month_to_index[month]][category] += 1
 
         del touched_cells
     return grid
-
-
 
 def get_grid_sum_samples(
     yearly_grids, n_years_to_sum, n_samples, total_years
@@ -359,6 +353,7 @@ def get_grid_decade_statistics(
         sampled_sum[:, :, :, :] = np.sum(
             yearly_grids[list(year_indices[i]), :, :, :, :].copy(), axis=0
         )
+
         s_1 += np.sum(sampled_sum[:, :, :, :], axis=(-1, -2))
         s_2 += np.sum(sampled_sum[:, :, :, :], axis=(-1, -2)) ** 2
         std_dev = np.sqrt(s_2 / (i+1) - (s_1 / (i+1)) ** 2)
@@ -386,9 +381,6 @@ def get_landfalls_data(
         total_years,
         resolution,
         on_slurm,
-        n_years_to_sum,
-        n_samples,
-        compute_stats,
         storm_rmax_multiple=4
 ):
     """
@@ -400,9 +392,6 @@ def get_landfalls_data(
     @param basin: the basin storms are being generated in
     @param total_years: number of years that synthetic data was generated over
     @param resolution: the lat, lon resolution to calculate statistics for in degrees
-    @param n_years_to_sum: the number of years to compute mean counts over for cat 0 - 3 tropical cyclones
-    @param n_years_to_sum_cat_4_5: the number of years to compute mean counts over for cat 4-5 tropical cyclones
-    @param n_samples: the number of samples to take to compute the mean counts
     @param storm_rmax_multiple: constant that storm_rmax is multiplied by to
     determine if it touches a region
     @param on_slurm: boolean flag, true if code is being run as a slurm job
@@ -456,33 +445,30 @@ def get_landfalls_data(
         # if not on the cluster you should do this instead
         number_of_cores = cpu_count()
 
-    years_of_storms = [[] for i in range(total_years)]
+    decades_of_storms = [[] for i in range(total_years)]
 
-    year = 0
+    decade = 0
 
     for storm in storms:
-        if storm["year"] >= (year + 1):
-            year += 1
+        if storm["year"] >= (decade*10 + 10):
+            decade += 1
 
-        years_of_storms[year].append(storm)
+        decades_of_storms[decade].append(storm)
 
-    yearly_grids = []
     with Pool(number_of_cores) as pool:
         args = [
-            (year_of_storms, resolution, basin, storm_rmax_multiple)
-            for year_of_storms in years_of_storms
+            (decade_of_storms, resolution, basin, storm_rmax_multiple)
+            for decade_of_storms in decades_of_storms
         ]
 
-        year_results = pool.starmap(storm_counts_per_month_for_year, args)
-        for i, grid in enumerate(year_results):
-            yearly_grids.append(grid)
-        if compute_stats:
-            mean_samples, std_dev, std_devs = get_grid_decade_statistics(
-                yearly_grids, n_years_to_sum, n_samples, total_years
-            )
-            return mean_samples, std_dev, std_devs
+        decade_results = pool.starmap(storm_counts_per_month, args)
 
-        mean_samples = get_grid_mean_samples(yearly_grids, n_years_to_sum, n_samples, total_years)
-        del yearly_grids
+        means = []
+        std_devs = []
 
-    return mean_samples
+        if total_years >= 1000:
+            for i in range(1, total_years // 1000 + 1):
+                means.append(np.mean(decade_results[:100 * i], axis=0))
+                std_devs.append(np.std(decade_results[:100 * i], axis=0))
+
+    return np.array(means), np.array(std_devs)
