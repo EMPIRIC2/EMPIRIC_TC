@@ -4,11 +4,10 @@
 # THIS FILE IS A TEMPLATE AND IT SHOULD NOT BE DEPLOYED TO PRODUCTION!
 ${PARTITION_OPTION}
 #SBATCH --job-name=${JOB_NAME}
-#SBATCH --output=${JOB_NAME}.log
 ${GIVEN_NODE}
 ### This script works for any number of nodes, Ray will find and manage all resources
 #SBATCH --nodes=${NUM_NODES}
-#SBATCH --chdir=/nesi/project/uoa03669/ewin313/TropicalCycloneAI/
+#SBATCH --chdir=${CHDIR}
 ### Give all resources to a single Ray task, ray can manage the resources internally
 #SBATCH --gpus-per-task=${NUM_GPUS_PER_NODE}
 #SBATCH --time=${WALL_TIME}

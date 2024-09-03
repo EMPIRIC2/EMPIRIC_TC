@@ -21,6 +21,7 @@ LOAD_ENV = "${LOAD_ENV}"
 WALL_TIME = "${WALL_TIME}"
 MEM = "${MEM}"
 QOS_DEBUG = "${QOS_DEBUG}"
+CHDIR = "${CHDIR}"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -78,6 +79,12 @@ if __name__ == "__main__":
         help="The amount of memory to allocate to the job. For example --mem 512MB"
     )
     parser.add_argument(
+        "--chdir",
+        type=str,
+        required=True,
+        help="working directory to use for running script"
+    )
+    parser.add_argument(
         "--debug",
         type=bool,
         required=False,
@@ -118,6 +125,7 @@ if __name__ == "__main__":
     text = text.replace(QOS_DEBUG, debug)
     text = text.replace(WALL_TIME, str(args.time))
     text = text.replace(MEM, str(args.mem))
+    text = text.replace(CHDIR, str(args.chdir))
     text = text.replace(
         "# THIS FILE IS A TEMPLATE AND IT SHOULD NOT BE DEPLOYED TO " "PRODUCTION!",
         "# THIS FILE IS MODIFIED AUTOMATICALLY FROM TEMPLATE AND SHOULD BE "
