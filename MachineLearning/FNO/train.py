@@ -7,15 +7,11 @@ from neuralop.training.callbacks import BasicLoggerCallback
 from neuralop.models import FNO2d
 from neuralop import Trainer
 from neuralop import LpLoss, H1Loss
-
 def train_fno(model_name, data_folder, model_config, training_config):
 
-    model = FNO2d(8, 8, in_channels=1, hidden_channels=32, projection_channels=64, factorization='tucker', rank=0.42)
-
-    #model = FNO2d(model_config)
+    model = FNO2d(16, 16, in_channels=1, hidden_channels=32, projection_channels=64, factorization='tucker', rank=0.42)
     unique_model_name = '{}_{}'.format(model_name, str(time.time()))
     local_save_path = 'models/{}.keras'.format(unique_model_name)
-
 
     # Start a run, tracking hyperparameters
     wandb.init(
@@ -33,7 +29,7 @@ def train_fno(model_name, data_folder, model_config, training_config):
         metadata={
             "save_path": local_save_path,
             "model_config": model_config,
-            "param_count": model.count_params()
+            "param_count": None
         }
     )
 
@@ -59,15 +55,16 @@ def train_fno(model_name, data_folder, model_config, training_config):
     ## save the train file and unet file so that we can load the model later
     wandb.run.log_code(".", include_fn=lambda p, r: p.endswith("train.py") or p.endswith("unet.py"))
 
-    train_data = get_pytorch_dataloader(data_folder, batch_size=config.batch_size)
-    test_data = get_pytorch_dataloader(data_folder, dataset="test", batch_size=config.batch_size)
+    train_data = get_pytorch_dataloader(data_folder, batch_size=config.batch_size, n_samples=32)
+    test_data = get_pytorch_dataloader(data_folder, dataset="test", batch_size=config.batch_size, n_samples=1)
 
+    
     device = 'cpu'
     # %%
     # Create the optimizer
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=3e-3,
-                                 weight_decay=1e-4)
+                                 )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
 
     # %%
@@ -90,7 +87,7 @@ def train_fno(model_name, data_folder, model_config, training_config):
 
     # %%
     # Create the trainer
-    trainer = Trainer(model=model, n_epochs=100,
+    trainer = Trainer(model=model, n_epochs=30,
                       device=device,
                       wandb_log=True,
                       log_test_interval=1,
