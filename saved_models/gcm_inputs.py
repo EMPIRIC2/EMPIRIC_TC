@@ -50,7 +50,11 @@ def get_genesis_map_from_weights(weights: list, gcm_maps: list):
 
         genesis_location_matrices[month] = randomized_grid
 
-    return genesis_location_matrices
+    genesis_matrix = np.array(
+        [np.round(genesis_location_matrices[month], 1) for month in monthlist]
+    )
+
+    return genesis_matrix
 
 class GenesisMapTest(unittest.TestCase):
 
@@ -58,7 +62,9 @@ class GenesisMapTest(unittest.TestCase):
 
         path = "../TrainingDataGeneration/InputData"
         genesis_maps = get_gcm_genesis_maps(path)
-        get_genesis_map_from_weights([0.25, 0.25, 0.25, 0.25], genesis_maps)
+        inputs = get_genesis_map_from_weights([0.25, 0.25, 0.25, 0.25], genesis_maps)
+
+        self.assertEqual(inputs.shape, (6, 55, 105))
 
     def test_get_genesis_maps_fails_wrong_weights(self):
         path = "../TrainingDataGeneration/InputData"
