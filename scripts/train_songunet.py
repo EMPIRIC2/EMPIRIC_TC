@@ -20,7 +20,7 @@ MODEL_CONFIG = {
 if __name__ == "__main__":
     train_songunet(
         'SongUNet',
-        '/nesi/project/uoa03669/ewin313/storm_data/v5',
+        '/users/ewinkelm/data/ewinkelm',
         4,
         MODEL_CONFIG,
         TRAINING_CONFIG

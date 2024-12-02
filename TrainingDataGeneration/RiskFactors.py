@@ -470,5 +470,5 @@ def get_landfalls_data(
             for i in range(1, total_years // 1000 + 1):
                 means.append(np.mean(decade_results[:100 * i], axis=0))
                 std_devs.append(np.std(decade_results[:100 * i], axis=0))
-
+        del decade_results
     return np.array(means), np.array(std_devs)

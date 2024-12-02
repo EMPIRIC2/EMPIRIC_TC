@@ -7,11 +7,17 @@ from neuralop.training.callbacks import BasicLoggerCallback
 from neuralop.models import FNO2d
 from neuralop import Trainer
 from neuralop import LpLoss, H1Loss
+
 def train_fno(model_name, data_folder, model_config, training_config):
 
-    model = FNO2d(16, 16, in_channels=1, hidden_channels=32, projection_channels=64, factorization='tucker', rank=0.42)
+    model = FNO2d(
+        model_config.pop("n_modes_height"),
+        model_config.pop("n_modes_width"),          
+        **model_config
+    )
+    
     unique_model_name = '{}_{}'.format(model_name, str(time.time()))
-    local_save_path = 'models/{}.keras'.format(unique_model_name)
+    local_save_path = '../models/{}.keras'.format(unique_model_name)
 
     # Start a run, tracking hyperparameters
     wandb.init(
@@ -55,15 +61,14 @@ def train_fno(model_name, data_folder, model_config, training_config):
     ## save the train file and unet file so that we can load the model later
     wandb.run.log_code(".", include_fn=lambda p, r: p.endswith("train.py") or p.endswith("unet.py"))
 
-    train_data = get_pytorch_dataloader(data_folder, batch_size=config.batch_size, n_samples=32)
-    test_data = get_pytorch_dataloader(data_folder, dataset="test", batch_size=config.batch_size, n_samples=1)
-
+    train_data = get_pytorch_dataloader(data_folder, batch_size=config.batch_size, min_category=training_config["min_category"], max_category=training_config["max_category"])
+    test_data = get_pytorch_dataloader(data_folder, dataset="test", batch_size=config.batch_size, min_category=training_config["min_category"], max_category=training_config["max_category"])
     
     device = 'cpu'
     # %%
     # Create the optimizer
     optimizer = torch.optim.Adam(model.parameters(),
-                                 lr=3e-3,
+                                 lr=training_config['learning_rate'],
                                  )
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
 
@@ -87,7 +92,7 @@ def train_fno(model_name, data_folder, model_config, training_config):
 
     # %%
     # Create the trainer
-    trainer = Trainer(model=model, n_epochs=30,
+    trainer = Trainer(model=model, n_epochs=training_config['epoch'],
                       device=device,
                       wandb_log=True,
                       log_test_interval=1,
@@ -95,7 +100,7 @@ def train_fno(model_name, data_folder, model_config, training_config):
                       log_output=True,
                       verbose=True,
                       callbacks=[BasicLoggerCallback()]
-                      )
+                )
 
     # %%
     # Actually train the model on our small Darcy-Flow dataset
@@ -106,6 +111,7 @@ def train_fno(model_name, data_folder, model_config, training_config):
                   scheduler=scheduler,
                   regularizer=False,
                   training_loss=train_loss,
-                  eval_losses=eval_losses)
+                  eval_losses=eval_losses,
+                  save_best="32_l2")
 
     torch.save(model.state_dict(), local_save_path)

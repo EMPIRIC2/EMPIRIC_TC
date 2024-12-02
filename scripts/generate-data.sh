@@ -1,10 +1,12 @@
 
 python slurm-launch.py \
   --exp-name data_generation \
-  --command "python ../TrainingDataGeneration/GenerateTrainingData.py 1000 25 5 5 /nesi/project/uoa03669/ewin313/storm_data/v5 10 100 --on_slurm" \
-  --load-env "source load-environment.sh" \
+  --command "python TrainingDataGeneration/GenerateTrainingData.py 10000 8 1 1  /users/ewinkelm/data/ewinkelm/ --on_slurm" \
+  --load-env "source scripts/load-environment.sh" \
   --mem "2GB" \
-  --time "018:00:00" \
+  --time "02:00:00" \
+  --chdir "/users/ewinkelm/EMPIRIC_AI_emulation/"
+
 
 
 

@@ -2,15 +2,14 @@
 
 #SBATCH --job-name=evaluate-models
 #SBATCH --cpus-per-task=2
-#SBATCH --gpus-per-node=2
+#SBATCH -p gpu --gres=gpu:1
 #SBATCH --time 00:15:00
-#SBATCH --mem 10G
-#SBATCH --chdir=/nesi/project/uoa03669/ewin313/TropicalCycloneAI/
-#SBATCH --qos=debug
+#SBATCH --mem 20G
+#SBATCH --chdir=/oscar/home/ewinkelm/EMPIRIC_AI_emulation
 
 module purge
-source load-ml-environment.sh
+source activate data_env
 export PYTHONNOUSERSITE=1
-export PYTHONPATH=$PYTHONPATH:/nesi/project/uoa03669/ewin313/TropicalCycloneAI/
+export PYTHONPATH=$PYTHONPATH:/oscar/home/ewinkelm/EMPIRIC_AI_emulation
 
-srun python MachineLearning/Evaluation/evaluate.py /nesi/project/uoa03669/ewin313/storm_data/v5/ /nesi/project/uoa03669/ewin313/storm_data/v5/ /nesi/project/uoa03669/ewin313/TropicalCycloneAI/Figures/manuscript_figures
+srun python MachineLearning/Evaluation/evaluate.py /oscar/home/ewinkelm/data/ewinkelm /oscar/home/ewinkelm/data/ewinkelm /oscar/home/ewinkelm/EMPIRIC_AI_emulation/Figures/AGU
