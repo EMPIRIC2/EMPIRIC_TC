@@ -5,7 +5,6 @@ from sklearn.neighbors import NearestNeighbors
 
 from MachineLearning.dataset import get_dataset
 
-
 class NearestNeighborsRegressor:
     """
     This class implements a regression model that
@@ -14,13 +13,15 @@ class NearestNeighborsRegressor:
     returns the mean of their outputs as a prediction
     """
 
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, min_category=0, max_category=1):
         """
         @param data_dir: directory for the training data
         """
         self.nearest_neighbors = None
         self.data_dir = data_dir
-        output_dataset = get_dataset(data_dir, data_version=5).map(lambda x, y: y)
+        self.min_category = min_category
+        self.max_category = max_category
+        output_dataset = get_dataset(data_dir, data_version="nearest_neighbors", min_category=min_category, max_category=max_category).map(lambda x, y: y)
         self.output_data = np.empty(shape=(0, 110, 210))
 
         for data in output_dataset.as_numpy_iterator():
@@ -34,7 +35,7 @@ class NearestNeighborsRegressor:
         @param save_path: file path to save the nearest neighbors
         """
 
-        train_data = get_dataset(self.data_dir, data_version=5).map(lambda x, y: x)
+        train_data = get_dataset(self.data_dir, data_version="nearest_neighbors", min_category=self.min_category, max_category=self.max_category).map(lambda x, y: x)
 
         data_array = np.empty(shape=(0, 5775))
         for data in train_data.as_numpy_iterator():
@@ -78,5 +79,5 @@ class NearestNeighborsRegressor:
             assert x.shape[1] == 5775
 
         indices = self.nearest_neighbors.kneighbors(x, return_distance=False)
-
+        print(len(x))
         return np.mean(self.output_data[indices], axis=1)

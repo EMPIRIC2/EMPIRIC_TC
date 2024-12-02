@@ -138,11 +138,10 @@ class IterDataset(data.IterableDataset):
                 for j in self.indices[i]:
                     yield {'x': self._preprocess_input(geneses[j]), 'y': self._preprocess_output(outputs[j])}
 
-
-def get_pytorch_dataloader(folder_path, batch_size, dataset="train", n_samples=None):
+def get_pytorch_dataloader(folder_path, batch_size, dataset="train", n_samples=None, min_category=1, max_category=1):
     file_paths = glob.glob(os.path.join(folder_path, "*.hdf5"))
 
-    db = IterDataset(file_paths, dataset=dataset, n_samples=n_samples)
+    db = IterDataset(file_paths, dataset=dataset, n_samples=n_samples, min_category=min_category, max_category=max_category)
 
     dataloader = data.DataLoader(
         db,

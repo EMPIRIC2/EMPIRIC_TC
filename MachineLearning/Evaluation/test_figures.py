@@ -7,8 +7,13 @@ from MachineLearning.Evaluation.evaluation_testing_utils import (ALL_METRICS,
                                                                  TEST_GRIDS_2)
 from MachineLearning.Evaluation.evaluation_utils import get_many_site_values
 from MachineLearning.Evaluation.figures import (
-    example_site_ensemble_boxplot_figure, ks_statistic_map,
-    plot_example_site_boxplot, plot_quantile_maps, top_relative_error_maps)
+    example_site_ensemble_boxplot_figure,
+    ks_statistic_map,
+    plot_example_site_boxplot,
+    plot_quantile_maps,
+    make_example_site_histogram_figures
+)
+
 from MachineLearning.Evaluation.relative_change_metrics import \
     compute_all_relative_change_pairs
 
@@ -55,12 +60,9 @@ class TestFigures(unittest.TestCase):
             ]
         )
 
-    def test_relative_change_error_map(self):
-        error_maps, total_error = compute_all_relative_change_pairs(
-            outputs, predictions, 3
-        )
-        top_relative_error_maps(top_error_maps=error_maps)
-
+    def test_example_site_histograms(self):
+        all_outputs = {"STORM": outputs, "FNO": predictions}
+        
 
 if __name__ == "__main__":
     unittest.main()

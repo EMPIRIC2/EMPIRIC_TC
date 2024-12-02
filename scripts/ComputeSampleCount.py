@@ -21,4 +21,4 @@ def GetSampleCount(data_dir):
 
 
 if __name__ == "__main__":  
-    GetSampleCount("/nesi/project/uoa03669/ewin313/storm_data/v4")
+    GetSampleCount("../../data/ewinkelm")

@@ -10,15 +10,13 @@ months = [1, 2, 3, 4, 11, 12]
 
 not_used_site_indices = [338, 409, 411, 418, 412, 419, 423, 426, 429, 500, 531, 511]
 
-
 def normalize_input(data):
     max_val = np.max(data)
     min_val = np.min(data)
     return 2 * (data - min_val) / (max(max_val - min_val, 1e-3)) - 1
 
-
 class hdf5_generator_nearest_neighbors:
-    def __init__(self, file_paths, dataset="train", min_category=0, max_category=2):
+    def __init__(self, file_paths, dataset="train", min_category=3, max_category=5):
         self.file_paths = file_paths
         self.dataset = dataset
         self.min_category = min_category
@@ -38,6 +36,7 @@ class hdf5_generator_nearest_neighbors:
         return flat_genesis
 
     def _preprocess_output(self, output):
+
         month_axis = 2
         output_month_sum = np.sum(output, axis=month_axis)
 
@@ -58,7 +57,7 @@ class hdf5_generator_nearest_neighbors:
             with h5py.File(file_path, "r") as file:
                 geneses = file[self.dataset + "_genesis"]
 
-                outputs = file[self.dataset + "_grids"]
+                outputs = file[self.dataset + "_grids"][:, -1]
 
                 for genesis, output in zip(geneses, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
@@ -96,6 +95,7 @@ class hdf5_generator_UNets_Zero_Inputs:
         @return: a (latitude = 110, longitude = 210, channels = 1) shaped ndarray
             representing mean TCs passing over each cell per 10 years
         """
+
         month_axis = 2
         output_month_sum = np.sum(output, axis=month_axis)
 
@@ -119,7 +119,7 @@ class hdf5_generator_UNets_Zero_Inputs:
             with h5py.File(file_path, "r") as file:
                 geneses = file[self.dataset + "_genesis"]
 
-                outputs = file[self.dataset + "_grids"]
+                outputs = file[self.dataset + "_grids"][:, -1]
 
                 for genesis, output in zip(geneses, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
@@ -135,15 +135,23 @@ class hdf5_generator_UNets:
     def __init__(
         self,
         file_paths,
+        min_category,
+        max_category,
         dataset="train",
-        min_category=0,
-        max_category=2,
+       
     ):
         self.file_paths = file_paths
+        self.file_index = 0
+        self.item_index = 0
+        self.geneses = None
+        self.outputs = None
         self.dataset = dataset
         self.min_category = min_category
         self.max_category = max_category
 
+    def __iter__(self):
+        return self
+        
     def _preprocess_input(self, genesis: np.ndarray):
         """
 
@@ -166,11 +174,11 @@ class hdf5_generator_UNets:
         lat_padding = (1, 1)
         lon_padding = (7, 7)
 
-        padded_genesis = np.pad(upsampled_genesis, (lat_padding, lon_padding))
+        #padded_genesis = np.pad(upsampled_genesis, (lat_padding, lon_padding))
 
         # normalize and add channel dimension
-        normalized_genesis = normalize_input(np.expand_dims(padded_genesis, axis=-1))
-        return normalized_genesis
+        normalized_genesis = normalize_input(np.expand_dims(upsampled_genesis, axis=-1))
+        return normalized_genesis.copy()
 
     def _preprocess_output(self, output: np.ndarray):
         """
@@ -185,6 +193,7 @@ class hdf5_generator_UNets:
         @return: a (latitude = 110, longitude = 210, channels = 1) shaped ndarray
             representing mean TCs passing over each cell per 10 years
         """
+        
         month_axis = 2
         output_month_sum = np.sum(output, axis=month_axis)
 
@@ -199,8 +208,41 @@ class hdf5_generator_UNets:
 
         channel_axis = -1
         output_w_channels = np.expand_dims(mean_0_2_cat, axis=channel_axis)
+    
+        return output_w_channels.copy()
 
-        return output_w_channels
+    def __next__(self):
+        print("item_index", self.item_index)
+        
+        if self.geneses is None or self.item_index >= len(self.geneses):
+            # at the end of the file or haven't started, go to the next file
+            print("setting file contents")
+            if self.geneses is not None:
+                print(len(self.geneses))
+                self.file_index += 1
+                
+                # check that aren't at the end of the files
+                if self.file_index >= len(self.file_paths): 
+                    random.shuffle(self.file_paths)
+
+            # update geneses and outputs to new file
+            with h5py.File(self.file_paths[self.file_index], "r") as file:
+                self.geneses = np.array(file[self.dataset + "_genesis"])
+
+                self.outputs = np.array(file[self.dataset + "_grids"])[:,-1]
+            self.item_index = 0
+            
+        genesis = self._preprocess_input(self.geneses[self.item_index])
+        
+        output = self._preprocess_output(self.outputs[self.item_index])
+        if np.count_nonzero(genesis) == 0 or np.count_nonzero(output) == 0:
+            self.item_index += 1
+            return self.__next__()
+        print(np.count_nonzero(genesis))
+        print(np.count_nonzero(output))
+        self.item_index += 1
+        return genesis, output
+        
 
     def __call__(self):
         for file_path in self.file_paths:
@@ -208,7 +250,7 @@ class hdf5_generator_UNets:
             with h5py.File(file_path, "r") as file:
                 geneses = file[self.dataset + "_genesis"]
 
-                outputs = file[self.dataset + "_grids"]
+                outputs = file[self.dataset + "_grids"][:, -1]
 
                 for genesis, output in zip(geneses, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
@@ -225,12 +267,13 @@ class hdf5_generator_UNets:
             if file_path == self.file_paths[-1]:
                 random.shuffle(self.file_paths)
 
-
 def get_dataset(
     folder_path,
     batch_size=32,
     dataset="train",
     data_version="unet-custom",
+    min_category=0,
+    max_category=1,
     n_samples=1,
 ):
     file_paths = glob.glob(os.path.join(folder_path, "*.hdf5"))
@@ -239,24 +282,39 @@ def get_dataset(
     output_signature = None
 
     if data_version == "unet":
-        generator = hdf5_generator_UNets(file_paths, dataset=dataset)
-        genesis_size = (112, 224, 1)
+        generator = hdf5_generator_UNets(
+            file_paths,
+            dataset=dataset,
+            min_category=min_category,
+            max_category=max_category
+        )
+        
+        genesis_size = (110, 210, 1)
         output_size = (110, 210, 1)
         output_signature = (
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
-
-    if data_version == "nearest_neighbors":
-        generator = hdf5_generator_nearest_neighbors(file_paths, dataset=dataset)
+    elif data_version == "nearest_neighbors":
+        generator = hdf5_generator_nearest_neighbors(
+            file_paths,
+            dataset=dataset,
+            min_category=min_category,
+            max_category=max_category
+        )
         genesis_size = (5775,)
         output_size = (110, 210)
         output_signature = (
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
-    if data_version == "unet_zero_inputs":
-        generator = hdf5_generator_UNets_Zero_Inputs(file_paths, dataset=dataset)
+    elif data_version == "unet_zero_inputs":
+        generator = hdf5_generator_UNets_Zero_Inputs(
+            file_paths,
+            dataset=dataset,
+            min_category=min_category,
+            max_category=max_category
+        )
 
         genesis_size = (112, 224, 1)
         output_size = (110, 210, 1)
@@ -264,6 +322,7 @@ def get_dataset(
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
         )
+    else: raise Exception("Invalid data version")
 
     dataset = tf.data.Dataset.from_generator(
         generator, output_signature=output_signature

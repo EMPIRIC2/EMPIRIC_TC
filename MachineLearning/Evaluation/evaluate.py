@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 
+from MachineLearning.pytorch_dataset import get_pytorch_dataloader
 from MachineLearning.dataset import get_dataset
 from MachineLearning.Evaluation.evaluation_utils import process_predictions
 from MachineLearning.Evaluation.figures import (make_collective_model_figures,
@@ -11,9 +12,8 @@ from MachineLearning.Evaluation.figures import (make_collective_model_figures,
 from MachineLearning.Evaluation.metrics import compute_metrics
 from MachineLearning.Evaluation.model_statistics import \
     compute_ensemble_statistics
-from MachineLearning.NearestNeighbors.nearest_neighbors import \
-    NearestNeighborsRegressor
-from saved_models.saved_models import (DDPMUNet)
+from saved_models.saved_models import (FNO_model, NearestNeighbors_model)
+import torch
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -35,8 +35,10 @@ def evaluate(outputs_ds, output_dir, models):
         list(outputs_ds.as_numpy_iterator()), axis=batch_axis
     )
     outputs = np.squeeze(unbatched_outputs)
+    print(len(outputs))
+    
     storm_statistics = compute_ensemble_statistics("STORM", outputs)
-
+    
     all_outputs = {"STORM": outputs}
     all_statistics = [storm_statistics]
 
@@ -45,7 +47,8 @@ def evaluate(outputs_ds, output_dir, models):
         inputs = model_info["inputs"]
 
         predictions = model.predict(inputs)
-
+        print(model_info)
+        print(predictions.shape)
         predictions = process_predictions(predictions)
 
         model_statistics = compute_ensemble_statistics(model_info["name"], predictions)
@@ -59,10 +62,6 @@ def evaluate(outputs_ds, output_dir, models):
             os.makedirs(os.path.join(output_dir, model_info["name"]))
 
         make_single_model_figures(
-            outputs,
-            predictions,
-            storm_statistics,
-            model_statistics,
             model_metrics,
             os.path.join(output_dir, model_info["name"]),
         )
@@ -72,7 +71,6 @@ def evaluate(outputs_ds, output_dir, models):
 
     make_collective_model_figures(all_outputs, all_statistics, output_dir)
     save_metrics_as_latex(metrics, os.path.join(output_dir, "metrics.tex"))
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -87,26 +85,30 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     test_data_ml = get_dataset(
-        args.eval_data_dir, data_version="unet", dataset="test", batch_size=32
+        args.eval_data_dir, data_version="unet", dataset="test", min_category=3, max_category=5, batch_size=32
     )
 
     outputs_ds = test_data_ml.map(lambda x, y: y)
     ml_inputs = test_data_ml.map(lambda x, y: x)
 
+    batch_axis = 0
+
+    test_data_fno = get_pytorch_dataloader(args.eval_data_dir, min_category=3, max_category=5, dataset="test", batch_size=32)
+    
     test_data_nearest_neighbors = get_dataset(
-        args.eval_data_dir, data_version="nearest_neighbors", dataset="test", batch_size=32
+        args.eval_data_dir, data_version="nearest_neighbors", min_category=3, max_category=5, dataset="test", batch_size=32
     )
+
     nearest_neighbors_inputs_ds = test_data_nearest_neighbors.map(lambda x, y: x)
 
-    nearest_neighbors_inputs = np.empty(shape=(0, 5775))
-    for data in nearest_neighbors_inputs_ds.as_numpy_iterator():
-        nearest_neighbors_inputs = np.concatenate([nearest_neighbors_inputs, data])
+    batch_axis = 0
 
-    nearest_neighbors_regressor = NearestNeighborsRegressor(args.train_data_dir)
-
-    nearest_neighbors_regressor.load(
-        os.path.join(__location__, "../NearestNeighbors/nearest_neighbors.pkl")
+    nearest_neighbors_inputs = np.concatenate(
+        list(nearest_neighbors_inputs_ds.as_numpy_iterator()), axis=batch_axis
     )
+    
+    nearest_neighbors_regressor = NearestNeighbors_model(args.train_data_dir)
+
     """
     Object keeps track of the models we want to evaluate.
     """
@@ -118,13 +120,13 @@ if __name__ == "__main__":
             "inputs": nearest_neighbors_inputs,
         },
         {
-            "name": "DDPM UNet",
+            "name": "FNO UNet",
             "output_description": "Mean 0-2 Category TCs over 10 years",
-            "model": DDPMUNet.load_model(),
-            "inputs": ml_inputs,
+            "model": FNO_model(),
+            "inputs": test_data_fno,
         },
     ]
 
     predict_params = {"batch_size": 32, "verbose": 2}
 
-    evaluate(outputs_ds, args.output_save_folder, models_info)
+    evaluate(outputs_ds, args.output_save_dir, models_info)

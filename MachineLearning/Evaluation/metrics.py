@@ -44,7 +44,7 @@ def compute_metrics(
         "Relative Error Examples": top_relative_change_error_maps,
         "Site Mean Squared Error": total_site_mean_squared_error(
             ground_outputs, model_outputs
-        ),
+        )
     }
 
     return metrics
