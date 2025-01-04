@@ -18,12 +18,13 @@ class IterDataset(data.IterableDataset):
     
     def __init__(
                 self, 
-                 file_paths,
-                 dataset="train",
-                 min_category=0,
-                 max_category=1,
-                 n_samples = None
-                ):
+                file_paths,
+                dataset="train",
+                min_category=0,
+                max_category=1,
+                n_samples=None,
+                N_100_decades=10
+            ):
 
         self.n_samples = n_samples
         self.file_paths = file_paths
@@ -31,6 +32,7 @@ class IterDataset(data.IterableDataset):
         self.indices = self._get_indices()
         self.min_category = min_category
         self.max_category = max_category
+        self.N_100_decades = N_100_decades
 
     def _get_indices(self):
         indices = {}
@@ -133,15 +135,30 @@ class IterDataset(data.IterableDataset):
                  
                 geneses = file[self.dataset + "_genesis"]
                 
-                outputs = file[self.dataset + "_grids"][:,-1]
+                outputs = file[self.dataset + "_grids"][:,self.N_100_decades-1]
                  
                 for j in self.indices[i]:
                     yield {'x': self._preprocess_input(geneses[j]), 'y': self._preprocess_output(outputs[j])}
 
-def get_pytorch_dataloader(folder_path, batch_size, dataset="train", n_samples=None, min_category=1, max_category=1):
+def get_pytorch_dataloader(
+    folder_path,
+    batch_size,
+    dataset="train",
+    n_samples=None,
+    min_category=1,
+    max_category=1,
+    N_100_decades=10
+):
     file_paths = glob.glob(os.path.join(folder_path, "*.hdf5"))
 
-    db = IterDataset(file_paths, dataset=dataset, n_samples=n_samples, min_category=min_category, max_category=max_category)
+    db = IterDataset(
+        file_paths, 
+        dataset=dataset, 
+        n_samples=n_samples, 
+        min_category=min_category, 
+        max_category=max_category,
+        N_100_decades=N_100_decades
+    )
 
     dataloader = data.DataLoader(
         db,

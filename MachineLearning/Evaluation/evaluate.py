@@ -12,11 +12,10 @@ from MachineLearning.Evaluation.figures import (make_collective_model_figures,
 from MachineLearning.Evaluation.metrics import compute_metrics
 from MachineLearning.Evaluation.model_statistics import \
     compute_ensemble_statistics
-from saved_models.saved_models import (FNO_model, NearestNeighbors_model)
+from saved_models.saved_models import (FNO_model, NearestNeighbors_model, DDPMUNet_model)
 import torch
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-
 
 def evaluate(outputs_ds, output_dir, models):
     """
@@ -35,7 +34,6 @@ def evaluate(outputs_ds, output_dir, models):
         list(outputs_ds.as_numpy_iterator()), axis=batch_axis
     )
     outputs = np.squeeze(unbatched_outputs)
-    print(len(outputs))
     
     storm_statistics = compute_ensemble_statistics("STORM", outputs)
     
@@ -47,10 +45,11 @@ def evaluate(outputs_ds, output_dir, models):
         inputs = model_info["inputs"]
 
         predictions = model.predict(inputs)
-        print(model_info)
-        print(predictions.shape)
+        
+        
         predictions = process_predictions(predictions)
-
+        
+        
         model_statistics = compute_ensemble_statistics(model_info["name"], predictions)
 
         model_metrics = compute_metrics(
@@ -69,6 +68,8 @@ def evaluate(outputs_ds, output_dir, models):
         all_outputs[model_info["name"]] = predictions
         all_statistics.append(model_statistics)
 
+    np.save(os.path.join(output_dir, "all_predictions.npy"), all_outputs)
+
     make_collective_model_figures(all_outputs, all_statistics, output_dir)
     save_metrics_as_latex(metrics, os.path.join(output_dir, "metrics.tex"))
 
@@ -85,14 +86,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     test_data_ml = get_dataset(
-        args.eval_data_dir, data_version="unet", dataset="test", min_category=3, max_category=5, batch_size=32
+        args.eval_data_dir, data_version="unet", dataset="test", min_category=3, max_category=5, batch_size=32, crop_outputs = True
     )
 
     outputs_ds = test_data_ml.map(lambda x, y: y)
     ml_inputs = test_data_ml.map(lambda x, y: x)
-
+    
     batch_axis = 0
-
+    
+    ddpm_inputs = np.concatenate(
+        
+        list(ml_inputs.as_numpy_iterator()), axis=batch_axis)
     test_data_fno = get_pytorch_dataloader(args.eval_data_dir, min_category=3, max_category=5, dataset="test", batch_size=32)
     
     test_data_nearest_neighbors = get_dataset(
@@ -100,8 +104,6 @@ if __name__ == "__main__":
     )
 
     nearest_neighbors_inputs_ds = test_data_nearest_neighbors.map(lambda x, y: x)
-
-    batch_axis = 0
 
     nearest_neighbors_inputs = np.concatenate(
         list(nearest_neighbors_inputs_ds.as_numpy_iterator()), axis=batch_axis
@@ -115,14 +117,32 @@ if __name__ == "__main__":
     models_info = [
         {
             "name": "Nearest Neighbors Regressor",
-            "output_description": "Mean 0-2 Category TCs over 10 years",
+            "output_description": "Mean 3-5 Category TCs over 10 years",
             "model": nearest_neighbors_regressor,
             "inputs": nearest_neighbors_inputs,
         },
         {
-            "name": "FNO UNet",
-            "output_description": "Mean 0-2 Category TCs over 10 years",
+            "name": "FNO",
+            "output_description": "Mean 3-5 Category TCs over 10 years",
             "model": FNO_model(),
+            "inputs": test_data_fno,
+        },
+        {
+            "name": "DDPM UNet",
+            "output_description": "Mean 3-5 Category TCs over 10 years",
+            "model": DDPMUNet_model(),
+            "inputs": ddpm_inputs
+        },
+        {
+            "name": "DDPM UNet N=100 Decades",
+            "output_description": "Mean 3-5 Category TCs over 10 years",
+            "model": DDPMUNet_model(True),
+            "inputs": ddpm_inputs
+        },
+        {
+            "name": "FNO N=100 Decades",
+            "output_description": "Mean 3-5 Category TCs over 10 years",
+            "model": FNO_model(True),
             "inputs": test_data_fno,
         },
     ]

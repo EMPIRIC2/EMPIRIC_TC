@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-#SBATCH --job-name=train-unet
+#SBATCH --job-name=train-fno
 #SBATCH -p gpu --gres=gpu:1
 #SBATCH --cpus-per-task=2
 #SBATCH --time 02:00:00

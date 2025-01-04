@@ -19,6 +19,7 @@ def getObservedGenesisLocations(basin, month, matrix_path=None):
     if matrix_path is None:
         matrix_path = os.path.join(
             __location__,
+            "..",
             "STORM",
             "GRID_GENESIS_MATRIX_" + str(idx) + "_" + str(month) + ".npy",
         )

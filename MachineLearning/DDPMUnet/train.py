@@ -6,7 +6,14 @@ import time
 import wandb
 from wandb.integration.keras import WandbMetricsLogger
 
-def train_ddpm_unet(model_name, data_folder, data_version, model_config, training_config):
+def train_ddpm_unet(
+    model_name, 
+    data_folder, 
+    data_version, 
+    model_config, 
+    training_config,
+):
+    
     model = build_model(**model_config)
     unique_model_name = '{}_{}'.format(model_name, str(time.time()))
     local_save_path = 'models/{}.keras'.format(unique_model_name)
@@ -53,10 +60,32 @@ def train_ddpm_unet(model_name, data_folder, data_version, model_config, trainin
     ## save the train file and unet file so that we can load the model later
     wandb.run.log_code(".", include_fn=lambda p, r: p.endswith("train.py") or p.endswith("unet.py"))
 
-    train_data = get_dataset(data_folder, data_version=data_version, batch_size=config.batch_size)
-    test_data = get_dataset(data_folder, dataset="test", data_version=data_version)
+    train_data = get_dataset(
+        data_folder,
+        data_version=data_version,
+        batch_size=config.batch_size,
+        min_category=training_config["min_category"],
+        max_category=training_config["max_category"],
+        N_100_decades=training_config["N_100_decades"]
+    )
+    
+    test_data = get_dataset(
+        data_folder, 
+        dataset="test", 
+        data_version=data_version,
+        min_category=training_config["min_category"],
+        max_category=training_config["max_category"],
+        N_100_decades=training_config["N_100_decades"]
+    )
 
-    validation_data = get_dataset(data_folder, dataset="validation", data_version=data_version)
+    validation_data = get_dataset(
+        data_folder,
+        dataset="validation",
+        data_version=data_version,
+        min_category=training_config["min_category"],
+        max_category=training_config["max_category"],
+        N_100_decades=training_config["N_100_decades"]
+    )
 
     #validation_example_in, validation_example_out = next(iter(validation_data))
 
