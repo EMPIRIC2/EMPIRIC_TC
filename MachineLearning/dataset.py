@@ -16,11 +16,19 @@ def normalize_input(data):
     return 2 * (data - min_val) / (max(max_val - min_val, 1e-3)) - 1
 
 class hdf5_generator_nearest_neighbors:
-    def __init__(self, file_paths, dataset="train", min_category=3, max_category=5):
+    def __init__(
+        self, 
+        file_paths, 
+        dataset="train", 
+        min_category=3, 
+        max_category=5,
+        N_100_decades=10
+    ):
         self.file_paths = file_paths
         self.dataset = dataset
         self.min_category = min_category
         self.max_category = max_category
+        self.N_100_decades = N_100_decades
 
     @staticmethod
     def preprocess_input(genesis: np.ndarray):
@@ -57,7 +65,7 @@ class hdf5_generator_nearest_neighbors:
             with h5py.File(file_path, "r") as file:
                 geneses = file[self.dataset + "_genesis"]
 
-                outputs = file[self.dataset + "_grids"][:, -1]
+                outputs = file[self.dataset + "_grids"][:, self.N_100_decades - 1]
 
                 for genesis, output in zip(geneses, outputs):
                     if np.count_nonzero(genesis) != 0:  # data has been made
@@ -115,7 +123,7 @@ class hdf5_generator_UNets_Zero_Inputs:
 
     def __call__(self):
         for file_path in self.file_paths:
-            print(file_path)
+
             with h5py.File(file_path, "r") as file:
                 geneses = file[self.dataset + "_genesis"]
 
@@ -138,7 +146,8 @@ class hdf5_generator_UNets:
         min_category,
         max_category,
         dataset="train",
-       
+        N_100_decades = 10,
+        crop_outputs=False
     ):
         self.file_paths = file_paths
         self.file_index = 0
@@ -148,6 +157,8 @@ class hdf5_generator_UNets:
         self.dataset = dataset
         self.min_category = min_category
         self.max_category = max_category
+        self.N_100_decades = N_100_decades
+        self.crop_outputs = crop_outputs
 
     def __iter__(self):
         return self
@@ -174,10 +185,10 @@ class hdf5_generator_UNets:
         lat_padding = (1, 1)
         lon_padding = (7, 7)
 
-        #padded_genesis = np.pad(upsampled_genesis, (lat_padding, lon_padding))
+        padded_genesis = np.pad(upsampled_genesis, (lat_padding, lon_padding))
 
         # normalize and add channel dimension
-        normalized_genesis = normalize_input(np.expand_dims(upsampled_genesis, axis=-1))
+        normalized_genesis = normalize_input(np.expand_dims(padded_genesis, axis=-1))
         return normalized_genesis.copy()
 
     def _preprocess_output(self, output: np.ndarray):
@@ -204,21 +215,24 @@ class hdf5_generator_UNets:
         output_category_sum = np.sum(output_selected_categories, axis=tc_category_axis)
 
         # the generated outputs are upside down from the genesis maps
-        mean_0_2_cat = np.flipud(output_category_sum)
-
+        mean_cat = np.flipud(output_category_sum)
+        lat_padding = (1, 1)
+        lon_padding = (7, 7)
+        
+        if not self.crop_outputs:
+            padded_mean = np.pad(mean_cat, (lat_padding, lon_padding))
+        else:
+            padded_mean = mean_cat
+            
         channel_axis = -1
-        output_w_channels = np.expand_dims(mean_0_2_cat, axis=channel_axis)
-    
+        output_w_channels = np.expand_dims(padded_mean, axis=channel_axis)
         return output_w_channels.copy()
 
     def __next__(self):
-        print("item_index", self.item_index)
         
         if self.geneses is None or self.item_index >= len(self.geneses):
             # at the end of the file or haven't started, go to the next file
-            print("setting file contents")
             if self.geneses is not None:
-                print(len(self.geneses))
                 self.file_index += 1
                 
                 # check that aren't at the end of the files
@@ -229,7 +243,7 @@ class hdf5_generator_UNets:
             with h5py.File(self.file_paths[self.file_index], "r") as file:
                 self.geneses = np.array(file[self.dataset + "_genesis"])
 
-                self.outputs = np.array(file[self.dataset + "_grids"])[:,-1]
+                self.outputs = np.array(file[self.dataset + "_grids"])[:,self.N_100_decades - 1]
             self.item_index = 0
             
         genesis = self._preprocess_input(self.geneses[self.item_index])
@@ -238,15 +252,13 @@ class hdf5_generator_UNets:
         if np.count_nonzero(genesis) == 0 or np.count_nonzero(output) == 0:
             self.item_index += 1
             return self.__next__()
-        print(np.count_nonzero(genesis))
-        print(np.count_nonzero(output))
+ 
         self.item_index += 1
         return genesis, output
         
 
     def __call__(self):
         for file_path in self.file_paths:
-            print(file_path)
             with h5py.File(file_path, "r") as file:
                 geneses = file[self.dataset + "_genesis"]
 
@@ -275,22 +287,29 @@ def get_dataset(
     min_category=0,
     max_category=1,
     n_samples=1,
+    N_100_decades = 10,
+    crop_outputs=False
 ):
     file_paths = glob.glob(os.path.join(folder_path, "*.hdf5"))
 
     generator = None
     output_signature = None
-
+        
     if data_version == "unet":
         generator = hdf5_generator_UNets(
             file_paths,
             dataset=dataset,
             min_category=min_category,
-            max_category=max_category
+            max_category=max_category,
+            N_100_decades=N_100_decades,
+            crop_outputs=crop_outputs
         )
         
-        genesis_size = (110, 210, 1)
-        output_size = (110, 210, 1)
+        genesis_size = (112, 224, 1)
+        if crop_outputs:
+            output_size = (110, 210, 1)
+        else:
+            output_size = (112, 224, 1)
         output_signature = (
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),
@@ -300,7 +319,8 @@ def get_dataset(
             file_paths,
             dataset=dataset,
             min_category=min_category,
-            max_category=max_category
+            max_category=max_category,
+            N_100_decades=N_100_decades
         )
         genesis_size = (5775,)
         output_size = (110, 210)
@@ -317,7 +337,7 @@ def get_dataset(
         )
 
         genesis_size = (112, 224, 1)
-        output_size = (110, 210, 1)
+        output_size = (112, 224, 1)
         output_signature = (
             tf.TensorSpec(shape=genesis_size, dtype=tf.float32),
             tf.TensorSpec(shape=output_size, dtype=tf.float32),

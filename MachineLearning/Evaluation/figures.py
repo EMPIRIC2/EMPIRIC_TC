@@ -11,6 +11,7 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.ticker as mticker
 from HealthFacilities.getHealthFacilityData import Sites
+import cmocean
 
 from MachineLearning.Evaluation.evaluation_utils import (
     get_lat_lon_data_for_mesh, get_many_site_values, get_site_name, get_grid_cell)
@@ -93,7 +94,7 @@ def plot_quantile_maps(models_statistics, save_path=None):
             lats,
             images[i],
             transform=ccrs.PlateCarree(central_longitude=180),
-            cmap="summer",
+            cmap=cmocean.cm.matter,
             vmin=0,
             vmax=1,
         )
@@ -172,7 +173,7 @@ def ks_statistic_map(metrics, save_path=None):
         transform=ccrs.PlateCarree(central_longitude=180),
         vmin=0,
         vmax=1,
-        cmap="summer",
+        cmap=cmocean.cm.matter,
     )
     plt.colorbar(im, fraction=0.025, pad=0.04)
 
@@ -298,7 +299,7 @@ def plot_example_outputs(all_outputs, save_path=None, sites=None, n_examples=3):
 
             
             # Use a continuous colormap
-            contour = ax.contourf(lonplot2, latplot2, val, levels=100, cmap='summer', transform=ccrs.PlateCarree())
+            contour = ax.contourf(lonplot2, latplot2, val, levels=100, cmap=cmocean.cm.matter, transform=ccrs.PlateCarree())
             
             gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=False,
                               linewidth=1, color='white', alpha=0.3, linestyle='--')

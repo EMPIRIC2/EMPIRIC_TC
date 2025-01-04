@@ -85,10 +85,12 @@ def get_grid_cell(lat, lon, resolution, basin):
     lat_min, lat_max, lon_min, lon_max = BOUNDARIES_BASINS(basin)
 
     if not lat_min <= lat < lat_max:
-        raise "lat must be within the basin"
+        return None, None
+        #raise "lat must be within the basin"
 
     if not lon_min <= lon < lon_max:
-        raise "lon must be within the basin"
+        return None, None
+        #raise "lon must be within the basin"
 
     lat_cell_index = math.floor((lat - lat_min) * 1 / resolution)
     lon_cell_index = math.floor((lon - lon_min) * 1 / resolution)
@@ -214,10 +216,13 @@ def update_cells_touched_by_storm_rmax(
     lat_index_min, lon_index_min = get_grid_cell(
         storm_min_lat, storm_min_lon, resolution, basin
     )
-
+    
     lat_index_max, lon_index_max = get_grid_cell(
         storm_max_lat, storm_max_lon, resolution, basin
     )
+
+    if lat_index_min is None or lon_index_min is None or lat_index_max is None or lon_index_max is None: return
+        
     for lat_index in range(lat_index_min, lat_index_max + 1):
         for lon_index in range(lon_index_min, lon_index_max + 1):
             if check_cell_touched_by_storm(
@@ -302,19 +307,20 @@ def storm_counts_per_month(storms, resolution, basin, storm_rmax_multiple):
     """
 
     grid = create_monthly_landfall_grid(basin, resolution)
-
     month_to_index = {month: i for i, month in enumerate([1, 2, 3, 4, 11, 12])}
 
     for i, storm in enumerate(storms):
         touched_cells = get_cells_and_sites_touched_by_storm(
             storm, resolution, basin, storm_rmax_multiple=storm_rmax_multiple
         )
+
         month = storm["month"]
         for cell, category in touched_cells.items():
             lat, lon = cell
             grid[lat][lon][month_to_index[month]][category] += 1
 
         del touched_cells
+
     return grid
 
 def get_grid_sum_samples(
@@ -452,7 +458,6 @@ def get_landfalls_data(
     for storm in storms:
         if storm["year"] >= (decade*10 + 10):
             decade += 1
-
         decades_of_storms[decade].append(storm)
 
     with Pool(number_of_cores) as pool:
@@ -460,7 +465,6 @@ def get_landfalls_data(
             (decade_of_storms, resolution, basin, storm_rmax_multiple)
             for decade_of_storms in decades_of_storms
         ]
-
         decade_results = pool.starmap(storm_counts_per_month, args)
 
         means = []
@@ -470,5 +474,7 @@ def get_landfalls_data(
             for i in range(1, total_years // 1000 + 1):
                 means.append(np.mean(decade_results[:100 * i], axis=0))
                 std_devs.append(np.std(decade_results[:100 * i], axis=0))
+        else:
+            return np.mean(decade_results, axis=0), np.std(decade_results, axis=0)
         del decade_results
     return np.array(means), np.array(std_devs)

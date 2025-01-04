@@ -8,7 +8,12 @@ from neuralop.models import FNO2d
 from neuralop import Trainer
 from neuralop import LpLoss, H1Loss
 
-def train_fno(model_name, data_folder, model_config, training_config):
+def train_fno(
+    model_name,
+    data_folder,
+    model_config,
+    training_config
+):
 
     model = FNO2d(
         model_config.pop("n_modes_height"),
@@ -23,7 +28,6 @@ def train_fno(model_name, data_folder, model_config, training_config):
     wandb.init(
         # set the wandb project where this run will be logged
         project="EMPIRIC2-AI-emulator",
-
         # track hyperparameters and run metadata with wandb.config
         config=training_config
     )
@@ -57,12 +61,25 @@ def train_fno(model_name, data_folder, model_config, training_config):
         }
     )
 
-
     ## save the train file and unet file so that we can load the model later
     wandb.run.log_code(".", include_fn=lambda p, r: p.endswith("train.py") or p.endswith("unet.py"))
 
-    train_data = get_pytorch_dataloader(data_folder, batch_size=config.batch_size, min_category=training_config["min_category"], max_category=training_config["max_category"])
-    test_data = get_pytorch_dataloader(data_folder, dataset="test", batch_size=config.batch_size, min_category=training_config["min_category"], max_category=training_config["max_category"])
+    train_data = get_pytorch_dataloader(
+        data_folder,
+        batch_size=config.batch_size,
+        min_category=training_config["min_category"],
+        max_category=training_config["max_category"],
+        N_100_decades=training_config["N_100_decades"]
+    )
+    
+    test_data = get_pytorch_dataloader(
+        data_folder,
+        dataset="test",
+        batch_size=config.batch_size,
+        min_category=training_config["min_category"],
+        max_category=training_config["max_category"],
+        N_100_decades=training_config["N_100_decades"]
+    )
     
     device = 'cpu'
     # %%
@@ -112,6 +129,6 @@ def train_fno(model_name, data_folder, model_config, training_config):
                   regularizer=False,
                   training_loss=train_loss,
                   eval_losses=eval_losses,
-                  save_best="32_l2")
+                 )
 
     torch.save(model.state_dict(), local_save_path)

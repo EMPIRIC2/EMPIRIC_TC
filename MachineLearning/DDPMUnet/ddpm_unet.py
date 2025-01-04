@@ -250,21 +250,8 @@ def build_model(
     x = activation_fn(x)
     x = layers.Conv2D(1, (3, 3), padding="same", kernel_initializer=kernel_init(0.0))(x)
 
-
-    # crop the output
-    output_size_diff_x = img_size[0] - output_size[0]
-    output_size_diff_y = img_size[1] - output_size[1]
-
-    output = layers.Cropping2D(
-            ((
-                output_size_diff_x//2,
-                output_size_diff_x//2
-            ),
-            (
-                output_size_diff_y//2,
-                output_size_diff_y//2
-            )))(x)
-
+    output = x
+    
     if include_temb:
         inputs = [image_input, time_input]
     else:

@@ -11,10 +11,9 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 
 class FNO_model:
     
-    model_path = os.path.join(__location__, "FNO_1729471215.0322773.keras")
 
-    def __init__(self):
-        self.model = FNO_model.load_model()
+    def __init__(self, hundred_decades=False):
+        self.model = FNO_model.load_model(hundred_decades)
 
     def predict(self, dataloader):
         prediction_list = []
@@ -24,7 +23,7 @@ class FNO_model:
         return np.concatenate(prediction_list, axis=0)
 
     @staticmethod
-    def load_model():
+    def load_model(hundred_decades=False):
         
         MODEL_CONFIG = {
             "n_modes_height": 16, 
@@ -36,13 +35,19 @@ class FNO_model:
             "rank": 0.42
         }
 
+        if hundred_decades:
+            model_path = os.path.join(__location__, "FNO_1733842125.6365902.keras")
+
+        else:
+            model_path = os.path.join(__location__, "FNO_1729471215.0322773.keras")
+
         model = FNO2d(
             MODEL_CONFIG.pop("n_modes_height"),
             MODEL_CONFIG.pop("n_modes_width"),          
             **MODEL_CONFIG
         )
 
-        model.load_state_dict(torch.load(FNO_model.model_path, weights_only=True))
+        model.load_state_dict(torch.load(model_path, weights_only=True))
 
         return model
     
@@ -74,7 +79,7 @@ class FNO_model:
         # normalize and add channel dimension
         channel_dim = 0
         normalized_genesis = normalize_input(np.expand_dims(upsampled_genesis, axis=channel_dim))
-        print(normalized_genesis.shape)
+
         return normalized_genesis.astype(np.float32).copy()
 
     def __call__(self, x):
@@ -84,22 +89,26 @@ class DDPMUNet_model:
     
     MODEL_CONFIG = {
         "img_size": (112, 224, 1),
-        "output_size": (110, 210, 1),
+        "output_size": (112, 224, 1),
         "has_attention": [False, False, True],
         "interpolation": "bilinear",
         "widths": [16, 32, 64],
         "include_temb": False
     }
     
-    model_path = os.path.join(__location__, "DDPM-Unet_1718141443.4486032.keras")
 
-    def __init__(self):
-        self.model = DDPMUNet_model.load_model()
+    def __init__(self, hundred_decades=False):
+        self.model = DDPMUNet_model.load_model(hundred_decades)
 
     @staticmethod
-    def load_model():
+    def load_model(hundred_decades):
+        if not hundred_decades:
+            model_path = os.path.join(__location__, "DDPM-Unet_1733500332.331749.keras")
+        else:
+            model_path = os.path.join(__location__, "DDPM-Unet_1733766375.4331155.keras")
+
         model = ddpm_unet.build_model(**DDPMUNet_model.MODEL_CONFIG)
-        model.load_weights(DDPMUNet_model.model_path)
+        model.load_weights(model_path)
         return model
 
     @staticmethod
@@ -129,12 +138,28 @@ class DDPMUNet_model:
 
         # normalize and add channel dimension
         normalized_genesis = normalize_input(np.expand_dims(padded_genesis, axis=-1))
-        return normalized_genesis
+        return normalized_genesis.copy()
 
     def __call__(self, x):
         x = self.preprocess_input(x)
         x = x[np.newaxis, :]
+
+        # crop the UNet output so it removes the padded edges
+        lat_crop = (1, 1)
+        lon_crop = (7, 7)
+        x = x[lat_crop[0]: x.shape[0] - (lat_crop[1] - 1), lon_crop[0] : x.shape[1] - (lon_crop[1] - 1)]
+        
         return self.model(x)[0]
+
+    def predict(self, dataset):
+        predictions = self.model(dataset)
+        # crop the UNet output so it removes the padded edges
+        lat_crop = (1, 1)
+        lon_crop = (7, 7)
+        print(predictions.shape)
+        predictions = predictions[:, lat_crop[0]: predictions.shape[1] - (lat_crop[1]), lon_crop[0] : predictions.shape[2] - (lon_crop[1]), :]
+        return predictions
+        
 
 class NearestNeighbors_model:
 

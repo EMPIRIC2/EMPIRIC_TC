@@ -1,11 +1,12 @@
 
 python slurm-launch.py \
-  --exp-name data_generation_include_historical \
-  --command "python ../TrainingDataGeneration/GenerateTrainingData.py 1000 0 25 0 /nesi/project/uoa03669/ewin313/storm_data/include_historical 10 100 --include_historical_genesis --on_slurm" \
-  --load-env "source load-environment.sh" \
+  --exp-name data_generation \
+  --command "python TrainingDataGeneration/GenerateTrainingData.py 10000 0 10 0  /users/ewinkelm/data/ewinkelm/include_historical --include_historical_genesis --on_slurm" \
+  --load-env "source scripts/load-environment.sh" \
   --mem "2GB" \
-  --time "18:00:00" \
-
+  --time "02:00:00" \
+  --chdir "/users/ewinkelm/EMPIRIC_AI_emulation/"
+  
 
 
 

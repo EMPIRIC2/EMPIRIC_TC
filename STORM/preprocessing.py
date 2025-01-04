@@ -21,6 +21,7 @@ import xarray as xr
 from scipy import stats
 
 dir_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+print(dir_path)
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
 # Basin indices:
@@ -169,7 +170,7 @@ def convert_wind_speed(wind, agency):
     return wind_conv
 
 
-def extract_data(data):
+def extract_data(data, save_path=None):
     """
     Extract different variables from IBTrACS dataset.
     Input:
@@ -310,15 +311,17 @@ def extract_data(data):
     Save the interpolated datasets as .npy files. These files will be used later on
     and also come in handy when plotting IBTrACS data
     """
-    np.save(os.path.join(dir_path, "LATLIST_INTERP.npy"), lat_int)
-    np.save(os.path.join(dir_path, "LONLIST_INTERP.npy"), lon_int)
-    np.save(os.path.join(dir_path, "TIMELIST_INTERP.npy"), timelist)
-    np.save(os.path.join(dir_path, "WINDLIST_INTERP.npy"), wind_int)
-    np.save(os.path.join(dir_path, "PRESLIST_INTERP.npy"), pres_int)
-    np.save(os.path.join(dir_path, "RMAXLIST_INTERP.npy"), rmax_int)
-    np.save(os.path.join(dir_path, "MONTHLIST_INTERP.npy"), monthlist)
-    np.save(os.path.join(dir_path, "BASINLIST_INTERP.npy"), basinlist)
-    np.save(os.path.join(dir_path, "YEARLIST_INTERP.npy"), yearlist)
+    if save_path is None:
+        save_path = dir_path
+    np.save(os.path.join(save_path, "LATLIST_INTERP.npy"), lat_int)
+    np.save(os.path.join(save_path, "LONLIST_INTERP.npy"), lon_int)
+    np.save(os.path.join(save_path, "TIMELIST_INTERP.npy"), timelist)
+    np.save(os.path.join(save_path, "WINDLIST_INTERP.npy"), wind_int)
+    np.save(os.path.join(save_path, "PRESLIST_INTERP.npy"), pres_int)
+    np.save(os.path.join(save_path, "RMAXLIST_INTERP.npy"), rmax_int)
+    np.save(os.path.join(save_path, "MONTHLIST_INTERP.npy"), monthlist)
+    np.save(os.path.join(save_path, "BASINLIST_INTERP.npy"), basinlist)
+    np.save(os.path.join(save_path, "YEARLIST_INTERP.npy"), yearlist)
 
 
 def TC_variables():
