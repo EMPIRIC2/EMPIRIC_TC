@@ -5,8 +5,7 @@ from MachineLearning.Evaluation.model_statistics import \
 from MachineLearning.Evaluation.relative_change_metrics import \
     compute_all_relative_change_pairs
 from MachineLearning.Evaluation.site_metrics import \
-    total_site_mean_squared_error
-
+    total_site_mean_squared_error, mean_site_ks_statistic
 
 def compute_metrics(
     ground_outputs, model_outputs, ground_statistics, model_statistics, model_name
@@ -33,10 +32,6 @@ def compute_metrics(
             ground_statistics["Quantiles"].flatten(),
             model_statistics["Quantiles"].flatten(),
         ),
-        "Mean Squared Quantile Error": mean_squared_error(
-            ground_statistics["Quantiles"].flatten(),
-            model_statistics["Quantiles"].flatten(),
-        ),
         "Kolmogorov-Smirnov": kolmogorov_smirnov_statistics(
             ground_outputs, model_outputs
         ),
@@ -46,5 +41,7 @@ def compute_metrics(
             ground_outputs, model_outputs
         )
     }
+
+    metrics["Mean Site KS-Statistic"] = mean_site_ks_statistic(metrics["Kolmogorov-Smirnov"])
 
     return metrics

@@ -95,7 +95,6 @@ class DDPMUNet_model:
         "widths": [16, 32, 64],
         "include_temb": False
     }
-    
 
     def __init__(self, hundred_decades=False):
         self.model = DDPMUNet_model.load_model(hundred_decades)
