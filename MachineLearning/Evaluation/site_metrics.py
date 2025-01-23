@@ -62,3 +62,13 @@ def total_site_mean_squared_error(outputs1, outputs2):
     outputs2_sites = get_many_site_values(outputs2)
 
     return mean_squared_error(outputs1_sites, outputs2_sites)
+
+def mean_site_ks_statistic(ks_statistic):
+    """
+    Calculates the mean ks statistic across the sites
+
+    :param: ks_statistic: a grid containing the ks-statistic for a particular model
+    """
+
+    ks_statistic_sites = get_site_values(ks_statistic)
+    return np.mean(ks_statistic_sites)

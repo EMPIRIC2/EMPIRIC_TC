@@ -13,7 +13,6 @@ from MachineLearning.Evaluation.metrics import compute_metrics
 from MachineLearning.Evaluation.model_statistics import \
     compute_ensemble_statistics
 from saved_models.saved_models import (FNO_model, NearestNeighbors_model, DDPMUNet_model)
-import torch
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -45,16 +44,15 @@ def evaluate(outputs_ds, output_dir, models):
         inputs = model_info["inputs"]
 
         predictions = model.predict(inputs)
-        
-        
+
         predictions = process_predictions(predictions)
-        
-        
+
         model_statistics = compute_ensemble_statistics(model_info["name"], predictions)
 
         model_metrics = compute_metrics(
             outputs, predictions, storm_statistics, model_statistics, model_info["name"]
         )
+
         metrics.append(model_metrics)
 
         if not os.path.exists(os.path.join(output_dir, model_info["name"])):

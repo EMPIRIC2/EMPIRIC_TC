@@ -1,4 +1,3 @@
-## This is just a copy of TropicalCycloneAI/HealthFacilities/getHealthFacilityData.py so that it is possible to load into a jupyter notebook in this directory (poor solution)
 
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -7,7 +6,11 @@ from geopy import distance
 import os
 
 class Sites:
-    
+
+    # we ignore some indices because there is
+    # already a site in this cell and we don't
+    # want to double count them
+
     indices_not_used = [338, 409, 411, 418, 412, 419, 423, 426, 429, 500, 531, 511]
     
     def __init__(self, n_clusters=10):
@@ -30,18 +33,11 @@ class Sites:
 
     @staticmethod
     def boxes_intersect(box1, box2):
-        top_right = (box1[1], box1[3])
-        bottom_left_other = (box2[0], box2[2])
-        bottom_left_self = (box1[0], box1[2])
-        top_right_other = (box2[1], box2[3])
-
         return not (box1[3] < box2[2]
          or box1[2] > box2[3]
          or box1[1] < box2[0]
          or box1[0] > box2[1]
     )
-
-
 
     def update_sites_touched_by_storm(self, sites_touched_by_storm, lat, lon, rmax, rmax_multiple, storm_bounding_box):
         box_touches = False
