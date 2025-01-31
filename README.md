@@ -9,13 +9,13 @@ Figure 1. Example outputs from the statistical dynamical model (STORM) and three
 
 1. Install Python if you don’t already have it. I am using python version 3.11.9. I would recommend using the this version because there are some issues with using the most recent Python release. You can find the installers here: https://www.python.org/downloads/release/python-3119/
 2. Install git: https://git-scm.com/download/win for windows or https://git-scm.com/download/mac for mac. On windows, if it has an option in the install like “Use git in Windows command prompt”, select yes.
-3. Get the latest release of the code locally by opening the command line and running: `git clone https://github.com/EMPIRIC2/EMPIRIC-AI-emulation.git --branch v1.0` 
+3. Get the latest release of the code locally by opening the command line and running: `git clone https://github.com/EMPIRIC2/EMPIRIC_TC.git --branch v1.0` 
     1. You’ll need to do some authentication for your github account, you can do this by making a personal access token through your github account here: https://github.com/settings/tokens. There is also a guide on this here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
     2. this will put the project folder in your current working directory, so make sure to move to the directory you want to use in the command line
 4.  Move into the code folder: `cd EMPIRIC-AI-emulation` 
 5. Set up the conda environment: `conda env create -f env.yml`
 6. Activate the conda environment: `conda activate ml_env`
-7. Download the model and test data files from the manuscript release version: https://github.com/EMPIRIC2/EMPIRIC-AI-emulation/releases/edit/v1.0
+7. Download the model and test data files from the manuscript release version: https://github.com/EMPIRIC2/EMPIRIC_TC/releases/tag/v1.0
 8. Move the saved model you have downloaded into the folder EMPIRIC-AI-emulation/saved_models
 9. To run the STORM model directly, you must download the storm_data.zip file from the most recent release (see above), unzip it, and add all the files to the EMPIRIC-AI-emulation/STORM folder.
 
