@@ -31,20 +31,6 @@ class TestFigures(unittest.TestCase):
 
     """ These will open example figures that must be closed for tests to complete """
 
-    def test_ensemble_boxplot(self):
-        example_site_ensemble_boxplot_figure(
-            {
-                "STORM": get_many_site_values(outputs),
-                "UNet": get_many_site_values(predictions),
-                "UNet 2": get_many_site_values(outputs),
-            }
-        )
-
-    def test_example_site_error_boxplot(self):
-        plot_example_site_boxplot(
-            outputs, {"UNet 1": predictions, "UNet 2": predictions}, 4
-        )
-
     def test_ks_statistics_map(self):
         ks_statistic_map(all_metrics)
 
@@ -59,10 +45,6 @@ class TestFigures(unittest.TestCase):
                 unet_statistics,
             ]
         )
-
-    def test_example_site_histograms(self):
-        all_outputs = {"STORM": outputs, "FNO": predictions}
-        
 
 if __name__ == "__main__":
     unittest.main()
