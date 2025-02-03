@@ -25,7 +25,7 @@ Figure 1. Example outputs from the statistical dynamical model (STORM) and three
 
 Saved models are stored in `./saved_models/` and can be loaded from `saved_models.saved_models`. 
 
-The three current models are DDPMUNet_model, STORM_model and NearestNeighbors_model.
+The four current models are DNO_model, DDPMUNet_model, STORM_model and NearestNeighbors_model.
 Raw input data can be loaded from HDF5 files using the `raw_input_generator("path/to/data/file.hdf5")`.
 
 Otherwise, models all expect a (6, 55, 105) float-valued numpy ndarray representing the relative 
