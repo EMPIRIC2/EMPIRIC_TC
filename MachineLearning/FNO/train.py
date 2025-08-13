@@ -9,28 +9,49 @@ from neuralop import Trainer
 from neuralop import LpLoss, H1Loss
 
 def train_fno(
-    model_name,
-    data_folder,
-    model_config,
-    training_config
-):
-
-    model = FNO2d(
-        model_config.pop("n_modes_height"),
-        model_config.pop("n_modes_width"),          
-        **model_config
-    )
-    
-    unique_model_name = '{}_{}'.format(model_name, str(time.time()))
-    local_save_path = '../models/{}.keras'.format(unique_model_name)
+        config=None
+    ):
 
     # Start a run, tracking hyperparameters
     wandb.init(
-        # set the wandb project where this run will be logged
-        project="EMPIRIC2-AI-emulator",
-        # track hyperparameters and run metadata with wandb.config
-        config=training_config
+        config=config
     )
+    config = wandb.config
+
+    model_config = {
+        "n_modes_height": config.n_modes_height,
+        "n_modes_width": config.n_modes_width,
+        "in_channels": config.in_channels,
+        "hidden_channels": config.hidden_channels,
+        "projection_channels": config.projection_channels,
+        "factorization": config.factorization,
+        "rank": config.rank
+    }
+
+    training_config = {
+        "learning_rate": config.learning_rate,
+        "epoch": config.epochs,
+        "batch_size": config.batch_size,
+        "min_category": config.min_category if hasattr(config, 'min_category') else 3,
+        "max_category": config.max_category if hasattr(config, 'max_category') else 5,
+        "N_100_decades": config.N_100_decades if hasattr(config, 'N_100_decades') else 1
+    }
+
+    model = FNO2d(
+        model_config["n_modes_height"],
+        model_config["n_modes_width"],
+        in_channels=model_config["in_channels"],
+        hidden_channels=model_config["hidden_channels"],
+        projection_channels=model_config["projection_channels"],
+        factorization=model_config["factorization"],
+        rank=model_config["rank"]
+    )
+
+    if torch.cuda.is_available():
+        model = model.to('cuda')
+        
+    unique_model_name = '{}_{}'.format("FNO", str(time.time()))
+    local_save_path = '../models/{}.keras'.format(unique_model_name)
 
     ## track the model with an artifact
     model_artifact = wandb.Artifact(
@@ -45,16 +66,13 @@ def train_fno(
 
     wandb.run.log_artifact(model_artifact)
 
-    # [optional] use wandb.config as your config
-    config = wandb.config
-
     ## track the dataset used with an artifact
     data_artifact = wandb.Artifact(
         "processed_data",
         type="dataset",
         metadata={
             "source": "local dataset",
-            "data_folder": data_folder,
+            "data_folder": config.data_folder,
             "batch_size": config.batch_size,
             "input_description": "[-1, 1] normalized 'genesis_grids'",
             "output_description": "Mean Tropical Cyclone counts over 10 years"
@@ -65,29 +83,29 @@ def train_fno(
     wandb.run.log_code(".", include_fn=lambda p, r: p.endswith("train.py") or p.endswith("unet.py"))
 
     train_data = get_pytorch_dataloader(
-        data_folder,
+        config.data_folder,
         batch_size=config.batch_size,
         min_category=training_config["min_category"],
         max_category=training_config["max_category"],
         N_100_decades=training_config["N_100_decades"]
     )
-    
+
     test_data = get_pytorch_dataloader(
-        data_folder,
+        config.data_folder,
         dataset="test",
         batch_size=config.batch_size,
         min_category=training_config["min_category"],
         max_category=training_config["max_category"],
         N_100_decades=training_config["N_100_decades"]
     )
-    
-    device = 'cpu'
+
+    device = 'cuda'
     # %%
     # Create the optimizer
     optimizer = torch.optim.Adam(model.parameters(),
                                  lr=training_config['learning_rate'],
                                  )
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.epochs)
 
     # %%
     # Creating the losses

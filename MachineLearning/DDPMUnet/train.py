@@ -1,30 +1,52 @@
 from tensorflow import keras
 from MachineLearning.dataset import get_dataset
 from MachineLearning.DDPMUnet.ddpm_unet import build_model
-from MachineLearning.PredictionCallback import PredictionCallback
 import time
 import wandb
+import tensorflow as tf
 from wandb.integration.keras import WandbMetricsLogger
+import gc
 
-def train_ddpm_unet(
-    model_name, 
-    data_folder, 
-    data_version, 
-    model_config, 
-    training_config,
-):
+def train_ddpm_unet(config=None):
     
-    model = build_model(**model_config)
-    unique_model_name = '{}_{}'.format(model_name, str(time.time()))
+    wandb.init(config=config)
+
+    config = wandb.config
+
+    model_config = {
+        "widths": config.widths,
+        "has_attention": config.has_attention,
+        "interpolation": config.interpolation,
+        "img_size": (112, 224, 1),
+        "output_size": (112, 224, 1),
+        "include_temb": False
+    }
+
+    training_config = {
+        "learning_rate": config.learning_rate,
+        "epoch": config.epochs,
+        "batch_size": config.batch_size,
+        "min_category": config.min_category if hasattr(config, 'min_category') else 3,
+        "max_category": config.max_category if hasattr(config, 'max_category') else 5,
+        "N_100_decades": config.N_100_decades if hasattr(config, 'N_100_decades') else 1
+    }
+    
+    unique_model_name = '{}_{}'.format("DDPMUNet", str(time.time()))
     local_save_path = 'models/{}.keras'.format(unique_model_name)
+    # Open a strategy scope.
+   
+    model = build_model(**model_config)
+    early_stopping = keras.callbacks.EarlyStopping(patience=5)
 
-    # Start a run, tracking hyperparameters
-    wandb.init(
-        # set the wandb project where this run will be logged
-        project="EMPIRIC2-AI-emulator",
+    # save best model locally
+    checkpoint = keras.callbacks.ModelCheckpoint(local_save_path, save_best_only=True, save_weights_only=True,
+                                                 mode='min',
+                                                 verbose=1)
 
-        # track hyperparameters and run metadata with wandb.config
-        config=training_config
+    model.compile(
+            optimizer=keras.optimizers.Adam(learning_rate=config.learning_rate),
+            loss=keras.losses.MeanSquaredError(reduction="sum_over_batch_size"),
+            metrics=[keras.metrics.MeanAbsoluteError()]
     )
 
     ## track the model with an artifact
@@ -49,8 +71,8 @@ def train_ddpm_unet(
         type="dataset",
         metadata={
             "source": "local dataset",
-            "data_folder": data_folder,
-            "data_version": data_version,
+            "data_folder": config.data_folder,
+            "data_version": config.data_version,
             "batch_size": config.batch_size,
             "input_description": "[-1, 1] normalized 'genesis_grids'",
             "output_description": "Mean Tropical Cyclone counts over 10 years"
@@ -61,55 +83,43 @@ def train_ddpm_unet(
     wandb.run.log_code(".", include_fn=lambda p, r: p.endswith("train.py") or p.endswith("unet.py"))
 
     train_data = get_dataset(
-        data_folder,
-        data_version=data_version,
+        config.data_folder,
+        data_version=config.data_version,
         batch_size=config.batch_size,
         min_category=training_config["min_category"],
         max_category=training_config["max_category"],
         N_100_decades=training_config["N_100_decades"]
     )
-    
+
     test_data = get_dataset(
-        data_folder, 
-        dataset="test", 
-        data_version=data_version,
+        config.data_folder,
+        dataset="test",
+        data_version=config.data_version,
         min_category=training_config["min_category"],
         max_category=training_config["max_category"],
         N_100_decades=training_config["N_100_decades"]
     )
 
     validation_data = get_dataset(
-        data_folder,
+        config.data_folder,
         dataset="validation",
-        data_version=data_version,
+        data_version=config.data_version,
         min_category=training_config["min_category"],
         max_category=training_config["max_category"],
         N_100_decades=training_config["N_100_decades"]
     )
 
-    #validation_example_in, validation_example_out = next(iter(validation_data))
-
     early_stopping = keras.callbacks.EarlyStopping(patience=5)
-
-    # save best model locally
-    checkpoint = keras.callbacks.ModelCheckpoint(local_save_path, save_best_only=True, save_weights_only=True,
-                                                 mode='min',
-                                                 verbose=1)
-
-    model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=config.learning_rate),
-        loss=keras.losses.MeanSquaredError(reduction="sum_over_batch_size"),
-        metrics=[keras.metrics.MeanAbsoluteError()]
-    )
-
     model.fit(
-        train_data,
-        epochs=config.epoch,
-        verbose=2,
-        validation_data=validation_data,
-        callbacks=[checkpoint, WandbMetricsLogger(), early_stopping]
-    )
+            train_data,
+            epochs=config.epochs,
+            verbose=2,
+            validation_data=validation_data,
+            callbacks=[checkpoint, WandbMetricsLogger(), early_stopping]
+        )
 
     model.evaluate(
-        x=test_data,
-    )
+            x=test_data,
+        )
+
+     

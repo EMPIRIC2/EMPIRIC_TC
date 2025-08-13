@@ -11,7 +11,6 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 
 class FNO_model:
     
-
     def __init__(self, hundred_decades=False):
         self.model = FNO_model.load_model(hundred_decades)
 
@@ -25,21 +24,34 @@ class FNO_model:
     @staticmethod
     def load_model(hundred_decades=False):
         
-        MODEL_CONFIG = {
-            "n_modes_height": 16, 
-            "n_modes_width": 16,
-            "in_channels": 1,
-            "hidden_channels": 32,
-            "projection_channels": 64,
-            "factorization": 'tucker', 
-            "rank": 0.42
-        }
+        
 
         if hundred_decades:
-            model_path = os.path.join(__location__, "FNO_1733842125.6365902.keras")
+            MODEL_CONFIG = {
+                "n_modes_height": 8, 
+                "n_modes_width": 16,
+                "in_channels": 1,
+                "hidden_channels": 64,
+                "projection_channels": 64,
+                "factorization": 'tucker', 
+                "rank": 0.21855185879292535
+            }
+            
+            model_path = os.path.join(__location__, "FNO_1749526963.5687406.keras")
 
         else:
-            model_path = os.path.join(__location__, "FNO_1729471215.0322773.keras")
+
+            MODEL_CONFIG = {
+                "n_modes_height": 16, 
+                "n_modes_width": 16,
+                "in_channels": 1,
+                "hidden_channels": 64,
+                "projection_channels": 128,
+                "factorization": 'tucker',
+                "rank": 0.15989203541113275
+            }
+            
+            model_path = os.path.join(__location__, "FNO_1752854358.0651674.keras")
 
         model = FNO2d(
             MODEL_CONFIG.pop("n_modes_height"),
@@ -47,7 +59,7 @@ class FNO_model:
             **MODEL_CONFIG
         )
 
-        model.load_state_dict(torch.load(model_path, weights_only=True))
+        model.load_state_dict(torch.load(model_path, weights_only=False, map_location=torch.device('cpu')))
 
         return model
     
@@ -79,34 +91,45 @@ class FNO_model:
         # normalize and add channel dimension
         channel_dim = 0
         normalized_genesis = normalize_input(np.expand_dims(upsampled_genesis, axis=channel_dim))
-
         return normalized_genesis.astype(np.float32).copy()
 
     def __call__(self, x):
-        return self.model(x)[0].detach().numpy()
+        x = self.preprocess_input(x)[None,...]
+        x = torch.from_numpy(x)
+        
+        return self.model(x)[0].detach().numpy()[0]
 
 class DDPMUNet_model:
     
-    MODEL_CONFIG = {
-        "img_size": (112, 224, 1),
-        "output_size": (112, 224, 1),
-        "has_attention": [False, False, True],
-        "interpolation": "bilinear",
-        "widths": [16, 32, 64],
-        "include_temb": False
-    }
-
     def __init__(self, hundred_decades=False):
         self.model = DDPMUNet_model.load_model(hundred_decades)
 
     @staticmethod
     def load_model(hundred_decades):
-        if not hundred_decades:
-            model_path = os.path.join(__location__, "DDPM-Unet_1733500332.331749.keras")
+        if hundred_decades:
+            MODEL_CONFIG = {
+                "img_size": (112, 224, 1),
+                "output_size": (112, 224, 1),
+                "has_attention": [False, False, True],
+                "interpolation": "bicubic",
+                "widths": [8, 16, 32],
+                "include_temb": False
+            }
+            model_path = os.path.join(__location__, "DDPMUNet_1751498174.0181487.keras")
+            
         else:
-            model_path = os.path.join(__location__, "DDPM-Unet_1733766375.4331155.keras")
-
-        model = ddpm_unet.build_model(**DDPMUNet_model.MODEL_CONFIG)
+            MODEL_CONFIG = {
+                "img_size": (112, 224, 1),
+                "output_size": (112, 224, 1),
+                "has_attention": [False, False, True],
+                "interpolation": "bicubic",
+                "widths": [16, 32, 64],
+                "include_temb": False
+            }
+        
+            model_path = os.path.join(__location__, "DDPMUNet_1752203723.9748087.keras")
+        
+        model = ddpm_unet.build_model(**MODEL_CONFIG)
         model.load_weights(model_path)
         return model
 
@@ -202,4 +225,3 @@ class STORM_model:
 
     def __call__(self, x):
         return self.model(x)
-

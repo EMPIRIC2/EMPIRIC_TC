@@ -16,7 +16,7 @@ class STORM:
         [5, 6, 7, 8, 9, 10, 11]
     ]
 
-    def __init__(self, basin="SP", total_years=1000, resolution=0.5, n_years_to_sum=10, n_samples=100):
+    def __init__(self, basin="SP", total_years=1000, resolution=0.5):
         """
 
         @param basin: the ocean basin to compute storm tracks for
@@ -28,8 +28,6 @@ class STORM:
         self.basin = basin
         self.total_years = total_years
         self.resolution = resolution
-        self.n_years_to_sum = n_years_to_sum
-        self.n_samples = n_samples
 
         basins = ["EP", "NA", "NI", "SI", "SP", "WP"]
 
@@ -113,15 +111,14 @@ class STORM:
 
         TC_data = sampleStorm(self.total_years, self.month_map, storm_arguments, on_slurm=False)
 
-        mean_samples = get_landfalls_data(
+        mean_samples, _ = get_landfalls_data(
             TC_data,
             self.basin,
             self.total_years,
             self.resolution,
-            on_slurm=False,
-            n_years_to_sum=self.n_years_to_sum,
-            n_samples=self.n_samples,
-            compute_stats=False
+            on_slurm=False
         )
 
-        return np.flipud(np.sum(mean_samples[:,:,:,:3], axis=(-1, -2)))
+        print(mean_samples.shape)
+
+        return np.flipud(np.sum(mean_samples[:,:,:,3:], axis=(-1, -2)))

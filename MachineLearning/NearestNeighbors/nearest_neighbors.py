@@ -21,7 +21,7 @@ class NearestNeighborsRegressor:
         self.data_dir = data_dir
         self.min_category = min_category
         self.max_category = max_category
-        output_dataset = get_dataset(data_dir, data_version="nearest_neighbors", min_category=min_category, max_category=max_category).map(lambda x, y: y)
+        output_dataset = get_dataset(data_dir, data_version="nearest_neighbors", min_category=min_category, max_category=max_category, shuffle=False).map(lambda x, y: y)
         self.output_data = np.empty(shape=(0, 110, 210))
 
         for data in output_dataset.as_numpy_iterator():
