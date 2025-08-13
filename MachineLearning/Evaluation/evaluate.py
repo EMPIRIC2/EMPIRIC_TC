@@ -92,9 +92,8 @@ if __name__ == "__main__":
     
     batch_axis = 0
     
-    ddpm_inputs = np.concatenate(
-        
-        list(ml_inputs.as_numpy_iterator()), axis=batch_axis)
+    ddpm_inputs = np.concatenate(list(ml_inputs.as_numpy_iterator()), axis=batch_axis)
+    
     test_data_fno = get_pytorch_dataloader(args.eval_data_dir, min_category=3, max_category=5, dataset="test", batch_size=32)
     
     test_data_nearest_neighbors = get_dataset(
@@ -132,17 +131,17 @@ if __name__ == "__main__":
             "inputs": ddpm_inputs
         },
         {
-            "name": "DDPM UNet N=100 Decades",
-            "output_description": "Mean 3-5 Category TCs over 10 years",
-            "model": DDPMUNet_model(True),
-            "inputs": ddpm_inputs
-        },
-        {
             "name": "FNO N=100 Decades",
             "output_description": "Mean 3-5 Category TCs over 10 years",
             "model": FNO_model(True),
             "inputs": test_data_fno,
         },
+        {
+            "name": "DDPM UNet N=100 Decades",
+            "output_description": "Mean 3-5 Category TCs over 10 years",
+            "model": DDPMUNet_model(True),
+            "inputs": ddpm_inputs
+        }
     ]
 
     predict_params = {"batch_size": 32, "verbose": 2}

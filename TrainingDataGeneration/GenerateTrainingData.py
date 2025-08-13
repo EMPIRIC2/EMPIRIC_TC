@@ -67,7 +67,7 @@ def generateOneTrainingDataSample(
     tc_data = sampleStorm(total_years, month_map, refs, on_slurm)
 
     print("Storm Sampled!")
-    outputs = get_landfalls_data(
+    outputs, _= get_landfalls_data(
         tc_data,
         basin,
         total_years,
@@ -81,8 +81,6 @@ def generateOneTrainingDataSample(
     grid_means, std_devs = outputs
 
     return genesis_matrix, genesis_weightings, grid_means, std_devs, tc_data
-
-
 
 
 def generateTrainingData(

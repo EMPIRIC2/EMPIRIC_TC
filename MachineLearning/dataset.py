@@ -288,7 +288,8 @@ def get_dataset(
     max_category=1,
     n_samples=1,
     N_100_decades = 10,
-    crop_outputs=False
+    crop_outputs=False,
+    shuffle=True
 ):
     file_paths = glob.glob(os.path.join(folder_path, "*.hdf5"))
 
@@ -344,13 +345,13 @@ def get_dataset(
         )
     else: raise Exception("Invalid data version")
 
-    dataset = tf.data.Dataset.from_generator(
+    tf_dataset = tf.data.Dataset.from_generator(
         generator, output_signature=output_signature
     )
-
+    tf_dataset = tf_dataset.cache()
     # do not shuffle test dataset so we can get all outputs
-    if dataset != "test":
-        dataset = dataset.shuffle(100)
-    batched_dataset = dataset.batch(batch_size)
+    if dataset != "test" and shuffle:
+        tf_dataset = tf_dataset.shuffle(100)
+    batched_dataset = tf_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
     return batched_dataset
